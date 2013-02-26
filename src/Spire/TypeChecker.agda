@@ -95,4 +95,4 @@ checkType A a with checkClosed A a
 checkType A .(erase a) | well a = inj₁ (erase (embV (eval a)))
 checkType A a | ill x msg = inj₂ (x , msg)
 
-
+----------------------------------------------------------------------
