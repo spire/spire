@@ -38,11 +38,14 @@ Related Work
 ------------
 
 There has been a lot of work on formally verifying dependently typed
-languages. The goal of Spire is to be an executable programming
+languages. The wiki contains a
+[list of related
+projects](https://github.com/spire/spire/wiki/Related-Work), and you
+are welcome to add to this list.
+
+The goal of Spire is to be an executable programming
 environment, making it philosophically different from other work.
 Spire extends an [Agda mechanization
 of hereditary substitution by Keller and
 Altenkirch (2012)](http://www.cs.nott.ac.uk/~txa/publ/msfp10.pdf) to a
 dependent type system, making it also technically different.
-The wiki contains a
-[list of related projects](https://github.com/spire/spire/wiki/Related-Work).
