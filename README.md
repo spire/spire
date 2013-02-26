@@ -1,7 +1,8 @@
 Spire
 =====
 
-The humble beginnings of a formally verified dependently typed language.
+The humble beginnings of a formally verified dependently typed
+language that facilitates generic programming.
 
 See the [roadmap wiki page](https://github.com/spire/spire/wiki/Roadmap)
 to get an idea of the features that the language intends to support.
