@@ -13,7 +13,7 @@ Current Status
 Spire is currently a trivial simply typed language. The implementation
 is formally mechanized in Agda. The semantics of the language is
 defined using hereditary substitution based on the
-[Agda mechanization by Keller and Altenkirch](http://www.cs.nott.ac.uk/~txa/publ/msfp10.pdf).
+[Agda mechanization by Keller and Altenkirch](http://hal.inria.fr/docs/00/52/06/06/PDF/msfp10.pdf).
 
 Work In Progress
 ----------------
@@ -48,5 +48,5 @@ The goal of Spire is to be an executable programming
 environment, making it philosophically different from other work.
 Spire extends an [Agda mechanization
 of hereditary substitution by Keller and
-Altenkirch (2012)](http://www.cs.nott.ac.uk/~txa/publ/msfp10.pdf) to a
+Altenkirch (2010)](http://hal.inria.fr/docs/00/52/06/06/PDF/msfp10.pdf) to a
 dependent type system, making it also technically different.
