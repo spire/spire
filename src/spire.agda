@@ -1,5 +1,5 @@
 open import Spire.Prelude
-open import Spire.PreTerm
+open import Spire.TypeChecker
 module spire where
 
 postulate run : TypeChecker → IO Unit

@@ -1,5 +1,5 @@
 module Spire.CLI where
-import Spire.SurfaceTerm as T
+import Spire.Parser
 
 type TypeChecker = Type -> Term -> Either Term (Term , String)
 

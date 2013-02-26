@@ -1,4 +1,4 @@
-module DependentTerm where
+module Spire.DependentEvaluator where
 
 ----------------------------------------------------------------------
 

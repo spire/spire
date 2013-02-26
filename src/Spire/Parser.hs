@@ -1,4 +1,4 @@
-module Spire.SurfaceTerm where
+module Spire.Parser where
 
 data Nat = Zero | Succ Nat
   deriving ( Eq, Show, Read)

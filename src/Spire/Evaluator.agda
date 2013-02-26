@@ -1,12 +1,12 @@
-module Spire.Term where
-{-# IMPORT Spire.SurfaceTerm #-}
+module Spire.Evaluator where
+{-# IMPORT Spire.Parser #-}
 
 ----------------------------------------------------------------------
 
 data Type : Set where
   `⊤ `Bool : Type
-{-# COMPILED_DATA Type Spire.SurfaceTerm.Type
-  Spire.SurfaceTerm.Unit Spire.SurfaceTerm.Bool
+{-# COMPILED_DATA Type Spire.Parser.Type
+  Spire.Parser.Unit Spire.Parser.Bool
 #-}
 
 infixl 3 _,_

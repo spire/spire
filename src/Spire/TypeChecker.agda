@@ -1,7 +1,7 @@
 open import Spire.Prelude
-open import Spire.Term
-module Spire.PreTerm where
-{-# IMPORT Spire.SurfaceTerm #-}
+open import Spire.Evaluator
+module Spire.TypeChecker where
+{-# IMPORT Spire.Parser #-}
 
 ----------------------------------------------------------------------
 
@@ -37,10 +37,10 @@ data PreTerm : Set where
   `tt `true `false : PreTerm
   `if_then_else_ : (b c₁ c₂ : PreTerm) → PreTerm
 
-{-# COMPILED_DATA PreTerm Spire.SurfaceTerm.Term
-  Spire.SurfaceTerm.Var Spire.SurfaceTerm.TT
-  Spire.SurfaceTerm.True Spire.SurfaceTerm.False
-  Spire.SurfaceTerm.If
+{-# COMPILED_DATA PreTerm Spire.Parser.Term
+  Spire.Parser.Var Spire.Parser.TT
+  Spire.Parser.True Spire.Parser.False
+  Spire.Parser.If
 #-}
 
 erase : ∀{Γ A} → Term Γ A → PreTerm
