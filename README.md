@@ -27,7 +27,7 @@ Running
 Spire uses Agda's Haskell backend for compilation.
 Haskell and Agda communicate via Agda's FFI.
 The CLI and parser are informally written in Haskell.
-Everything else is formally mechanized in Agda.
+The type checker and evaluator are formally mechanized in Agda.
 
 To compile and run:
 ```
