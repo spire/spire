@@ -9,6 +9,42 @@ data Equal {A : Set} : A → A → Set where
   yes : {a : A} → Equal a a
   no : {a b : A} → Equal a b
 
+compareT : ∀{Γ} → (A B : Type Γ) → Equal A B
+compareNV : ∀{Γ} {A : Type Γ} (a b : NVal Γ A) → Equal a b
+compareR : ∀{Γ} {A : Type Γ} (i j : Var Γ A) → Equal i j
+
+compareT (`wkn A) (`wkn A′) with compareT A A′
+compareT (`wkn A) (`wkn ._) | yes = yes
+compareT (`wkn A) (`wkn A′) | no = no
+compareT `⊤ `⊤ = yes
+compareT `Bool `Bool = yes
+compareT (`neutral (`if b then A else B)) (`neutral (`if b′ then A′ else B′))
+  with compareNV b b′
+compareT (`neutral (`if b then A else B)) (`neutral (`if ._ then A′ else B′)) | yes
+  with compareT A A′
+compareT (`neutral (`if b then A else B)) (`neutral (`if .b then ._ else B′)) | yes | yes
+  with compareT B B′
+compareT (`neutral (`if b then A else B)) (`neutral (`if .b then ._ else ._)) | yes | yes | yes = yes
+compareT (`neutral (`if b then A else B)) (`neutral (`if .b then ._ else B′)) | yes | yes | no = no
+compareT (`neutral (`if b then A else B)) (`neutral (`if .b then A′ else B′)) | yes | no = no
+compareT (`neutral (`if b then A else B)) (`neutral (`if b′ then A′ else B′)) | no = no
+compareT _ _ = no
+
+compareNV (`var i) (`var i′) with compareR i i′
+compareNV (`var i) (`var ._) | yes = yes
+compareNV (`var i) (`var i′) | no = no
+compareNV (`not a) (`not a′) with compareNV a a′
+compareNV (`not a) (`not ._) | yes = yes
+compareNV (`not a) (`not a′) | no = no
+compareNV _ _ = no
+
+compareR here here = yes
+compareR here (there j) = no
+compareR (there i) here = no
+compareR (there i) (there j) with compareR i j
+compareR (there i) (there ._) | yes = yes
+compareR (there i) (there j) | no = no
+
 ----------------------------------------------------------------------
 
 index : ∀{Γ A} → Var Γ A → ℕ
@@ -20,79 +56,113 @@ length ∅ = zero
 length (Γ , A) = suc (length Γ)
 
 data Lookup (Γ : Con) : ℕ → Set where
-  inside : (A : Type) (i : Var Γ A) → Lookup Γ (index i)
+  inside : (A : Type Γ) (i : Var Γ A) → Lookup Γ (index i)
   outside : (n : ℕ) → Lookup Γ (length Γ + n)
 
 lookup : (Γ : Con) (n : ℕ) → Lookup Γ n
 lookup ∅ n = outside n
-lookup (Γ , A) zero = inside A here
+lookup (Γ , A) zero = inside (`wkn A) here
 lookup (Γ , A) (suc n) with lookup Γ n
-lookup (Γ , B) (suc .(index i)) | inside A i = inside A (there i)
+lookup (Γ , B) (suc .(index i)) | inside A i = inside (`wkn A) (there i)
 lookup (Γ , B) (suc .(length Γ + n)) | outside n = outside n
 
 ----------------------------------------------------------------------
 
 data PreTerm : Set where
+  `wkn : (a : PreTerm) → PreTerm
   `var : ℕ → PreTerm
   `tt `true `false : PreTerm
-  `if_then_else_ : (b c₁ c₂ : PreTerm) → PreTerm
+  `not : (b : PreTerm) → PreTerm
 
 {-# COMPILED_DATA PreTerm Spire.Parser.Term
+  Spire.Parser.WknV
   Spire.Parser.Var Spire.Parser.TT
   Spire.Parser.True Spire.Parser.False
+  Spire.Parser.Not
+#-}
+
+data PreType : Set where
+  `wkn : (A : PreType) → PreType
+  `⊤ `Bool : PreType
+  `if_then_else_ : (b : PreTerm)
+    (A B : PreType)
+    → PreType
+
+{-# COMPILED_DATA PreType Spire.Parser.Type
+  Spire.Parser.Wkn
+  Spire.Parser.Unit Spire.Parser.Bool
   Spire.Parser.If
 #-}
 
+eraseType : ∀{Γ} → TermType Γ → PreType
 erase : ∀{Γ A} → Term Γ A → PreTerm
+
+eraseType (`wkn A) = `wkn (eraseType A)
+eraseType `⊤ = `⊤
+eraseType `Bool = `Bool
+eraseType (`if b then A else B) = `if erase b then eraseType A else eraseType B
+
+erase (`wkn a) = `wkn (erase a)
 erase (`var i) = `var (index i)
 erase `tt = `tt
 erase `true = `true
 erase `false = `false
-erase (`if b then c₁ else c₂) = `if erase b then erase c₁ else erase c₂
+erase (`not b) = `not (erase b)
 
 ----------------------------------------------------------------------
 
-data Check (Γ : Con) (A : Type) : PreTerm → Set where
+data CheckType (Γ : Con) : PreType → Set where
+  well :  (A : TermType Γ) → CheckType Γ (eraseType A)
+  ill : ∀{A} (x : PreType) (msg : String) → CheckType Γ A
+
+data Check (Γ : Con) (A : Type Γ) : PreTerm → Set where
   well :  (a : Term Γ A) → Check Γ A (erase a)
   ill : ∀{a} (x : PreTerm) (msg : String) → Check Γ A a
 
-check : (Γ : Con) (A : Type) (a : PreTerm) → Check Γ A a
-check Γ `⊤ (`var i) with lookup Γ i
-check Γ `⊤ (`var .(index i)) | inside `⊤ i = well (`var i)
-check Γ `⊤ (`var .(index i)) | inside A i = ill (`var (index i)) "does not have type ⊤." 
-check Γ `⊤ (`var .(length Γ + n)) | outside n = ill (`var (length Γ + n)) "is not in the context."
+checkT : (Γ : Con) (A : PreType) → CheckType Γ A
+check : (Γ : Con) (A : Type Γ) (a : PreTerm) → Check Γ A a
+
+checkT ∅ (`wkn A) = ill (`wkn A) "type is not weakened in empty context."
+checkT (Γ , B) (`wkn A) with checkT Γ A
+checkT (Γ , B) (`wkn ._) | well A = well (`wkn A)
+checkT (Γ , B) (`wkn A) | ill x msg = ill x msg
+checkT Γ `⊤ = well `⊤
+checkT Γ `Bool = well `Bool
+checkT Γ (`if b then A else B) with check Γ `Bool b
+checkT Γ (`if ._ then A else B) | well b with checkT Γ A
+checkT Γ (`if ._ then ._ else B) | well b | well A with checkT Γ B
+checkT Γ (`if ._ then ._ else ._) | well b | well A | well B = well (`if b then A else B)
+checkT Γ (`if ._ then ._ else B) | well b | well A | ill x msg = ill x msg
+checkT Γ (`if ._ then A else B) | well b | ill x msg = ill x msg  
+checkT Γ (`if b then A else B) | ill x msg = ill (`if b then A else B) msg
+
+check Γ A (`var i) with lookup Γ i
+check Γ A (`var ._) | inside B i with compareT A B
+check Γ .B (`var ._) | inside B i | yes = well (`var i)
+check Γ A (`var ._) | inside B i | no = ill (`var (index i)) "type in context does not match checked type." 
+check Γ A (`var ._) | outside n = ill (`var (length Γ + n)) "is not in the context."
+check ._ (`wkn {Γ} A) (`wkn a) with check Γ A a
+check ._ (`wkn {Γ} A) (`wkn ._) | well a = well (`wkn a)
+check ._ (`wkn {Γ} A) (`wkn a) | ill x msg = ill x msg
+check ._ (`wkn A) a = ill a "is not a weakened type."
+check Γ (`neutral A) a = ill a "is not a neutral type."
+check Γ `Bool (`not b) with check Γ `Bool b
+check Γ `Bool (`not ._) | well b = well (`not b)
+check Γ `Bool (`not b) | ill x msg = ill x msg
 check Γ `⊤ `tt = well `tt
-check Γ `⊤ (`if b then c₁ else c₂) with check Γ `Bool b
-check Γ `⊤ (`if ._ then c₁ else c₂) | well b with check Γ `⊤ c₁
-check Γ `⊤ (`if ._ then ._ else c₂) | well b | well c₁ with check Γ `⊤ c₂
-check Γ `⊤ (`if ._ then ._ else ._) | well b | well c₁ | well c₂ = well (`if b then c₁ else c₂)
-check Γ `⊤ (`if ._ then ._ else c₂) | well b | well c₁ | ill x msg = ill x msg
-check Γ `⊤ (`if ._ then c₁ else c₂) | well b | ill x msg = ill x msg
-check Γ `⊤ (`if b then c₁ else c₂) | ill x msg = ill x msg
 check Γ `⊤ x = ill x "does not have type ⊤."
-check Γ `Bool (`var i) with lookup Γ i
-check Γ `Bool (`var .(index i)) | inside `Bool i = well (`var i)
-check Γ `Bool (`var .(index i)) | inside A i = ill (`var (index i)) "does not have type Bool." 
-check Γ `Bool (`var .(length Γ + n)) | outside n = ill (`var (length Γ + n)) "is not in the context."
 check Γ `Bool `true = well `true
 check Γ `Bool `false = well `false
-check Γ `Bool (`if b then c₁ else c₂) with check Γ `Bool b
-check Γ `Bool (`if ._ then c₁ else c₂) | well b with check Γ `Bool c₁
-check Γ `Bool (`if ._ then ._ else c₂) | well b | well c₁ with check Γ `Bool c₂
-check Γ `Bool (`if ._ then ._ else ._) | well b | well c₁ | well c₂ = well (`if b then c₁ else c₂)
-check Γ `Bool (`if ._ then ._ else c₂) | well b | well c₁ | ill x msg = ill x msg
-check Γ `Bool (`if ._ then c₁ else c₂) | well b | ill x msg = ill x msg
-check Γ `Bool (`if b then c₁ else c₂) | ill x msg = ill x msg
 check Γ `Bool x = ill x "does not have type Bool."
 
 ----------------------------------------------------------------------
 
-checkClosed = check ∅
-
-TypeChecker = (A : Type) (a : PreTerm) → PreTerm ⊎ (PreTerm × String)
+TypeChecker = (A : PreType) (a : PreTerm) → PreType × PreTerm ⊎ PreType × String ⊎ PreTerm × String
 checkType : TypeChecker
-checkType A a with checkClosed A a
-checkType A .(erase a) | well a = inj₁ (erase (embV (eval a)))
-checkType A a | ill x msg = inj₂ (x , msg)
+checkType A a with checkT ∅ A
+checkType ._ a | well A with check ∅ (evalType A) a
+checkType ._ .(erase a) | well A | well a = inj₁ (eraseType (embT (evalType A)) , erase (embV (eval a)))
+checkType ._ a | well A | ill x msg = inj₂ (inj₂ (x , msg))
+checkType A a | ill x msg = inj₂ (inj₁ (x , msg))
 
 ----------------------------------------------------------------------

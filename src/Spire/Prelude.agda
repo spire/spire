@@ -21,6 +21,7 @@ data Maybe (A : Set) : Set where
 
 ----------------------------------------------------------------------
 
+infixr 1 _⊎_
 data _⊎_ (A B : Set) : Set where
   inj₁ : A → A ⊎ B
   inj₂ : B → A ⊎ B
@@ -28,6 +29,7 @@ data _⊎_ (A B : Set) : Set where
 
 ----------------------------------------------------------------------
 
+infixr 2 _×_
 data _×_ (A B : Set) : Set where
   _,_ : (a : A) (b : B) → A × B
 {-# COMPILED_DATA _×_ (,) (,) #-}

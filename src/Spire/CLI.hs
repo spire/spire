@@ -1,7 +1,7 @@
 module Spire.CLI where
 import Spire.Parser
 
-type TypeChecker = Type -> Term -> Either Term (Term , String)
+type TypeChecker = Type -> Term -> Either (Type , Term) (Either (Type , String) (Term , String))
 
 run :: TypeChecker -> IO ()
 run checkType = do
@@ -10,10 +10,13 @@ run checkType = do
   putStrLn $ "Enter term: "
   tm <- getLine
   case checkType (read tp) (read tm) of
-     Left val -> do
+     Left (tp' , tm') -> do
        putStrLn "Well typed!"
-       putStrLn $ "=> " ++ show val
-     Right (ill , msg) -> do
-          putStrLn "Ill typed!"
-          putStrLn $ show ill ++ " " ++ msg
+       putStrLn $ "=> " ++ show tm' ++ " : " ++ show tp'
+     Right (Left (tp' , msg)) -> do
+          putStrLn "Type is ill typed!"
+          putStrLn $ show tp' ++ " " ++ msg
+     Right (Right (tm' , msg)) -> do
+          putStrLn "Term is ill typed!"
+          putStrLn $ show tm' ++ " " ++ msg
 
