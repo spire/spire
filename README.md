@@ -10,16 +10,8 @@ to get an idea of the features that the language intends to support.
 Current Status
 --------------
 
-Spire is currently a trivial simply typed language. The implementation
-is formally mechanized in Agda. The semantics of the language is
-defined using hereditary substitution based on the
-[Agda mechanization by Keller and Altenkirch](http://hal.inria.fr/docs/00/52/06/06/PDF/msfp10.pdf).
-
-Work In Progress
-----------------
-
-Extending the hereditary substitution mechanization to define a very
-basic dependently typed language.
+Spire is currently the most simple dependently typed language imaginable,
+consisting only of the types Unit and Bool.
 
 Running
 -------
