@@ -1,31 +1,17 @@
 Spire
 =====
 
-The humble beginnings of a formally verified dependently typed
-language that facilitates generic programming.
+A dependently typed language that makes generic programming easy. Read the
+["leveling up" paper](https://github.com/larrytheliquid/leveling-up)
+to get an idea of what the final language will support, in terms of
+generic programming support.
 
-See the [roadmap wiki page](https://github.com/spire/spire/wiki/Roadmap)
-to get an idea of the features that the language intends to support.
-
-Current Status
---------------
-
-Spire is currently the most simple dependently typed language imaginable,
-consisting only of the types Unit and Bool.
-
-Running
--------
-
-Spire uses Agda's Haskell backend for compilation.
-Haskell and Agda communicate via Agda's FFI.
-The CLI and parser are informally written in Haskell.
-The type checker and evaluator are formally mechanized in Agda.
-
-To compile and run:
-```
-agda -c --compile-dir=. -isrc --ghc-flag=-isrc src/spire.agda
-./spire
-```
+The current implementation is written in Haskell. The semantics is defined
+using hereditary substitution. Hereditary substitution has its
+roots in making a PL's semantics syntactically terminating. We hope
+to use this Haskell implementation as a prototype, and ultimately end
+up with a formally mechanized implementation in Agda that capitalizes
+on the termination properties of hereditary substitution.
 
 Related Work
 ------------
