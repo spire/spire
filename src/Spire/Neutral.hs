@@ -5,59 +5,63 @@ module Spire.Neutral where
 type Var = Integer
 
 data Val =
-    Bool
-  | Pi Val Val
-  | Sg Val Val
+    VBool
+  | VPi Val Val
+  | VSg Val Val
 
-  | TT | FF
-  | Pair Val Val
-  | Lam Val
-  | NVal NVal
+  | VTrue | VFalse
+  | VPair Val Val
+  | VLam Val
+  | Neut Neut
   deriving ( Eq, Show, Read )
 
-data NVal =
-    Var Var
-  | App NVal Val
-  | Proj1 NVal
-  | Proj2 NVal
-  | If NVal Val Val
+data Neut =
+    NVar Var
+  | NIf Neut Val Val
+  | NProj1 Neut
+  | NProj2 Neut
+  | NApp Neut Val
   deriving ( Eq, Show, Read )
 
 ----------------------------------------------------------------------
 
-subV :: Var -> Val -> Val -> Val
-subV i (Pi a b) x = Pi (subV i a x) (subV (succ i) b x)
-subV i (Sg a b) x = Sg (subV i a x) (subV (succ i) b x)
-subV i Bool x = Bool
-subV i TT x = TT
-subV i FF x = FF
-subV i (Pair a b) x = Pair (subV i a x) (subV i b x)
-subV i (Lam f) x = Lam (subV (succ i) f x)
-subV i (NVal n) x = subNV i n x
+evalIf :: Val -> Val -> Val -> Val
+evalIf VTrue c1 c2 = c1
+evalIf VFalse c1 c2 = c2
+evalIf (Neut b) c1 c2 = Neut (NIf b c1 c2)
 
-subNV :: Var -> NVal -> Val -> Val
-subNV i (Var j) x | i == j = x
-subNV i (Var j) x = NVal (Var j)
-subNV i (App f a) x =
-  let a' = subV i a x in
-  case subNV i f x of
-  Lam f' -> subV 0 a' f'
-  NVal f' -> NVal (App f' a')
-subNV i (Proj1 ab) x =
-  case subNV i ab x of
-  Pair a b -> a
-  NVal ab' -> NVal (Proj1 ab')
-subNV i (Proj2 ab) x =
-  case subNV i ab x of
-  Pair a b -> b
-  NVal ab' -> NVal (Proj2 ab')
-subNV i (If b c1 c2) x =
-  let
-    c1' = subV i c1 x
-    c2' = subV i c2 x
-  in case subNV i b x of
-  TT -> c1'
-  FF -> c2'
-  NVal b' -> NVal (If b' c1' c2')
+evalProj1 :: Val -> Val
+evalProj1 (VPair a b) = a
+evalProj1 (Neut ab) = Neut (NProj1 ab)
+
+evalProj2 :: Val -> Val
+evalProj2 (VPair a b) = b
+evalProj2 (Neut ab) = Neut (NProj1 ab)
+
+evalApp :: Val -> Val -> Val
+evalApp (VLam f) a = subV 0 a f
+evalApp (Neut f) a = Neut (NApp f a)
+
+----------------------------------------------------------------------
+
+subV :: Var -> Val -> Val -> Val
+subV i (VPi a b) x = VPi (subV i a x) (subV (succ i) b x)
+subV i (VSg a b) x = VSg (subV i a x) (subV (succ i) b x)
+subV i VBool x = VBool
+subV i VTrue x = VTrue
+subV i VFalse x = VFalse
+subV i (VPair a b) x = VPair (subV i a x) (subV i b x)
+subV i (VLam f) x = VLam (subV (succ i) f x)
+subV i (Neut n) x = subNV i n x
+
+subNV :: Var -> Neut -> Val -> Val
+subNV i (NVar j) x | i == j = x
+subNV i (NVar j) x = Neut (NVar j)
+subNV i (NIf b c1 c2) x =
+  evalIf (subNV i b x) (subV i c1 x) (subV i c2 x)
+subNV i (NProj1 ab) x = evalProj1 (subNV i ab x)
+subNV i (NProj2 ab) x = evalProj2 (subNV i ab x)
+subNV i (NApp f a) x =
+  evalApp (subNV i f x) (subV i a x)
 
 ----------------------------------------------------------------------
