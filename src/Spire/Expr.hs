@@ -4,7 +4,7 @@ import Spire.Neutral
 ----------------------------------------------------------------------
 
 data Expr =
-    EBool
+    EBool | EType
   | EPi Expr Expr
   | ESg Expr Expr
 
@@ -23,6 +23,7 @@ data Expr =
 
 embed :: Val -> Expr
 embed VBool = EBool
+embed VType = EType
 embed (VPi a b) = EPi (embed a) (embed b)
 embed (VSg a b) = ESg (embed a) (embed b)
 embed VTrue = ETrue
@@ -42,6 +43,7 @@ embedN (NApp f a) = EApp (embedN f) (embed a)
 
 eval :: Expr -> Val
 eval EBool = VBool
+eval EType = VType
 eval (EPi a b) = VPi (eval a) (eval b)
 eval (ESg a b) = VSg (eval a) (eval b)
 eval ETrue = VTrue
