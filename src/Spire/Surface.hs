@@ -27,6 +27,50 @@ data Infer =
 
 ----------------------------------------------------------------------
 
+printC :: Check -> String
+printC CTrue = "true"
+printC CFalse = "false"
+printC (CPair a b) =
+  "( " ++ printC a ++
+  " , " ++
+  printC b ++ " )"
+printC (CLam f) =
+  "-> ( " ++
+  printC f ++
+  " )"
+printC (Infer a) = printI a
+
+printI :: Infer -> String
+printI IBool = "Bool"
+printI IType = "Type"
+printI (IPi a b) =
+  "Pi " ++
+  printC a ++
+  printC b
+printI (ISg a b) =
+  "Sg " ++
+  printC a ++
+  printC b
+printI (IVar i) = show i
+printI (IIf b c1 c2) =
+  "if " ++ printC b ++
+  " then " ++ printI c1 ++
+  " else " ++ printI c2
+printI (IProj1 ab) =
+  "proj1 " ++ printI ab
+printI (IProj2 ab) =
+  "proj2 " ++ printI ab
+printI (IApp f a) =
+  printI f ++
+  " $ " ++
+  printC a
+printI (IAnn tm tp) =
+  printC tm ++
+  " : " ++
+  printC tp
+
+----------------------------------------------------------------------
+
 evalC :: Check -> Val
 evalC CTrue = VTrue
 evalC CFalse = VFalse
