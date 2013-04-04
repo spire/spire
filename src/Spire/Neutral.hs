@@ -13,7 +13,7 @@ data Val =
 
   | VTrue | VFalse
   | VPair Val Val
-  | VLam Val
+  | VLam Val            -- Abstracted over (Neut(NVar 0))
   | Neut Neut
   deriving ( Eq, Show, Read )
 
