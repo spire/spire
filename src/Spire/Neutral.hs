@@ -27,6 +27,46 @@ data Neut =
 
 ----------------------------------------------------------------------
 
+printV :: Val -> String
+printV VBool = "Bool"
+printV VType = "Type"
+printV (VPi a b) =
+  "Pi " ++
+  printV a ++
+  printV b
+printV (VSg a b) =
+  "Sg " ++
+  printV a ++
+  printV b
+printV VTrue = "true"
+printV VFalse = "false"
+printV (VPair a b) =
+  "( " ++ printV a ++
+  " , " ++
+  printV b ++ " )"
+printV (VLam f) =
+  "-> ( " ++
+  printV f ++
+  " )"
+printV (Neut a) = printN a
+
+printN :: Neut -> String
+printN (NVar i) = show i
+printN (NIf b c1 c2) =
+  "if " ++ printN b ++
+  " then " ++ printV c1 ++
+  " else " ++ printV c2
+printN (NProj1 ab) =
+  "proj1 " ++ printN ab
+printN (NProj2 ab) =
+  "proj2 " ++ printN ab
+printN (NApp f a) =
+  printN f ++
+  " $ " ++
+  printV a
+
+----------------------------------------------------------------------
+
 evalIf :: Val -> Val -> Val -> Val
 evalIf VTrue c1 c2 = c1
 evalIf VFalse c1 c2 = c2
