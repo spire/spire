@@ -7,10 +7,13 @@ run :: IO ()
 run = do
   putStrLn $ "Enter type: "
   tp <- getLine
-  putStrLn (show tp)
-  -- case parseTerm tp of
-  --   Left error -> putStrLn "fail"
-  --   Right tp' -> putStrLn "success"
+  case parseTerm tp of
+    Left error -> do
+      putStrLn "Parse error:"
+      putStrLn (show error)
+    Right tp' -> do
+      putStrLn "Parsed term:"
+      putStrLn (show tp')
 
   -- putStrLn $ "Enter term: "
   -- tm <- getLine
