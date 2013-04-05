@@ -7,14 +7,14 @@ import Control.Monad.Error
 type Result a = Either String a
 
 data Check =
-    CTrue | CFalse
-  | CPair Check Check
+    CPair Check Check
   | CLam Check
   | Infer Infer
   deriving ( Eq, Show, Read )
 
 data Infer =
-    IBool | IType
+    CTrue | CFalse
+  | IBool | IType
   | IPi Check Check
   | ISg Check Check
   | IVar Var
@@ -28,13 +28,13 @@ data Infer =
 ----------------------------------------------------------------------
 
 evalC :: Check -> Val
-evalC CTrue = VTrue
-evalC CFalse = VFalse
 evalC (CPair a b) = VPair (evalC a) (evalC b)
 evalC (CLam f) = VLam (evalC f)
 evalC (Infer a) = evalI a
 
 evalI :: Infer -> Val
+evalI CTrue = VTrue
+evalI CFalse = VFalse
 evalI IBool = VBool
 evalI IType = VType
 evalI (IPi a b) = VPi (evalC a) (evalC b)
@@ -49,8 +49,6 @@ evalI (IAnn a _) = evalC a
 ----------------------------------------------------------------------
 
 check :: Ctx -> Check -> Type -> Result ()
-check ctx CTrue VBool = return ()
-check ctx CFalse VBool = return ()
 check ctx (CLam f) (VPi a b) = check (a : ctx) f b
 check ctx (CPair x y) (VSg a b) = do
   check ctx x a
@@ -65,6 +63,8 @@ check ctx (Infer tm) tp = do
 check ctx tm tp = throwError "Ill-typed!"
 
 infer :: Ctx -> Infer -> Result Type
+infer ctx CTrue = return VBool
+infer ctx CFalse = return VBool
 infer ctx IBool = return VType
 infer ctx IType = return VType
 infer ctx (IPi a b) = do

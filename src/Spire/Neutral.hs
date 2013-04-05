@@ -61,9 +61,9 @@ printN (NProj1 ab) =
 printN (NProj2 ab) =
   "proj2 " ++ printN ab
 printN (NApp f a) =
-  printN f ++
+  "( " ++ printN f ++
   " $ " ++
-  printV a
+  printV a ++ " )"
 
 ----------------------------------------------------------------------
 
