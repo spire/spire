@@ -4,140 +4,140 @@ import Text.ParserCombinators.Parsec
 
 ----------------------------------------------------------------------
 
-pTerm = do
+parseExpr = do
   spaces
-  tm <- pCheck
+  tm <- parseCheck
   spaces
   xs <- many anyChar
   if null xs
   then return tm
   else fail $ "Leftover input:\n" ++ xs
 
-pCheck = do
-      try (pParens pCheck)
-  <|> try pPair
-  <|> try pLam
-  <|> (return . Infer =<< try pInfer)
+parseCheck = do
+      try (parseParens parseCheck)
+  <|> try parsePair
+  <|> try parseLam
+  <|> (return . Infer =<< try parseInfer)
 
-pInfer = do
-      try pAnn
-  <|> try pApp
-  <|> try (pParens pInfer)
-  <|> try pTT
-  <|> try pTrue
-  <|> try pFalse
-  <|> try pUnit
-  <|> try pBool
-  <|> try pType
-  <|> try pPi
-  <|> try pSg
-  <|> try pVar
-  <|> try pIf
-  <|> try pProj1
-  <|> try pProj2
+parseInfer = do
+      try parseAnn
+  <|> try parseApp
+  <|> try (parseParens parseInfer)
+  <|> try parseTT
+  <|> try parseTrue
+  <|> try parseFalse
+  <|> try parseUnit
+  <|> try parseBool
+  <|> try parseType
+  <|> try parsePi
+  <|> try parseSg
+  <|> try parseVar
+  <|> try parseIf
+  <|> try parseProj1
+  <|> try parseProj2
 
 ----------------------------------------------------------------------
 
-pPair = do
+parsePair = do
   char '('
   spaces
-  x <- pCheck
+  x <- parseCheck
   spaces1
   char ','
   spaces1  
-  y <- pCheck
+  y <- parseCheck
   spaces
   char ')'
   return $ CPair x y
 
-pLam = do
+parseLam = do
   string "->"
   spaces1
-  tm <- pCheck
+  tm <- parseCheck
   return $ CLam tm
 
 ----------------------------------------------------------------------
 
-pTT = string "tt" >> return ITT
-pTrue = string "true" >> return ITrue
-pFalse = string "false" >> return IFalse
-pUnit = string "Unit" >> return IUnit
-pBool = string "Bool" >> return IBool
-pType = string "Type" >> return IType
+parseTT = string "tt" >> return ITT
+parseTrue = string "true" >> return ITrue
+parseFalse = string "false" >> return IFalse
+parseUnit = string "Unit" >> return IUnit
+parseBool = string "Bool" >> return IBool
+parseType = string "Type" >> return IType
 
-pPi = do
+parsePi = do
   string "Pi"
   spaces1
-  a <- pCheck
+  a <- parseCheck
   spaces1
-  b <- pCheck
+  b <- parseCheck
   return $ IPi a b
 
-pSg = do
+parseSg = do
   string "Sg"
   spaces1
-  a <- pCheck
+  a <- parseCheck
   spaces1
-  b <- pCheck
+  b <- parseCheck
   return $ ISg a b
 
-pVar = do
+parseVar = do
   i <- many1 digit
   return $ IVar (read i)
 
-pIf = do
+parseIf = do
   string "if"
   spaces1
-  b <- pCheck
+  b <- parseCheck
   spaces1
   string "then"
   spaces1
-  c1 <- pInfer
+  c1 <- parseInfer
   spaces1
   string "else"
   spaces1
-  c2 <- pInfer
+  c2 <- parseInfer
   return $ IIf b c1 c2
 
-pProj1 = do
+parseProj1 = do
   string "proj1"
   spaces1
-  ab <- pInfer
+  ab <- parseInfer
   return $ IProj1 ab
 
-pProj2 = do
+parseProj2 = do
   string "proj2"
   spaces1
-  ab <- pInfer
+  ab <- parseInfer
   return $ IProj2 ab
 
-pApp = do
+parseApp = do
   char '('
   spaces
-  f <- pInfer
+  f <- parseInfer
   spaces1
   char '$'
   spaces1
-  a <- pCheck
+  a <- parseCheck
   spaces
   char ')'
   return $ IApp f a
 
-pAnn = do
+parseAnn = do
   char '('
   spaces
-  tm <- pCheck
+  tm <- parseCheck
   spaces1
   char ':'
   spaces1
-  tp <- pCheck
+  tp <- parseCheck
   spaces
   char ')'
   return $ IAnn tm tp
 
 ----------------------------------------------------------------------
 
-pParens p = do
+parseParens p = do
   char '('
   spaces
   tm <- p
@@ -150,6 +150,6 @@ spaces1 = many1 space >> return ()
 ----------------------------------------------------------------------
 
 parseTerm :: String -> Either ParseError Check
-parseTerm tm = parse pTerm "(unknown)" tm
+parseTerm tm = parse parseExpr "(unknown)" tm
 
 ----------------------------------------------------------------------
