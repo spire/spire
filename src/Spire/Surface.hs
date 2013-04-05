@@ -122,7 +122,7 @@ infer ctx (IApp f x) = do
       "Ill-typed, application of non-function!\n" ++
       "Applied value:\n"  ++ show f ++
       "\nApplied type:\n"  ++ printV ab
-infer ctx (IVar i) = return (ctx !! i)
+infer ctx (IVar i) = return (ctx !! fromInteger i)
 infer ctx (IAnn tm tp) = do
   check ctx tp VType
   let tp' = evalC tp

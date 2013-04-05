@@ -1,17 +1,53 @@
 module Spire.Parser where
 import Spire.Surface
-import Text.ParserCombinators.Parsec
+import Text.Parsec
+import Text.Parsec.String
+import Text.Parsec.Expr
+import Text.Parsec.Token
+import Text.Parsec.Language
+
+----------------------------------------------------------------------
+
+ops = ["->", ",", ":", "$"]
+keywords = [
+  "Unit", "Bool", "Type",
+  "Pi", "Sg",
+  "tt", "true", "false",
+  "if", "then", "else",
+  "proj1", "proj2"
+  ]
+
+def = emptyDef {
+  commentStart = "{-"
+, commentEnd = "-}"
+, commentLine = "--"
+, opStart = oneOf (map head ops)
+, opLetter = oneOf (concat ops)
+, reservedOpNames = ops
+, reservedNames = keywords
+}
+
+tokenizer = makeTokenParser def
+parseOp = reservedOp tokenizer
+parseKeyword = reserved tokenizer
+parseSpaces = whiteSpace tokenizer
+
+parseParens p = do
+  char '('
+  spaces
+  tm <- p
+  spaces
+  char ')'
+  return tm
+
+parseTerm :: String -> Either ParseError Check
+parseTerm tm = parse parseExpr "(unknown)" tm
 
 ----------------------------------------------------------------------
 
 parseExpr = do
-  spaces
-  tm <- parseCheck
-  spaces
-  xs <- many anyChar
-  if null xs
-  then return tm
-  else fail $ "Leftover input:\n" ++ xs
+  parseSpaces
+  parseCheck
 
 parseCheck = do
       try (parseParens parseCheck)
@@ -23,12 +59,12 @@ parseInfer = do
       try parseAnn
   <|> try parseApp
   <|> try (parseParens parseInfer)
-  <|> try parseTT
-  <|> try parseTrue
-  <|> try parseFalse
-  <|> try parseUnit
-  <|> try parseBool
-  <|> try parseType
+  <|> parseTT
+  <|> parseTrue
+  <|> parseFalse
+  <|> parseUnit
+  <|> parseBool
+  <|> parseType
   <|> try parsePi
   <|> try parseSg
   <|> try parseVar
@@ -39,117 +75,73 @@ parseInfer = do
 ----------------------------------------------------------------------
 
 parsePair = do
-  char '('
-  spaces
-  x <- parseCheck
-  spaces1
-  char ','
-  spaces1  
-  y <- parseCheck
-  spaces
-  char ')'
-  return $ CPair x y
+  parseParens $ do
+    x <- parseCheck
+    parseOp ","
+    y <- parseCheck
+    return $ CPair x y
 
 parseLam = do
-  string "->"
-  spaces1
+  parseOp "->"
   tm <- parseCheck
   return $ CLam tm
 
 ----------------------------------------------------------------------
 
-parseTT = string "tt" >> return ITT
-parseTrue = string "true" >> return ITrue
-parseFalse = string "false" >> return IFalse
-parseUnit = string "Unit" >> return IUnit
-parseBool = string "Bool" >> return IBool
-parseType = string "Type" >> return IType
+parseTT = parseKeyword "tt" >> return ITT
+parseTrue = parseKeyword "true" >> return ITrue
+parseFalse = parseKeyword "false" >> return IFalse
+parseUnit = parseKeyword "Unit" >> return IUnit
+parseBool = parseKeyword "Bool" >> return IBool
+parseType = parseKeyword "Type" >> return IType
 
 parsePi = do
-  string "Pi"
-  spaces1
+  parseKeyword "Pi"
   a <- parseCheck
-  spaces1
   b <- parseCheck
   return $ IPi a b
 
 parseSg = do
-  string "Sg"
-  spaces1
+  parseKeyword "Sg"
   a <- parseCheck
-  spaces1
   b <- parseCheck
   return $ ISg a b
 
 parseVar = do
-  i <- many1 digit
-  return $ IVar (read i)
+  i <- natural tokenizer
+  return $ IVar i
 
 parseIf = do
-  string "if"
-  spaces1
+  parseKeyword "if"
   b <- parseCheck
-  spaces1
-  string "then"
-  spaces1
+  parseKeyword "then"
   c1 <- parseInfer
-  spaces1
-  string "else"
-  spaces1
+  parseKeyword "else"
   c2 <- parseInfer
   return $ IIf b c1 c2
 
 parseProj1 = do
-  string "proj1"
-  spaces1
+  parseKeyword "proj1"
   ab <- parseInfer
   return $ IProj1 ab
 
 parseProj2 = do
-  string "proj2"
-  spaces1
+  parseKeyword "proj2"
   ab <- parseInfer
   return $ IProj2 ab
 
 parseApp = do
-  char '('
-  spaces
-  f <- parseInfer
-  spaces1
-  char '$'
-  spaces1
-  a <- parseCheck
-  spaces
-  char ')'
-  return $ IApp f a
+  parseParens $ do
+    f <- parseInfer
+    parseOp "$"
+    a <- parseCheck
+    return $ IApp f a
 
 parseAnn = do
-  char '('
-  spaces
-  tm <- parseCheck
-  spaces1
-  char ':'
-  spaces1
-  tp <- parseCheck
-  spaces
-  char ')'
-  return $ IAnn tm tp
-
-----------------------------------------------------------------------
-
-parseParens p = do
-  char '('
-  spaces
-  tm <- p
-  spaces
-  char ')'
-  return tm
-
-spaces1 = many1 space >> return ()
-
-----------------------------------------------------------------------
-
-parseTerm :: String -> Either ParseError Check
-parseTerm tm = parse parseExpr "(unknown)" tm
+  parseParens $ do
+    tm <- parseCheck
+    parseOp ":"
+    tp <- parseCheck
+    return $ IAnn tm tp
 
 ----------------------------------------------------------------------
