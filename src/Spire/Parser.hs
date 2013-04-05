@@ -33,11 +33,13 @@ parseKeyword = reserved tokenizer
 parseSpaces = whiteSpace tokenizer
 
 parseParens p = do
+  spaces
   char '('
   spaces
   tm <- p
   spaces
   char ')'
+  spaces
   return tm
 
 parseTerm :: String -> Either ParseError Check
