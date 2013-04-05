@@ -1,4 +1,5 @@
 module Spire.CLI where
+import Control.Monad.Error
 import Spire.Parser
 import Spire.Surface
 import Spire.Neutral
@@ -30,8 +31,11 @@ typeCheck label tp = do
         Left error -> do 
           putStrLn error
           return Nothing
-        Right () -> do
+        Right tp' -> do
           putStrLn "Well-typed!"
+          unless (tp == tp') $ do
+            putStrLn "Type changed to:"
+            putStrLn (show tp')
           putStrLn $ "Evaluated " ++ label ++ ":"
           let tm'' = evalC tm'
           putStrLn (show tm'')

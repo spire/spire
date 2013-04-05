@@ -50,18 +50,24 @@ evalI (IAnn a _) = evalC a
 
 ----------------------------------------------------------------------
 
-check :: Ctx -> Check -> Type -> Result ()
-check ctx (CLam f) (VPi a b) = check (a : ctx) f b
+check :: Ctx -> Check -> Type -> Result Type
+check ctx (CLam f) (VPi a b) = do
+  check (a : ctx) f b
+  return $ VPi a b
 check ctx (CPair x y) (VSg a b) = do
   check ctx x a
   let x' = evalC x
-  check ctx y (subV 0 x' b)
+  let b' = subV 0 x' b
+  check ctx y b'
+  return $ VSg a b'
+  
 check ctx (Infer tm) tp = do
   tp' <- infer ctx tm
   unless (tp == tp') $ throwError $
     "Ill-typed!\n" ++
     "Expected type:\n" ++ printV tp ++
     "\nInferred type:\n" ++ printV tp'
+  return tp
 check ctx tm tp = throwError "Ill-typed!"
 
 infer :: Ctx -> Infer -> Result Type
