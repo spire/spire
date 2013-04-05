@@ -13,7 +13,7 @@ keywords = [
   "Unit", "Bool", "Type",
   "Pi", "Sg",
   "tt", "true", "false",
-  "if", "then", "else",
+  "caseBool", "if", "then", "else",
   "proj1", "proj2"
   ]
 
@@ -69,6 +69,7 @@ parseInfer = do
   <|> try parseSg
   <|> try parseVar
   <|> try parseIf
+  <|> try parseCaseBool
   <|> try parseProj1
   <|> try parseProj2
 
@@ -119,6 +120,14 @@ parseIf = do
   parseKeyword "else"
   c2 <- parseInfer
   return $ IIf b c1 c2
+
+parseCaseBool = do
+  parseKeyword "caseBool"
+  p <- parseCheck
+  pt <- parseCheck
+  pf <- parseCheck
+  b <- parseCheck
+  return $ ICaseBool p pt pf b
 
 parseProj1 = do
   parseKeyword "proj1"

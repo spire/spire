@@ -19,6 +19,7 @@ data Infer =
   | ISg Check Check
   | IVar Var
   | IIf Check Infer Infer
+  | ICaseBool Check Check Check Check
   | IProj1 Infer
   | IProj2 Infer
   | IApp Infer Check
@@ -43,6 +44,7 @@ evalI (IPi a b) = VPi (evalC a) (evalC b)
 evalI (ISg a b) = VSg (evalC a) (evalC b)
 evalI (IVar i) = Neut $ NVar i
 evalI (IIf b c1 c2) = evalIf (evalC b) (evalI c1) (evalI c2)
+evalI (ICaseBool p pt pf b) = evalCaseBool (evalC p) (evalC pt) (evalC pf) (evalC b)
 evalI (IProj1 ab) = evalProj1 (evalI ab)
 evalI (IProj2 ab) = evalProj2 (evalI ab)
 evalI (IApp f a) = evalApp (evalI f) (evalC a)
@@ -96,6 +98,13 @@ infer ctx (IIf b c1 c2) = do
     "First branch:\n" ++ printV c ++
     "\nSecond branch:\n" ++ printV c'
   return c
+infer ctx (ICaseBool p pt pf b) = do
+  check (VBool : ctx) p VType
+  let p' = evalC p
+  check ctx pt (subV 0 VTrue p')
+  check ctx pf (subV 0 VFalse p')
+  check ctx b VBool
+  return $ subV 0 (evalC b) p'
 infer ctx (IProj1 xy) = do
   ab <- infer ctx xy
   case ab of
