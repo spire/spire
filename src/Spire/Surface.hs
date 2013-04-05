@@ -13,8 +13,8 @@ data Check =
   deriving ( Eq, Show, Read )
 
 data Infer =
-    CTrue | CFalse
-  | IBool | IType
+    ITT | ITrue | IFalse
+  | IUnit | IBool | IType
   | IPi Check Check
   | ISg Check Check
   | IVar Var
@@ -33,8 +33,10 @@ evalC (CLam f) = VLam (evalC f)
 evalC (Infer a) = evalI a
 
 evalI :: Infer -> Val
-evalI CTrue = VTrue
-evalI CFalse = VFalse
+evalI ITT = VTT
+evalI ITrue = VTrue
+evalI IFalse = VFalse
+evalI IUnit = VUnit
 evalI IBool = VBool
 evalI IType = VType
 evalI (IPi a b) = VPi (evalC a) (evalC b)
@@ -63,8 +65,10 @@ check ctx (Infer tm) tp = do
 check ctx tm tp = throwError "Ill-typed!"
 
 infer :: Ctx -> Infer -> Result Type
-infer ctx CTrue = return VBool
-infer ctx CFalse = return VBool
+infer ctx ITT = return VUnit
+infer ctx ITrue = return VBool
+infer ctx IFalse = return VBool
+infer ctx IUnit = return VType
 infer ctx IBool = return VType
 infer ctx IType = return VType
 infer ctx (IPi a b) = do

@@ -7,11 +7,11 @@ type Type = Val
 type Ctx = [Type]
 
 data Val =
-    VBool | VType
+    VUnit | VBool | VType
   | VPi Val Val
   | VSg Val Val
 
-  | VTrue | VFalse
+  | VTT | VTrue | VFalse
   | VPair Val Val
   | VLam Val            -- Abstracted over (Neut(NVar 0))
   | Neut Neut
@@ -28,6 +28,7 @@ data Neut =
 ----------------------------------------------------------------------
 
 printV :: Val -> String
+printV VUnit = "Unit"
 printV VBool = "Bool"
 printV VType = "Type"
 printV (VPi a b) =
@@ -38,6 +39,7 @@ printV (VSg a b) =
   "Sg " ++
   printV a ++
   printV b
+printV VTT = "tt"
 printV VTrue = "true"
 printV VFalse = "false"
 printV (VPair a b) =
@@ -93,8 +95,10 @@ evalApp _ _ = error "Ill-typed evaluation of App"
 subV :: Var -> Val -> Val -> Val
 subV i x (VPi a b) = VPi (subV i x a) (subV (succ i) x b)
 subV i x (VSg a b) = VSg (subV i x a) (subV (succ i) x b)
+subV i x VUnit = VUnit
 subV i x VBool = VBool
 subV i x VType = VType
+subV i x VTT = VTT
 subV i x VTrue = VTrue
 subV i x VFalse = VFalse
 subV i x (VPair a b)  = VPair (subV i x a) (subV i x b)

@@ -23,8 +23,10 @@ pInfer = do
       try pAnn
   <|> try pApp
   <|> try (pParens pInfer)
+  <|> try pTT
   <|> try pTrue
   <|> try pFalse
+  <|> try pUnit
   <|> try pBool
   <|> try pType
   <|> try pPi
@@ -56,8 +58,10 @@ pLam = do
 
 ----------------------------------------------------------------------
 
-pTrue = string "true" >> return CTrue
-pFalse = string "false" >> return CFalse
+pTT = string "tt" >> return ITT
+pTrue = string "true" >> return ITrue
+pFalse = string "false" >> return IFalse
+pUnit = string "Unit" >> return IUnit
 pBool = string "Bool" >> return IBool
 pType = string "Type" >> return IType
 
