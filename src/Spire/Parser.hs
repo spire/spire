@@ -5,6 +5,7 @@ import Text.Parsec.String
 import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
+import Data.Functor.Identity(Identity)
 
 ----------------------------------------------------------------------
 
@@ -27,20 +28,15 @@ def = emptyDef {
 , reservedNames = keywords
 }
 
+type MParser a = ParsecT [Char] () Identity a
+
 tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer
 parseKeyword = reserved tokenizer
 parseSpaces = whiteSpace tokenizer
 
-parseParens p = do
-  spaces
-  char '('
-  spaces
-  tm <- p
-  spaces
-  char ')'
-  spaces
-  return tm
+parseParens:: MParser a -> MParser a
+parseParens =  parens tokenizer
 
 parseTerm :: String -> Either ParseError Check
 parseTerm tm = parse parseExpr "(unknown)" tm
@@ -51,12 +47,14 @@ parseExpr = do
   parseSpaces
   parseCheck
 
+parseCheck:: MParser Check
 parseCheck = do
       try (parseParens parseCheck)
   <|> try parsePair
   <|> try parseLam
   <|> (return . Infer =<< try parseInfer)
 
+parseInfer:: MParser Infer
 parseInfer = do
       try parseAnn
   <|> try parseApp
@@ -77,12 +75,11 @@ parseInfer = do
 
 ----------------------------------------------------------------------
 
-parsePair = do
-  parseParens $ do
-    x <- parseCheck
-    parseOp ","
-    y <- parseCheck
-    return $ CPair x y
+parsePair = parseParens $ do
+  x <- parseCheck
+  parseOp ","
+  y <- parseCheck
+  return $ CPair x y
 
 parseLam = do
   parseOp "->"
@@ -141,18 +138,16 @@ parseProj2 = do
   ab <- parseInfer
   return $ IProj2 ab
 
-parseApp = do
-  parseParens $ do
-    f <- parseInfer
-    parseOp "$"
-    a <- parseCheck
-    return $ IApp f a
+parseApp = parseParens $ do
+  f <- parseInfer
+  parseOp "$"
+  a <- parseCheck
+  return $ IApp f a
 
-parseAnn = do
-  parseParens $ do
-    tm <- parseCheck
-    parseOp ":"
-    tp <- parseCheck
-    return $ IAnn tm tp
+parseAnn = parseParens $ do
+  tm <- parseCheck
+  parseOp ":"
+  tp <- parseCheck
+  return $ IAnn tm tp
 
 ----------------------------------------------------------------------
