@@ -22,12 +22,17 @@ typeCheck label tp = do
       putStrLn $ show error
       return Nothing
 
-    Right tm -> case check [] tm tp of
-      Left error -> do 
-        putStrLn error
-        return Nothing
-      Right tm' -> do
-        putStrLn "Well-typed!"
-        putStrLn $ "Evaluated " ++ label ++ ":"
-        putStrLn $ show tm'
-        return $ Just tm'
+    Right tm -> do
+      putStrLn $ "Parsed " ++ label ++ ":"
+      putStrLn (show tm)
+      putStrLn ""
+
+      case check [] tm tp of
+        Left error -> do 
+          putStrLn error
+          return Nothing
+        Right tm' -> do
+          putStrLn "Well-typed!"
+          putStrLn $ "Evaluated " ++ label ++ ":"
+          putStrLn $ show tm'
+          return $ Just tm'

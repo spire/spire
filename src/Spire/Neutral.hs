@@ -4,7 +4,6 @@ module Spire.Neutral where
 
 type Var = Integer
 type Type = Val
-type Ctx = [Type]
 
 data Val =
     VUnit | VBool | VType

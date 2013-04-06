@@ -9,10 +9,9 @@ import Data.Functor.Identity(Identity)
 
 ----------------------------------------------------------------------
 
-ops = ["->", ",", ":", "$"]
+ops = ["\\", "->", "*", ",", ":", "$", "in"]
 keywords = [
   "Unit", "Bool", "Type",
-  "Pi", "Sg",
   "tt", "true", "false",
   "caseBool", "if", "then", "else",
   "proj1", "proj2"
@@ -22,6 +21,8 @@ def = emptyDef {
   commentStart = "{-"
 , commentEnd = "-}"
 , commentLine = "--"
+, identStart = letter
+, identLetter = alphaNum
 , opStart = oneOf (map head ops)
 , opLetter = oneOf (concat ops)
 , reservedOpNames = ops
@@ -33,6 +34,7 @@ type MParser a = ParsecT [Char] () Identity a
 tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer
 parseKeyword = reserved tokenizer
+parseIdent = identifier tokenizer
 parseSpaces = whiteSpace tokenizer
 
 parseParens:: MParser a -> MParser a
@@ -52,8 +54,11 @@ parseCheck = do
 
 parseInfer:: MParser Infer
 parseInfer = do
-      try parseAnn
+      try parsePi
+  <|> try parseSg
+  <|> try parseCaseBool
   <|> try parseApp
+  <|> try parseAnn
   <|> try (parseParens parseInfer)
   <|> parseTT
   <|> parseTrue
@@ -61,11 +66,8 @@ parseInfer = do
   <|> parseUnit
   <|> parseBool
   <|> parseType
-  <|> try parsePi
-  <|> try parseSg
   <|> try parseVar
   <|> try parseIf
-  <|> try parseCaseBool
   <|> try parseProj1
   <|> try parseProj2
 
@@ -78,9 +80,11 @@ parsePair = parseParens $ do
   return $ CPair x y
 
 parseLam = do
+  parseOp "\\"
+  l <- parseIdent
   parseOp "->"
   tm <- parseCheck
-  return $ CLam tm
+  return $ CLam l tm
 
 ----------------------------------------------------------------------
 
@@ -92,20 +96,28 @@ parseBool = parseKeyword "Bool" >> return IBool
 parseType = parseKeyword "Type" >> return IType
 
 parsePi = do
-  parseKeyword "Pi"
-  a <- parseCheck
+  (l , a) <- parseParens $ do
+    l <- parseIdent
+    parseOp ":"
+    a <- parseCheck
+    return (l , a)
+  parseOp "->"
   b <- parseCheck
-  return $ IPi a b
+  return $ IPi a l b
 
 parseSg = do
-  parseKeyword "Sg"
-  a <- parseCheck
+  (l , a) <- parseParens $ do
+    l <- parseIdent
+    parseOp ":"
+    a <- parseCheck
+    return (l , a)
+  parseOp "*"
   b <- parseCheck
-  return $ ISg a b
+  return $ ISg a l b
 
 parseVar = do
-  i <- natural tokenizer
-  return $ IVar i
+  l <- parseIdent
+  return $ IVar l
 
 parseIf = do
   parseKeyword "if"
@@ -118,11 +130,15 @@ parseIf = do
 
 parseCaseBool = do
   parseKeyword "caseBool"
-  p <- parseCheck
+  (l , p) <- parseParens $ do
+    l <- parseIdent
+    parseOp "in"
+    p <- parseCheck
+    return (l , p)
   pt <- parseCheck
   pf <- parseCheck
   b <- parseCheck
-  return $ ICaseBool p pt pf b
+  return $ ICaseBool l p pt pf b
 
 parseProj1 = do
   parseKeyword "proj1"
