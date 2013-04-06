@@ -4,12 +4,13 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
 import Text.Parsec.Token
+import Text.Parsec.Combinator
 import Text.Parsec.Language
 import Data.Functor.Identity(Identity)
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "in"]
+ops = ["\\", "->", "*", ",", ":", "$", "in", "="]
 keywords = [
   "Unit", "Bool", "Type",
   "tt", "true", "false",
@@ -35,24 +36,27 @@ tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer
 parseKeyword = reserved tokenizer
 parseIdent = identifier tokenizer
+parseToken = symbol tokenizer
 parseSpaces = whiteSpace tokenizer
-
-parseParens:: MParser a -> MParser a
+parseParens :: MParser a -> MParser a
 parseParens = parens tokenizer
 
 parseTerm :: String -> Either ParseError Check
 parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
 
+parseProgram :: String -> Either ParseError Defs
+parseProgram = parse (parseSpaces >> parseDefs) "(unknown)"
+
 ----------------------------------------------------------------------
 
-parseCheck:: MParser Check
+parseCheck :: MParser Check
 parseCheck = do
       try (parseParens parseCheck)
   <|> try parsePair
   <|> try parseLam
   <|> (return . Infer =<< try parseInfer)
 
-parseInfer:: MParser Infer
+parseInfer :: MParser Infer
 parseInfer = do
       try parsePi
   <|> try parseSg
@@ -70,6 +74,33 @@ parseInfer = do
   <|> try parseIf
   <|> try parseProj1
   <|> try parseProj2
+
+----------------------------------------------------------------------
+
+parseDefs :: MParser Defs
+parseDefs = do
+  d <- parseDef
+  return (d : [])
+
+-- parseDefs = do
+--       (eof >> return [])
+--   <|> parseAllDefs
+
+parseAllDefs :: MParser Defs
+parseAllDefs = do
+  ds <- parseDefs
+  d <- parseDef
+  return (d : ds)
+
+parseDef :: MParser Def
+parseDef = do
+  l <- parseIdent
+  parseOp ":"
+  tp <- parseCheck
+  parseToken l
+  parseOp "="
+  tm <- parseCheck
+  return (l , IAnn tm tp)
 
 ----------------------------------------------------------------------
 

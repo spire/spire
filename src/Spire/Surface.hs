@@ -9,6 +9,9 @@ type Ident = String
 type Ctx = [(Ident , Type)]
 type Result a = Either String a
 
+type Def = (Ident , Infer)
+type Defs = [Def]
+
 data Check =
     CPair Check Check
   | CLam Ident Check
@@ -28,6 +31,15 @@ data Infer =
   | IApp Infer Check
   | IAnn Check Check
   deriving ( Eq, Show, Read )
+
+----------------------------------------------------------------------
+
+infers :: Defs -> Result [(Ident , Val , Type)]
+infers [] = return []
+infers ((l , a) : xs) = do
+  xs' <- infers xs
+  (a' , b) <- infer (map (\(l' , _ , b) -> (l' , b)) xs') a
+  return ((l , a' , b) : xs')
 
 ----------------------------------------------------------------------
 

@@ -1,0 +1,4 @@
+
+myFalse : Bool
+myFalse = false
+
