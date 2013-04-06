@@ -15,28 +15,19 @@ run = do
 
 typeCheck label tp = do
   putStrLn $ "Enter " ++ label ++ ":"
-  tm <- getLine
-  case parseTerm tm of
+  input <- getLine
+  case parseTerm input of
     Left error -> do
       putStrLn "Parse error:"
-      putStrLn (show error)
+      putStrLn $ show error
       return Nothing
 
-    Right tm' -> do
-      putStrLn $ "Parsed " ++ label ++ ":"
-      putStrLn (show tm')
-      putStrLn ""
-
-      case check [] tm' tp of
-        Left error -> do 
-          putStrLn error
-          return Nothing
-        Right tp' -> do
-          putStrLn "Well-typed!"
-          unless (tp == tp') $ do
-            putStrLn "Type changed to:"
-            putStrLn (show tp')
-          putStrLn $ "Evaluated " ++ label ++ ":"
-          let tm'' = evalC tm'
-          putStrLn (show tm'')
-          return $ Just tm''
+    Right tm -> case check [] tm tp of
+      Left error -> do 
+        putStrLn error
+        return Nothing
+      Right tm' -> do
+        putStrLn "Well-typed!"
+        putStrLn $ "Evaluated " ++ label ++ ":"
+        putStrLn $ show tm'
+        return $ Just tm'

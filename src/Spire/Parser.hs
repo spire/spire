@@ -36,16 +36,12 @@ parseKeyword = reserved tokenizer
 parseSpaces = whiteSpace tokenizer
 
 parseParens:: MParser a -> MParser a
-parseParens =  parens tokenizer
+parseParens = parens tokenizer
 
 parseTerm :: String -> Either ParseError Check
-parseTerm tm = parse parseExpr "(unknown)" tm
+parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
 
 ----------------------------------------------------------------------
-
-parseExpr = do
-  parseSpaces
-  parseCheck
 
 parseCheck:: MParser Check
 parseCheck = do
