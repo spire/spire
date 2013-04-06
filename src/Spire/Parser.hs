@@ -92,7 +92,7 @@ parseDef = do
   parseToken l
   parseOp "="
   tm <- parseCheck
-  return (l , IAnn tm tp)
+  return (l , tm , tp)
 
 ----------------------------------------------------------------------
 

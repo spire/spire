@@ -9,7 +9,7 @@ type Ident = String
 type Ctx = [(Ident , Type)]
 type Result a = Either String a
 
-type Def = (Ident , Infer)
+type Def = (Ident , Check , Check)
 type Defs = [Def]
 
 data Check =
@@ -34,12 +34,15 @@ data Infer =
 
 ----------------------------------------------------------------------
 
-infers :: Defs -> Result [(Ident , Val , Type)]
-infers [] = return []
-infers ((l , a) : xs) = do
-  xs' <- infers xs
-  (a' , b) <- infer (map (\(l' , _ , b) -> (l' , b)) xs') a
-  return ((l , a' , b) : xs')
+inferProgram :: Defs -> Result (Val , Type)
+inferProgram = infer [] . elabDefs
+
+elabDefs :: Defs -> Infer
+elabDefs ((_ , a , aT) : []) = IAnn a aT
+-- elabDefs ((l , a , aT) : xs) =
+--   let xs' = elabDefs xs in
+--   IApp (CLam l xs') a
+elabDefs [] = error "Off by one"
 
 ----------------------------------------------------------------------
 

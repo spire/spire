@@ -20,22 +20,19 @@ checkFromFile name = do
       putStrLn "Parse error:"
       putStrLn $ show error
 
-    Right defs -> do
+    Right program -> do
       putStrLn $ "Parsed program:"
-      putStrLn $ show defs
+      putStrLn $ show program
       putStrLn ""
 
-      case infers defs of
+      case inferProgram program of
         Left error -> do
           putStrLn error
 
-        Right defs' -> do
-          putStrLn "Well-typed, evaluates to:"
-          mapM_ (\(l , tm , tp) -> do
-              putStrLn ""
-              putStrLn (l ++ " : " ++ show tp)
-              putStrLn (l ++ " = " ++ show tm)
-            ) (reverse defs')
+        Right program' -> do
+          putStrLn "Well-typed!"
+          putStrLn $ "Evaluated program:"
+          putStrLn $ show program'
 
 checkFromUser :: IO ()
 checkFromUser = do
