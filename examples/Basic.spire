@@ -1,20 +1,5 @@
-
 myTrue : Bool
 myTrue = true
 
-{-
 myFalse : Bool
 myFalse = if myTrue then false else true
-
-(\ (myTrue : Bool) ->
-  (\ (myFalse : Bool) ->
-    myFalse
-  ) if myTrue then false else true
-) true
--}
-
-{-
-(\ (myTrue : Bool) ->
-  if myTrue then false else true
-) true
--}

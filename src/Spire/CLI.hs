@@ -25,7 +25,12 @@ checkFromFile name = do
       putStrLn $ show program
       putStrLn ""
 
-      case inferProgram program of
+      let program' = elabDefs program
+      putStrLn $ "Elaborated program:"
+      putStrLn $ show program'
+      putStrLn ""
+
+      case infer [] program' of
         Left error -> do
           putStrLn error
 

@@ -20,6 +20,7 @@ data Check =
 
 data Infer =
     ITT | ITrue | IFalse
+  | ILamAnn Ident Check Infer
   | IUnit | IBool | IType
   | IPi Check Ident Check
   | ISg Check Ident Check
@@ -39,9 +40,9 @@ inferProgram = infer [] . elabDefs
 
 elabDefs :: Defs -> Infer
 elabDefs ((_ , a , aT) : []) = IAnn a aT
--- elabDefs ((l , a , aT) : xs) =
---   let xs' = elabDefs xs in
---   IApp (CLam l xs') a
+elabDefs ((l , a , aT) : xs) =
+  let xs' = elabDefs xs in
+  IApp (ILamAnn l aT xs') a
 elabDefs [] = error "Off by one"
 
 ----------------------------------------------------------------------
@@ -59,8 +60,8 @@ check ctx (Infer tm) tp = do
   (tm' , tp') <- infer ctx tm
   unless (tp == tp') $ throwError $
     "Ill-typed!\n" ++
-    "Expected type:\n" ++ printV tp ++
-    "\nInferred type:\n" ++ printV tp'
+    "Expected type:\n" ++ show tp ++
+    "\nInferred type:\n" ++ show tp'
   return $ tm'
 check ctx tm tp = throwError "Ill-typed!"
 
@@ -73,6 +74,10 @@ infer ctx IFalse = return (VFalse , VBool)
 infer ctx IUnit  = return (VUnit , VType)
 infer ctx IBool  = return (VBool , VType)
 infer ctx IType  = return (VType , VType)
+infer ctx (ILamAnn l dT f) = do
+  dT'       <- check ctx dT VType
+  (f' , cT) <- infer ((l , dT') : ctx) f
+  return (VLam f' , VPi dT' cT)
 infer ctx (IPi a l b) = do
   a' <- check ctx a VType
   b' <- check ((l , a') : ctx) b VType
@@ -87,8 +92,8 @@ infer ctx (IIf b c1 c2) = do
   (c2' , c') <- infer ctx c2
   unless (c == c') $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
-    "First branch:\n" ++ printV c ++
-    "\nSecond branch:\n" ++ printV c'
+    "First branch:\n" ++ show c ++
+    "\nSecond branch:\n" ++ show c'
   return (evalIf b' c1' c2' , c)
 infer ctx (ICaseBool l p pt pf b) = do
   p'  <- check ((l , VBool) : ctx) p VType
@@ -103,7 +108,7 @@ infer ctx (IProj1 xy) = do
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
       "Projected value:\n" ++ show xy ++
-      "\nProjected type:\n" ++ printV ab
+      "\nProjected type:\n" ++ show ab
 infer ctx (IProj2 xy) = do
   (xy' , ab) <- infer ctx xy
   case ab of
@@ -111,7 +116,7 @@ infer ctx (IProj2 xy) = do
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
       "Projected value:\n" ++ show xy ++
-      "\nProjected type:\n" ++ printV ab
+      "\nProjected type:\n" ++ show ab
 infer ctx (IApp f x) = do
   (f' , ab) <- infer ctx f
   case ab of
@@ -121,7 +126,7 @@ infer ctx (IApp f x) = do
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++
       "Applied value:\n"  ++ show f ++
-      "\nApplied type:\n"  ++ printV ab
+      "\nApplied type:\n"  ++ show ab
 infer ctx (IVar l) =
   case findIndex (\(l' , _) -> l == l') ctx of
     Nothing -> throwError $

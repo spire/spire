@@ -44,7 +44,7 @@ parseTerm :: String -> Either ParseError Check
 parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
 
 parseProgram :: String -> Either ParseError Defs
-parseProgram = parse (parseSpaces >> parseDefs >>= return . reverse) "(unknown)"
+parseProgram = parse (parseSpaces >> parseDefs) "(unknown)"
 
 ----------------------------------------------------------------------
 
@@ -60,6 +60,7 @@ parseInfer = do
       try parsePi
   <|> try parseSg
   <|> try parseCaseBool
+  <|> try parseLamAnn
   <|> try parseApp
   <|> try parseAnn
   <|> try (parseParens parseInfer)
@@ -108,6 +109,17 @@ parseLam = do
   parseOp "->"
   tm <- parseCheck
   return $ CLam l tm
+
+parseLamAnn = do
+  parseOp "\\"
+  (l , aT) <- parseParens $ do
+    l <- parseIdent
+    parseOp ":"
+    aT <- parseCheck
+    return (l , aT)
+  parseOp "->"
+  a <- parseInfer
+  return $ ILamAnn l aT a
 
 ----------------------------------------------------------------------
 
