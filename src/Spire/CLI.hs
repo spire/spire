@@ -10,12 +10,14 @@ run = do
   case mtp of
     Nothing -> return ()
     Just tp -> do
+      putStrLn ""
       typeCheck "value" tp
       return ()
 
 typeCheck label tp = do
   putStrLn $ "Enter " ++ label ++ ":"
   input <- getLine
+  putStrLn ""
   case parseTerm input of
     Left error -> do
       putStrLn "Parse error:"
