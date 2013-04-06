@@ -32,9 +32,10 @@ checkFromFile name = do
         Right defs' -> do
           putStrLn "Well-typed, evaluates to:"
           mapM_ (\(l , tm , tp) -> do
+              putStrLn ""
               putStrLn (l ++ " : " ++ show tm)
               putStrLn (l ++ " = " ++ show tp)
-            ) defs'
+            ) (reverse defs')
 
 checkFromUser :: IO ()
 checkFromUser = do

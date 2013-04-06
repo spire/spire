@@ -4,7 +4,6 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
 import Text.Parsec.Token
-import Text.Parsec.Combinator
 import Text.Parsec.Language
 import Data.Functor.Identity(Identity)
 
@@ -45,7 +44,7 @@ parseTerm :: String -> Either ParseError Check
 parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
 
 parseProgram :: String -> Either ParseError Defs
-parseProgram = parse (parseSpaces >> parseDefs) "(unknown)"
+parseProgram = parse (parseSpaces >> parseDefs >>= return . reverse) "(unknown)"
 
 ----------------------------------------------------------------------
 
@@ -79,18 +78,11 @@ parseInfer = do
 
 parseDefs :: MParser Defs
 parseDefs = do
-  d <- parseDef
-  return (d : [])
-
--- parseDefs = do
---       (eof >> return [])
---   <|> parseAllDefs
-
-parseAllDefs :: MParser Defs
-parseAllDefs = do
-  ds <- parseDefs
-  d <- parseDef
-  return (d : ds)
+  do 
+    d <- parseDef
+    ds <- parseDefs
+    return (d : ds)
+  <|> return []
 
 parseDef :: MParser Def
 parseDef = do

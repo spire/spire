@@ -1,4 +1,6 @@
 
-myFalse : Bool
-myFalse = false
+myTrue : Bool
+myTrue = true
 
+myFalse : Bool
+myFalse = if myTrue then false else true
