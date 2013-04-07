@@ -79,6 +79,7 @@ subV i x (Neut n) = subN i x n
 
 subN :: Var -> Val -> Neut -> Val
 subN i x (NVar j) | i == j = x
+subN i x (NVar j) | i < j = Neut (NVar (j - succ i))
 subN i x (NVar j) = Neut (NVar j)
 subN i x (NIf b c1 c2) =
   evalIf (subN i x b) (subV i x c1) (subV i x c2)

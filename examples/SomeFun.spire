@@ -1,0 +1,5 @@
+oneApp : (x : Bool) -> Bool
+oneApp = \ x -> ((\ (y : Unit) -> x) $ tt)
+
+twoApps : Bool
+twoApps = ((\ (x : Bool) -> ((\ (y : Unit) -> x) $ tt)) $ true)
