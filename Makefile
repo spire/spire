@@ -7,11 +7,11 @@ tmp:
 .PHONY: spire
 # Compile, putting generated files (except .agdai) in ./tmp.
 spire: tmp
-	agda -c --compile-dir=tmp -isrc \
-	  --ghc-flag="-hidir tmp" --ghc-flag="-odir tmp" --ghc-flag=-isrc \
-	  src/spire.agda
-	cp tmp/spire ./
+	ghc -isrc -o spire \
+	  -hidir tmp -odir tmp \
+	  src/Spire.hs
 
 clean:
 	-rm -rf tmp
-	find src -name '*.agdai' -execdir rm {} +
+	-rm spire
+

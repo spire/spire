@@ -15,6 +15,11 @@
 ;; for interacting with processes.
 
 (require 'generic-x)
+(require 'comint)
+
+(defun spire-bind-keys ()
+  (global-set-key (kbd "C-c C-l") 'spire-check-file)
+  )
 
 (define-generic-mode 'spire-mode
   '("--") ;; comments
@@ -23,14 +28,34 @@
     ("\\<\\(if\\|then\\|else\\|caseBool\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
     ("\\<\\(tt\\|true\\|false\\)\\>" . 'font-lock-constant-face) ;; constants
     )
-  '("\\.spire$")                      ;; files for which to activate this mode
-  nil                               ;; other functions to call
-  "A simple mode for roy files"     ;; doc string for this mode
+  '("\\.spire$") ;; file extension
+  (list 'spire-bind-keys) ;; other functions to call
+  "A mode for Spire programs." ;; doc string
   )
+
+(defconst *spire* "*Spire*"
+  "Buffer used by Spire")
 
 (defcustom spire-command "spire"
   "The Spire command used for type checking. Must be in your $PATH."
   :type 'string
   :group 'spire)
+
+(defun spire-check-file ()
+  "Type check a file using `spire-command' as an inferior mode."
+  (interactive)
+  (when (get-buffer *spire*)
+    (with-current-buffer *spire*
+      (when (comint-check-proc *spire*)
+        (comint-kill-subjob))
+      (delete-region (point-min) (point-max))
+      )
+    )
+
+  (apply 'make-comint "Spire" spire-command nil
+         (list (buffer-file-name))
+         )
+  (display-buffer *spire*)
+  )
 
 (provide 'spire-mode)
