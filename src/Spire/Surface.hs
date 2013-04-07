@@ -62,8 +62,7 @@ check ctx (Infer tm) tp = do
     "Expected type:\n" ++ show tp ++
     "\n\nInferred type:\n" ++ show tp' ++
     "\n\nContext:\n" ++ show ctx ++
-    "\n\nUnevaluated term:\n" ++ show tm ++
-    "\n\nEvaluated term:\n" ++ show tm'
+    "\n\nUnevaluated value:\n" ++ show tm
   return $ tm'
 check ctx tm tp = throwError "Ill-typed!"
 
