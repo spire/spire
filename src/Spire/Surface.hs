@@ -156,7 +156,7 @@ infer ctx (IVar l) =
       "Referenced variable:\n" ++ l ++
       "\nCurrent context:\n" ++ show (map fst ctx)
     Just i ->
-      return (Neut (NVar (toInteger i)) , snd (ctx !! i))
+      return (Neut (NVar i) , snd (ctx !! i))
 infer ctx (IAnn tm tp) = do
   tp' <- check ctx tp VType
   tm' <- check ctx tm tp'

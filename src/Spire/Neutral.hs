@@ -2,7 +2,7 @@ module Spire.Neutral where
 
 ----------------------------------------------------------------------
 
-type Var = Integer
+type Var = Int
 type Type = Val
 
 data Val =
