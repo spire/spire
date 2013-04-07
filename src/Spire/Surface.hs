@@ -35,15 +35,17 @@ data Infer =
 
 ----------------------------------------------------------------------
 
-inferProgram :: Defs -> Result (Val , Type)
-inferProgram = infer [] . elabDefs
-
-elabDefs :: Defs -> Infer
-elabDefs ((_ , a , aT) : []) = IAnn a aT
-elabDefs ((l , a , aT) : xs) =
-  let xs' = elabDefs xs in
-  IApp (ILamAnn l aT xs') a
-elabDefs [] = error "Off by one"
+elabDefs :: Defs -> (Ident , Check , Check)
+elabDefs = helper . reverse where
+  helper ((l , a , aT) : []) = (l , a , aT)
+  helper ((l , a , aT) : xs) = (l , tm , tp) where
+    (l' , xs' , xsT) = helper xs
+    tpR = Infer (IApp (ILamAnn l' xsT (IAnn aT (Infer IType))) xs')
+    tm = CPair xs' (Infer (IApp
+      (ILamAnn l' xsT (IAnn a tpR))
+      xs'))
+    tp = Infer $ ISg xsT l' aT
+  helper [] = error "Off by one"
 
 ----------------------------------------------------------------------
 
