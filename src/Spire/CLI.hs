@@ -25,16 +25,19 @@ checkFromFile name = do
       putStrLn $ show program
       putStrLn ""
 
-      let (tms , tps) = elabProgram program
+      let (tm , tp) = elabProgram program
 
-      case infer [] (IAnn tms tps) of
+      case infer [] (IAnn tm tp) of
         Left error -> do
           putStrLn error
 
-        Right program' -> do
+        Right (tm' , tp') -> do
           putStrLn "Well-typed!"
-          putStrLn $ "Evaluated program:"
-          putStrLn $ show program'
+          putStrLn $ "Evaluated program type:"
+          putStrLn $ show tp'
+          putStrLn ""
+          putStrLn $ "Evaluated program value:"
+          putStrLn $ show tm'
 
 checkFromUser :: IO ()
 checkFromUser = do
