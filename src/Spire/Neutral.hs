@@ -7,71 +7,25 @@ type Type = Val
 
 data Val =
     VUnit | VBool | VType
-  | VPi Val Val
-  | VSg Val Val
+  | VPi Type Type
+  | VSg Type Type
+  | VRecord [Type]
 
   | VTT | VTrue | VFalse
   | VPair Val Val
   | VLam Val            -- Abstracted over (Neut(NVar 0))
+  | VTuple [Val]
   | Neut Neut
   deriving ( Eq, Show, Read )
 
 data Neut =
     NVar Var
   | NIf Neut Val Val
-  | NCaseBool Val Val Val Neut
+  | NCaseBool Type Val Val Neut
   | NProj1 Neut
   | NProj2 Neut
   | NApp Neut Val
   deriving ( Eq, Show, Read )
-
-----------------------------------------------------------------------
-
-printV :: Val -> String
-printV VUnit = "Unit"
-printV VBool = "Bool"
-printV VType = "Type"
-printV (VPi a b) =
-  "Pi " ++
-  printV a ++
-  printV b
-printV (VSg a b) =
-  "Sg " ++
-  printV a ++
-  printV b
-printV VTT = "tt"
-printV VTrue = "true"
-printV VFalse = "false"
-printV (VPair a b) =
-  "( " ++ printV a ++
-  " , " ++
-  printV b ++ " )"
-printV (VLam f) =
-  "-> ( " ++
-  printV f ++
-  " )"
-printV (Neut a) = printN a
-
-printN :: Neut -> String
-printN (NVar i) = show i
-printN (NIf b c1 c2) =
-  "if " ++ printN b ++
-  " then " ++ printV c1 ++
-  " else " ++ printV c2
-printN (NCaseBool p pz ps b) =
-  "caseBool " ++
-  printV p ++
-  printV pz ++
-  printV ps ++
-  printN b
-printN (NProj1 ab) =
-  "proj1 " ++ printN ab
-printN (NProj2 ab) =
-  "proj2 " ++ printN ab
-printN (NApp f a) =
-  "( " ++ printN f ++
-  " $ " ++
-  printV a ++ " )"
 
 ----------------------------------------------------------------------
 
@@ -104,9 +58,14 @@ evalApp _ _ = error "Ill-typed evaluation of App"
 
 ----------------------------------------------------------------------
 
+subVs :: Var -> Val -> [Val] -> [Val]
+subVs i x [] = []
+subVs i x (a : as) = subV i x a : subVs (succ i) x as
+
 subV :: Var -> Val -> Val -> Val
 subV i x (VPi a b) = VPi (subV i x a) (subV (succ i) x b)
 subV i x (VSg a b) = VSg (subV i x a) (subV (succ i) x b)
+subV i x (VRecord as) = VRecord (subVs i x as)
 subV i x VUnit = VUnit
 subV i x VBool = VBool
 subV i x VType = VType
@@ -115,6 +74,7 @@ subV i x VTrue = VTrue
 subV i x VFalse = VFalse
 subV i x (VPair a b)  = VPair (subV i x a) (subV i x b)
 subV i x (VLam f) = VLam (subV (succ i) x f)
+subV i x (VTuple as) = VTuple (subVs i x as)
 subV i x (Neut n) = subN i x n
 
 subN :: Var -> Val -> Neut -> Val

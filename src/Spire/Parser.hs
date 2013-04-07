@@ -43,7 +43,7 @@ parseParens = parens tokenizer
 parseTerm :: String -> Either ParseError Check
 parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
 
-parseProgram :: String -> Either ParseError Defs
+parseProgram :: String -> Either ParseError [Def]
 parseProgram = parse (parseSpaces >> parseDefs) "(unknown)"
 
 ----------------------------------------------------------------------
@@ -77,7 +77,7 @@ parseInfer = do
 
 ----------------------------------------------------------------------
 
-parseDefs :: MParser Defs
+parseDefs :: MParser [Def]
 parseDefs = do
   do 
     d <- parseDef

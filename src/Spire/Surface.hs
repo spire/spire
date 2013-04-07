@@ -8,13 +8,13 @@ import Data.List
 type Ident = String
 type Ctx = [(Ident , Type)]
 type Result a = Either String a
-
 type Def = (Ident , Check , Check)
-type Defs = [Def]
+type Fields = [(Check , Ident)]
 
 data Check =
     CPair Check Check
   | CLam Ident Check
+  | CTuple Fields
   | Infer Infer
   deriving ( Eq, Show, Read )
 
@@ -24,6 +24,7 @@ data Infer =
   | IUnit | IBool | IType
   | IPi Check Ident Check
   | ISg Check Ident Check
+  | IRecord Fields
   | IVar Ident
   | IIf Check Infer Infer
   | ICaseBool Ident Check Check Check Check
@@ -35,17 +36,11 @@ data Infer =
 
 ----------------------------------------------------------------------
 
-elabDefs :: Defs -> (Ident , Check , Check)
-elabDefs = helper . reverse where
-  helper ((l , a , aT) : []) = (l , a , aT)
-  helper ((l , a , aT) : xs) = (l , tm , tp) where
-    (l' , xs' , xsT) = helper xs
-    tpR = Infer (IApp (ILamAnn l' xsT (IAnn aT (Infer IType))) xs')
-    tm = CPair xs' (Infer (IApp
-      (ILamAnn l' xsT (IAnn a tpR))
-      xs'))
-    tp = Infer $ ISg xsT l' aT
-  helper [] = error "Off by one"
+elabProgram :: [Def] -> (Check , Check)
+elabProgram xs = (CTuple tms , Infer (IRecord tps))
+  where
+  tms = map (\ (l , tm , _) -> (tm , l)) xs
+  tps = map (\ (l , _ , tp) -> (tp , l)) xs
 
 ----------------------------------------------------------------------
 
@@ -57,7 +52,9 @@ check ctx (CPair x y) (VSg a b) = do
   x' <- check ctx x a
   y' <- check ctx y (subV 0 x' b)
   return $ VPair x' y'
-  
+check ctx (CTuple xs) (VRecord as) = do
+  xs' <- checkVals ctx xs as
+  return $ VTuple xs'
 check ctx (Infer tm) tp = do
   (tm' , tp') <- infer ctx tm
   unless (tp == tp') $ throwError $
@@ -66,6 +63,24 @@ check ctx (Infer tm) tp = do
     "\nInferred type:\n" ++ show tp'
   return $ tm'
 check ctx tm tp = throwError "Ill-typed!"
+
+----------------------------------------------------------------------
+
+checkVals :: Ctx -> Fields -> [Type] -> Result [Val]
+checkVals ctx [] [] = return []
+checkVals ctx ((x , l) : xs) (a : as) = do
+  x' <- check ctx x a
+  xs' <- checkVals ((l , a) : ctx) xs (subVs 0 x' as)
+  return (x' : subVs 0 x' xs')
+checkVals ctx xs as = throwError $
+  "Ill-typed, different number of record fields and values!"
+
+checkTypes :: Ctx -> Fields -> Result [Type]
+checkTypes ctx [] = return []
+checkTypes ctx ((a , l) : as) = do
+  a' <- check ctx a VType
+  as' <- checkTypes ((l , a') : ctx) as
+  return (a' : as')
 
 ----------------------------------------------------------------------
 
@@ -88,6 +103,9 @@ infer ctx (ISg a l b) = do
   a' <- check ctx a VType
   b' <- check ((l , a') : ctx) b VType
   return (VSg a' b' , VType)
+infer ctx (IRecord as) = do
+  as' <- checkTypes ctx as
+  return (VRecord as' , VType)
 infer ctx (IIf b c1 c2) = do
   b'         <- check ctx b VBool
   (c1' , c)  <- infer ctx c1

@@ -5,8 +5,8 @@ myTrue = true
 myFalse : if myTrue then Bool else Unit
 myFalse = if myTrue then false else true
 
--- myFalse : Bool
--- myFalse = if myTrue then false else true
+myFalse2 : Bool
+myFalse2 = if myTrue then false else true
 
--- myPair : (b : Bool) * (if b then Unit else Bool)
--- myPair = (true, tt)
+myPair : (b : Bool) * (if b then Unit else Bool)
+myPair = (true, tt)
