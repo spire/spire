@@ -6,7 +6,6 @@
 *.o
 *.jar
 *.flymake
-*.el
 *.agdai
 MAlonzo
 Default
@@ -15,4 +14,3 @@ Default
 *.log
 *.bbl
 *.blg
-spire
