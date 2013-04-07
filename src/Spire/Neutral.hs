@@ -52,7 +52,7 @@ evalProj2 (Neut ab) = Neut $ NProj1 ab
 evalProj2 _ = error "Ill-typed evaluation of Proj2"
 
 evalApp :: Val -> Val -> Val
-evalApp (VLam f) a = subV 0 a f
+evalApp (VLam f) a = sub a f
 evalApp (Neut f) a = Neut $ NApp f a
 evalApp _ _ = error "Ill-typed evaluation of App"
 
@@ -89,5 +89,8 @@ subN i x (NProj1 ab) = evalProj1 (subN i x ab)
 subN i x (NProj2 ab) = evalProj2 (subN i x ab)
 subN i x (NApp f a) =
   evalApp (subN i x f) (subV i x a)
+
+sub :: Val -> Val -> Val
+sub = subV 0
 
 ----------------------------------------------------------------------

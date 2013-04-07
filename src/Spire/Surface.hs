@@ -50,7 +50,7 @@ check ctx (CLam l f) (VPi a b) = do
   return $ VLam f'
 check ctx (CPair x y) (VSg a b) = do
   x' <- check ctx x a
-  y' <- check ctx y (subV 0 x' b)
+  y' <- check ctx y (sub x' b)
   return $ VPair x' y'
 check ctx (CTuple xs) (VRecord as) = do
   xs' <- checkVals ctx xs as
@@ -119,10 +119,10 @@ infer ctx (IIf b c1 c2) = do
   return (evalIf b' c1' c2' , c)
 infer ctx (ICaseBool l p pt pf b) = do
   p'  <- check ((l , VBool) : ctx) p VType
-  pt' <- check ctx pt (subV 0 VTrue p')
-  pf' <- check ctx pf (subV 0 VFalse p')
+  pt' <- check ctx pt (sub VTrue p')
+  pf' <- check ctx pf (sub VFalse p')
   b'  <- check ctx b VBool
-  return (evalCaseBool p' pt' pf' b' , subV 0 b' p')
+  return (evalCaseBool p' pt' pf' b' , sub b' p')
 infer ctx (IProj1 xy) = do
   (xy' , ab) <- infer ctx xy
   case ab of
@@ -134,7 +134,7 @@ infer ctx (IProj1 xy) = do
 infer ctx (IProj2 xy) = do
   (xy' , ab) <- infer ctx xy
   case ab of
-    VSg a b -> return (evalProj2 xy' , subV 0 (evalProj1 xy') b)
+    VSg a b -> return (evalProj2 xy' , sub (evalProj1 xy') b)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
       "Projected value:\n" ++ show xy ++
@@ -144,7 +144,7 @@ infer ctx (IApp f x) = do
   case ab of
     VPi a b -> do
       a' <- check ctx x a
-      return (evalApp f' a' , subV 0 a' b)
+      return (evalApp f' a' , sub a' b)
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++
       "Applied value:\n"  ++ show f ++
