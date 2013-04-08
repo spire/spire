@@ -36,7 +36,7 @@ There is an Emacs mode for Spire, which can be found in `editors/emacs/spire-mod
 Add the following to your Emacs initialization file:
 
 ```
-(load-file "/PATH-TO-SPIRE-CHECKOUT/src/spire/editor/emacs/spire-mode.el")
+(load-file "/PATH-TO-SPIRE-CHECKOUT/editor/emacs/spire-mode.el")
 (require 'spire-mode)
 ```
 
