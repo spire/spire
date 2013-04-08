@@ -65,7 +65,7 @@ C-C C-l
 
 The results of type checking appear in a separate Emacs window.
 
-End Goal
+End goal
 --------
 
 The current implementation is written in Haskell. The semantics is defined
