@@ -60,7 +60,7 @@ Syntax highlighting will automatically be performed for any files with a `.spire
 To type check the current file:
 
 ```
-C-C C-l
+C-c C-l
 ```
 
 The results of type checking appear in a separate Emacs window.
