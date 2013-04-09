@@ -54,7 +54,7 @@ check ctx (CPair x y) (VSg a b) = do
   return $ VPair x' y'
 check ctx (CTuple xs) (VRecord as) = do
   xs' <- checkVals ctx xs as
-  return $ VTuple xs'
+  return $ VTuple (evalTuple xs')
 check ctx (Infer tm) tp = do
   (tm' , tp') <- infer ctx tm
   unless (tp == tp') $ throwError $
@@ -72,8 +72,8 @@ checkVals :: Ctx -> Fields -> [Type] -> Result [Val]
 checkVals ctx [] [] = return []
 checkVals ctx ((x , l) : xs) (a : as) = do
   x' <- check ctx x a
-  xs' <- checkVals ((l , a) : ctx) xs (subVs 0 x' as)
-  return (x' : subVs 0 x' xs')
+  xs' <- checkVals ((l , a) : ctx) xs (subs x' as)
+  return (x' : xs')
 checkVals ctx xs as = throwError $
   "Ill-typed, different number of record fields and values!"
 

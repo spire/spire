@@ -56,7 +56,17 @@ evalApp (VLam f) a = sub a f
 evalApp (Neut f) a = Neut $ NApp f a
 evalApp _ _ = error "Ill-typed evaluation of App"
 
+evalTuple :: [Val] -> [Val]
+evalTuple [] = []
+evalTuple (x : xs) = x : evalTuple (subs x xs)
+
 ----------------------------------------------------------------------
+
+sub :: Val -> Val -> Val
+sub = subV 0
+
+subs :: Val -> [Val] -> [Val]
+subs = subVs 0
 
 subVs :: Var -> Val -> [Val] -> [Val]
 subVs i x [] = []
@@ -89,8 +99,5 @@ subN i x (NProj1 ab) = evalProj1 (subN i x ab)
 subN i x (NProj2 ab) = evalProj2 (subN i x ab)
 subN i x (NApp f a) =
   evalApp (subN i x f) (subV i x a)
-
-sub :: Val -> Val -> Val
-sub = subV 0
 
 ----------------------------------------------------------------------

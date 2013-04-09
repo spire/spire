@@ -1,0 +1,12 @@
+myTrue : Bool
+myTrue = true
+
+myFalse : Bool
+myFalse = false
+
+bar : if myFalse then Unit else Bool
+bar = myTrue
+
+foo : if true then Bool else Unit
+foo = myTrue
+
