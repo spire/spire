@@ -15,7 +15,7 @@ myFalse = if myTrue then false else true
 myFalse2 : Bool
 myFalse2 = (not $ myTrue)
 
---     : (b : Bool) * (if b then Unit else Bool)
+--       (b : Bool) * (if b then Unit else Bool)
 myPair : (b : Bool) * (If $ (not $ b))
 myPair = (false, true)
 

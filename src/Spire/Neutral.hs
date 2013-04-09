@@ -4,17 +4,17 @@ module Spire.Neutral where
 
 type Var = Int
 type Type = Val
+type VDef = (Val , Type)
 
 data Val =
-    VUnit | VBool | VType
+    VUnit | VBool | VProg | VType
   | VPi Type Type
   | VSg Type Type
-  | VRecord [Type]
 
   | VTT | VTrue | VFalse
   | VPair Val Val
   | VLam Val            -- Abstracted over (Neut(NVar 0))
-  | VTuple [Val]
+  | VDefs [VDef]
   | Neut Neut
   deriving ( Eq, Show, Read )
 
@@ -54,37 +54,43 @@ evalProj2 _ = error "Ill-typed evaluation of Proj2"
 evalApp :: Val -> Val -> Val
 evalApp (VLam f) a = sub a f
 evalApp (Neut f) a = Neut $ NApp f a
-evalApp _ _ = error "Ill-typed evaluation of App"
+evalApp f a = error $
+  "Ill-typed evaluation of App\n" ++
+  "Function:\n" ++ show f ++ "\n" ++
+  "Argument:\n" ++ show a
 
-evalTuple :: [Val] -> [Val]
-evalTuple [] = []
-evalTuple (x : xs) = x : evalTuple (subs x xs)
+foldSub :: [Val] -> Val -> Val
+foldSub xs a = helper (reverse xs) a
+  where
+  helper :: [Val] -> Val -> Val
+  helper [] a = a
+  helper (x : xs) a = helper xs (subV (length xs) x a)
 
 ----------------------------------------------------------------------
 
 sub :: Val -> Val -> Val
 sub = subV 0
 
-subs :: Val -> [Val] -> [Val]
+subs :: Val -> [VDef] -> [VDef]
 subs = subVs 0
 
-subVs :: Var -> Val -> [Val] -> [Val]
+subVs :: Var -> Val -> [VDef] -> [VDef]
 subVs i x [] = []
-subVs i x (a : as) = subV i x a : subVs (succ i) x as
+subVs i x ((a , aT) : as) = (subV i x a , subV i x aT) : subVs (succ i) x as
 
 subV :: Var -> Val -> Val -> Val
 subV i x (VPi a b) = VPi (subV i x a) (subV (succ i) x b)
 subV i x (VSg a b) = VSg (subV i x a) (subV (succ i) x b)
-subV i x (VRecord as) = VRecord (subVs i x as)
 subV i x VUnit = VUnit
 subV i x VBool = VBool
+subV i x VProg = VProg
 subV i x VType = VType
 subV i x VTT = VTT
 subV i x VTrue = VTrue
 subV i x VFalse = VFalse
 subV i x (VPair a b)  = VPair (subV i x a) (subV i x b)
 subV i x (VLam f) = VLam (subV (succ i) x f)
-subV i x (VTuple as) = VTuple (subVs i x as)
+subV i x (VDefs as) = VDefs (subVs i x as)
 subV i x (Neut n) = subN i x n
 
 subN :: Var -> Val -> Neut -> Val
