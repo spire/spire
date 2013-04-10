@@ -4,9 +4,9 @@ myTrue = true
 myFalse : Bool
 myFalse = false
 
-bar : if myFalse then Unit else Bool
-bar = myTrue
+bar : if myTrue then Bool else Unit
+bar = myFalse
 
-foo : if true then Bool else Unit
-foo = myTrue
+foo : if bar then Unit else Bool
+foo = bar
 
