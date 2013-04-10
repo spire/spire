@@ -27,6 +27,9 @@ data Neut =
   | NApp Neut Val
   deriving ( Eq, Show, Read )
 
+vVar :: Var -> Val
+vVar = Neut . NVar
+
 ----------------------------------------------------------------------
 
 evalIf :: Val -> Val -> Val -> Val

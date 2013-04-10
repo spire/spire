@@ -78,12 +78,7 @@ parseInfer = do
 ----------------------------------------------------------------------
 
 parseDefs :: MParser [Def]
-parseDefs = do
-  do 
-    d <- parseDef
-    ds <- parseDefs
-    return (d : ds)
-  <|> return []
+parseDefs = many parseDef
 
 parseDef :: MParser Def
 parseDef = do
