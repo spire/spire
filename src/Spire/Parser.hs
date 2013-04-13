@@ -1,4 +1,5 @@
 module Spire.Parser where
+import Spire.Neutral
 import Spire.Surface
 import Text.Parsec
 import Text.Parsec.String
@@ -103,7 +104,7 @@ parseLam = do
   l <- parseIdent
   parseOp "->"
   tm <- parseCheck
-  return $ CLam l tm
+  return $ CLam (Bound (l , tm))
 
 parseLamAnn = do
   parseOp "\\"
@@ -114,7 +115,7 @@ parseLamAnn = do
     return (l , aT)
   parseOp "->"
   a <- parseInfer
-  return $ ILamAnn l aT a
+  return $ ILamAnn aT (Bound (l , a))
 
 ----------------------------------------------------------------------
 
@@ -133,7 +134,7 @@ parsePi = do
     return (l , a)
   parseOp "->"
   b <- parseCheck
-  return $ IPi a l b
+  return $ IPi a (Bound (l , b))
 
 parseSg = do
   (l , a) <- parseParens $ do
@@ -143,7 +144,7 @@ parseSg = do
     return (l , a)
   parseOp "*"
   b <- parseCheck
-  return $ ISg a l b
+  return $ ISg a (Bound (l , b))
 
 parseVar = do
   l <- parseIdent
@@ -160,15 +161,15 @@ parseIf = do
 
 parseCaseBool = do
   parseKeyword "caseBool"
-  (l , p) <- parseParens $ do
+  (l , pT) <- parseParens $ do
     l <- parseIdent
     parseOp "in"
-    p <- parseCheck
-    return (l , p)
+    pT <- parseCheck
+    return (l , pT)
   pt <- parseCheck
   pf <- parseCheck
   b <- parseCheck
-  return $ ICaseBool l p pt pf b
+  return $ ICaseBool (Bound (l , pT)) pt pf b
 
 parseProj1 = do
   parseKeyword "proj1"

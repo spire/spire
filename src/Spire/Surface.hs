@@ -6,26 +6,27 @@ import Data.List
 ----------------------------------------------------------------------
 
 type Ident = String
+type NomBound a = Bound (Ident , a)
 type Ctx = [(Ident , Type)]
 type Result a = Either String a
 type Def = (Ident , Check , Check)
 
 data Check =
     CPair Check Check
-  | CLam Ident Check
+  | CLam (NomBound Check)
   | Infer Infer
   deriving ( Eq, Show, Read )
 
 data Infer =
     ITT | ITrue | IFalse
-  | ILamAnn Ident Check Infer
+  | ILamAnn Check (NomBound Infer)
   | IUnit | IBool | IProg | IType
-  | IPi Check Ident Check
-  | ISg Check Ident Check
+  | IPi Check (NomBound Check)
+  | ISg Check (NomBound Check)
   | IDefs [Def]
   | IVar Ident
   | IIf Check Infer Infer
-  | ICaseBool Ident Check Check Check Check
+  | ICaseBool (NomBound Check) Check Check Check
   | IProj1 Infer
   | IProj2 Infer
   | IApp Infer Check
@@ -34,36 +35,30 @@ data Infer =
 
 ----------------------------------------------------------------------
 
+{-
+Do not explicitly inspect `NomBound' variables in `check' and `infer'.
+Instead, use helper functions that like `checkExtend', which correctly
+extend the context.
+-}
+
 check :: Ctx -> Check -> Type -> Result Val
-check ctx (CLam l f) (VPi a b) = do
-  f' <- check ((l , a) : ctx) f b
-  return $ VLam f'
-check ctx (CPair x y) (VSg a b) = do
-  x' <- check ctx x a
-  y' <- check ctx y (sub x' b)
-  return $ VPair x' y'
-check ctx (Infer tm) tp = do
-  (tm' , tp') <- infer ctx tm
-  unless (tp == tp') $ throwError $
+check ctx (CLam b) (VPi aT bT) = do
+  b' <- checkExtend2 aT ctx b bT
+  return $ VLam b'
+check ctx (CPair a b) (VSg aT bT) = do
+  a' <- check ctx a aT
+  b' <- check ctx b (suB a' bT)
+  return $ VPair a' b'
+check ctx (Infer a) bT = do
+  (a' , aT) <- infer ctx a
+  unless (aT == bT) $ throwError $
     "Ill-typed!\n" ++
-    "Expected type:\n" ++ show tp ++
-    "\n\nInferred type:\n" ++ show tp' ++
+    "Expected type:\n" ++ show bT ++
+    "\n\nInferred type:\n" ++ show aT ++
     "\n\nContext:\n" ++ show ctx ++
-    "\n\nUnevaluated value:\n" ++ show tm
-  return $ tm'
-check ctx tm tp = throwError "Ill-typed!"
-
-----------------------------------------------------------------------
-
-checkDefs :: [Val] -> Ctx -> [Def] -> Result [(Val , Type)]
-checkDefs x ctx [] = return []
-checkDefs xs ctx ((l , a , aT) : as) = do
-  aT' <- return . foldSub xs =<< check ctx aT VType
-  a' <- return . foldSub xs =<< check ctx a aT'
-  as' <- checkDefs (a' : xs) ((l , aT') : ctx) as
-  return ((a' , aT') : as')
-
-----------------------------------------------------------------------
+    "\n\nUnevaluated value:\n" ++ show a
+  return $ a'
+check ctx a aT = throwError "Ill-typed!"
 
 infer :: Ctx -> Infer -> Result (Val , Type)
 infer ctx ITT    = return (VTT , VUnit)
@@ -73,62 +68,62 @@ infer ctx IUnit  = return (VUnit , VType)
 infer ctx IBool  = return (VBool , VType)
 infer ctx IProg  = return (VProg , VType)
 infer ctx IType  = return (VType , VType)
-infer ctx (ILamAnn l dT f) = do
-  dT'       <- check ctx dT VType
-  (f' , cT) <- infer ((l , dT') : ctx) f
-  return (VLam f' , VPi dT' cT)
-infer ctx (IPi a l b) = do
-  a' <- check ctx a VType
-  b' <- check ((l , a') : ctx) b VType
-  return (VPi a' b' , VType)
-infer ctx (ISg a l b) = do
-  a' <- check ctx a VType
-  b' <- check ((l , a') : ctx) b VType
-  return (VSg a' b' , VType)
+infer ctx (ILamAnn aT b) = do
+  aT'       <- check ctx aT VType
+  (b' , bT) <- inferExtend aT' ctx b
+  return (VLam b' , VPi aT' bT)
+infer ctx (IPi aT bT) = do
+  aT' <- check ctx aT VType
+  bT' <- checkExtend aT' ctx bT VType
+  return (VPi aT' bT' , VType)
+infer ctx (ISg aT bT) = do
+  aT' <- check ctx aT VType
+  bT' <- checkExtend aT' ctx bT VType
+  return (VSg aT' bT' , VType)
 infer ctx (IDefs as) = do
   as' <- checkDefs [] ctx as
   return (VDefs as' , VProg)
 infer ctx (IIf b c1 c2) = do
   b'         <- check ctx b VBool
-  (c1' , c)  <- infer ctx c1
-  (c2' , c') <- infer ctx c2
-  unless (c == c') $ throwError $
+  (c1' , cT1)  <- infer ctx c1
+  (c2' , cT2) <- infer ctx c2
+  unless (cT1 == cT2) $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
-    "First branch:\n" ++ show c ++
-    "\nSecond branch:\n" ++ show c'
-  return (evalIf b' c1' c2' , c)
-infer ctx (ICaseBool l p pt pf b) = do
-  p'  <- check ((l , VBool) : ctx) p VType
-  pt' <- check ctx pt (sub VTrue p')
-  pf' <- check ctx pf (sub VFalse p')
+    "First branch:\n" ++ show cT1 ++
+    "\nSecond branch:\n" ++ show cT2
+  return (evalIf b' c1' c2' , cT1)
+infer ctx (ICaseBool pT pt pf b) = do
+  pT' <- checkExtend VBool ctx pT VType
+  pt' <- check ctx pt (suB VTrue pT')
+  pf' <- check ctx pf (suB VFalse pT')
   b'  <- check ctx b VBool
-  return (evalCaseBool p' pt' pf' b' , sub b' p')
-infer ctx (IProj1 xy) = do
-  (xy' , ab) <- infer ctx xy
-  case ab of
-    VSg a b -> return (evalProj1 xy' , a)
+  return (evalCaseBool pT' pt' pf' b' , suB b' pT')
+infer ctx (IProj1 ab) = do
+  (ab' , abT) <- infer ctx ab
+  case abT of
+    VSg aT bT -> return (evalProj1 ab' , aT)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
-      "Projected value:\n" ++ show xy ++
-      "\nProjected type:\n" ++ show ab
-infer ctx (IProj2 xy) = do
-  (xy' , ab) <- infer ctx xy
-  case ab of
-    VSg a b -> return (evalProj2 xy' , sub (evalProj1 xy') b)
+      "Projected value:\n" ++ show ab ++
+      "\nProjected type:\n" ++ show abT
+infer ctx (IProj2 ab) = do
+  (ab' , abT) <- infer ctx ab
+  case abT of
+    VSg aT bT -> return (evalProj2 ab' , suB (evalProj1 ab') bT)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
-      "Projected value:\n" ++ show xy ++
-      "\nProjected type:\n" ++ show ab
-infer ctx (IApp f x) = do
-  (f' , ab) <- infer ctx f
-  case ab of
-    VPi a b -> do
-      a' <- check ctx x a
-      return (evalApp f' a' , sub a' b)
+      "Projected value:\n" ++ show ab ++
+      "\nProjected type:\n" ++ show abT
+infer ctx (IApp f a) = do
+  (f' , fT) <- infer ctx f
+  case fT of
+    VPi aT bT -> do
+      a' <- check ctx a aT
+      return (evalApp f' a' , suB a' bT)
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++
       "Applied value:\n"  ++ show f ++
-      "\nApplied type:\n"  ++ show ab
+      "\nApplied type:\n"  ++ show fT
 infer ctx (IVar l) =
   case findIndex (\(l' , _) -> l == l') ctx of
     Nothing -> throwError $
@@ -137,9 +132,30 @@ infer ctx (IVar l) =
       "\nCurrent context:\n" ++ show (map fst ctx)
     Just i ->
       return (Neut (NVar i) , snd (ctx !! i))
-infer ctx (IAnn tm tp) = do
-  tp' <- check ctx tp VType
-  tm' <- check ctx tm tp'
-  return (tm' , tp')
+infer ctx (IAnn a aT) = do
+  aT' <- check ctx aT VType
+  a'  <- check ctx a aT'
+  return (a' , aT')
+
+----------------------------------------------------------------------
+
+checkExtend2 :: Type -> Ctx -> NomBound Check -> Bound Type -> Result (Bound Val)
+checkExtend2 aT ctx b (Bound bT) = checkExtend aT ctx b bT
+
+checkExtend :: Type -> Ctx -> NomBound Check -> Type -> Result (Bound Val)
+checkExtend aT ctx (Bound (l , b)) bT = return . Bound =<< check ((l , aT) : ctx) b bT
+
+inferExtend :: Type -> Ctx -> NomBound Infer -> Result (Bound Val , Bound Type)
+inferExtend aT ctx (Bound (l , b)) = do
+  (b' , bT) <- infer ((l , aT) : ctx) b
+  return (Bound b' , Bound bT)
+
+checkDefs :: [Val] -> Ctx -> [Def] -> Result [(Val , Type)]
+checkDefs x ctx [] = return []
+checkDefs xs ctx ((l , a , aT) : as) = do
+  aT' <- return . foldSub xs =<< check ctx aT VType
+  a' <- return . foldSub xs =<< check ctx a aT'
+  as' <- checkDefs (a' : xs) ((l , aT') : ctx) as
+  return ((a' , aT') : as')
 
 ----------------------------------------------------------------------
