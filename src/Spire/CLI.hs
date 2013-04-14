@@ -25,11 +25,11 @@ checkFromFile name = do
       putStrLn $ show program
       putStrLn ""
 
-      case infer [] program of
+      case checkDefs [] [] program of
         Left error -> do
           putStrLn error
 
-        Right (VDefs program' , VProg) -> do
+        Right program' -> do
           putStrLn "Well-typed!"
           putStrLn $ "Evaluated program:\n"
           mapM_ (\(tm , tp) ->
