@@ -1,6 +1,6 @@
-module Spire.Parser where
-import Spire.Neutral
-import Spire.Surface
+module Spire.Surface.Parsing where
+import Spire.Canonical.Types
+import Spire.Expression.Types
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr

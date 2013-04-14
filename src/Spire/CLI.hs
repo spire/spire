@@ -1,9 +1,9 @@
 module Spire.CLI where
 import Control.Monad.Error
 import System.Environment
-import Spire.Parser
-import Spire.Surface
-import Spire.Neutral
+import Spire.Surface.Parsing
+import Spire.Expression.CheckingAndEvaluation
+import Spire.Canonical.Types
 
 run :: IO ()
 run = do
