@@ -34,7 +34,7 @@ data Neut =
 
 {-
 Do not explicitly inspect `Bound' variables in `subV' and `subN'.
-Instead, use helper functions that like `subExtend', which correctly
+Instead, use helper functions like `subExtend', which correctly
 increment the De Bruijn index.
 -}
 

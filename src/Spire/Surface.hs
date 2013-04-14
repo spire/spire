@@ -37,7 +37,7 @@ data Infer =
 
 {-
 Do not explicitly inspect `NomBound' variables in `check' and `infer'.
-Instead, use helper functions that like `checkExtend', which correctly
+Instead, use helper functions like `checkExtend', which correctly
 extend the context.
 -}
 
