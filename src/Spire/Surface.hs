@@ -8,7 +8,6 @@ import Data.List
 type Ident = String
 type NomBound a = Bound (Ident , a)
 type Ctx = [(Ident , Type)]
-type Result a = Either String a
 type Def = (Ident , Check , Check)
 
 data Check =
@@ -44,7 +43,7 @@ extend the context.
 check :: Ctx -> Check -> Type -> Result Val
 check ctx (CLam b) (VPi aT bT) = do
   b' <- checkExtend2 aT ctx b bT
-  return $ VLam b'
+  return $ VLam aT b'
 check ctx (CPair a b) (VSg aT bT) = do
   a' <- check ctx a aT
   b' <- check ctx b (suB a' bT)
@@ -71,7 +70,7 @@ infer ctx IType  = return (VType , VType)
 infer ctx (ILamAnn aT b) = do
   aT'       <- check ctx aT VType
   (b' , bT) <- inferExtend aT' ctx b
-  return (VLam b' , VPi aT' bT)
+  return (VLam aT' b' , VPi aT' bT)
 infer ctx (IPi aT bT) = do
   aT' <- check ctx aT VType
   bT' <- checkExtend aT' ctx bT VType
