@@ -9,7 +9,8 @@ import Text.PrettyPrint as PP
 
 -- The 'Reader' data of the 'DisplayMonad'.  E.g., the "flags" Tim
 -- mentioned would go in here.
-data DisplayData = DisplayData {}
+data DisplayData =
+  DisplayData { numEnclosingBinders :: Int }
 
 type DisplayMonad t = Reader DisplayData t
 
@@ -81,6 +82,54 @@ instance Display Def where
   display (id , tp , tm) =
     vcatM [sepM [d id , d ":" , d tp] , sepM [d id , d "=" , d tm]]
 
+instance Display t => Display (Bound t) where
+  display (Bound x) = local incNumEnclosingBinders $ display x
+incNumEnclosingBinders :: DisplayData -> DisplayData
+incNumEnclosingBinders d@(DisplayData { numEnclosingBinders = k }) =
+  d { numEnclosingBinders = k + 1 }
+
+-- Would be better to keep around the original names from the
+-- 'NomBound's and reuse them here ...
+var :: DisplayMonad Doc
+var = do
+  k <- asks numEnclosingBinders
+  d $ "x" ++ show k
+
+instance Display Val where
+  display v = case v of
+    VUnit -> d "Unit"
+    VBool -> d "Bool"
+    VProg -> d "Prog"
+    VType -> d "Type"
+    VPi tp1 tp2 ->
+      sepM [parensM . sepM $ [var , d ":" , d tp1] , d "->" , w tp2]
+    VSg tp1 tp2 ->
+      sepM [parensM . sepM $ [var , d ":" , d tp1] , d "*", w tp2]
+    VTT -> d "tt"
+    VTrue -> d "True"
+    VFalse -> d "False"
+    VPair x y -> parensM . sepM $ [d x , d "," , d y]
+    VLam tp body -> sepM [d "\\" , var , d ":" , d tp , d "->" , d body]
+    VDefs defs -> vcatM . map d $ defs
+    Neut n -> d n
+
+instance Display Neut where
+  display n = case n of
+    NVar v -> do
+      k <- asks numEnclosingBinders
+      d $ "x" ++ show (k - v)
+    NIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
+    NCaseBool m t f b ->
+      sepM [ d "caseBool"
+           , parensM . sepM $ [var , d "in" , d m]
+           , w t , w f , w b ]
+    NProj1 xy -> sepM [d "proj1" , w xy]
+    NProj2 xy -> sepM [d "proj2" , w xy]
+    NApp f x -> sepM [d f , d "$" , w x]
+
+instance Display VDef where
+  display (v , tp) = sepM [d v , d ":" , d tp]
+
 instance Wrap Check where
   wrapped c = case c of
     CPair x y -> False
@@ -107,3 +156,31 @@ instance Wrap Infer where
     IProj2 xy -> True
     IApp f x -> True
     IAnn x tp -> False
+
+instance Wrap t => Wrap (Bound t) where
+  wrapped (Bound x) = wrapped x
+
+instance Wrap Val where
+  wrapped v = case v of
+    VUnit -> False
+    VBool -> False
+    VProg -> False
+    VType -> False
+    VPi tp1 tp2 -> False
+    VSg tp1 tp2 -> False
+    VTT -> False
+    VTrue -> False
+    VFalse -> False
+    VPair x y -> False
+    VLam tp body -> False
+    VDefs defs -> False
+    Neut n -> wrapped n
+
+instance Wrap Neut where
+  wrapped n = case n of
+    NVar v -> False
+    NIf c t f -> True
+    NCaseBool m t f b -> True
+    NProj1 xy -> True
+    NProj2 xy -> True
+    NApp f x -> True
