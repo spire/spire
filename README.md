@@ -31,7 +31,7 @@ Emacs mode
 
 ### Configuration
 
-There is an Emacs mode for Spire, which can be found in `editors/emacs/spire-model`.
+There is an Emacs mode for Spire, which can be found in `editor/emacs/spire-mode.el`.
 
 Add the following to your Emacs initialization file:
 
