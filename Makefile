@@ -3,9 +3,8 @@ all: spire
 tmp:
 	mkdir tmp
 
-# Let agda figure out the dependencies.
 .PHONY: spire
-# Compile, putting generated files (except .agdai) in ./tmp.
+# Compile, putting generated files in ./tmp.
 spire: tmp
 	ghc -O2 -isrc -o spire \
 	  -hidir tmp -odir tmp \

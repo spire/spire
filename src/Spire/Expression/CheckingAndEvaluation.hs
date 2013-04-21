@@ -133,11 +133,9 @@ checkDefsStable as = do
   as' <- checkDefs [] [] as
   let bs = embedDefs as'
   bs' <- checkDefs [] [] bs
-  let cs =  embedDefs bs'
-  cs' <- checkDefs [] [] cs
-  unless (bs' == cs') $ throwError $
+  unless (as' == bs') $ throwError $
     "Embedding is unstable!"
-  return cs
+  return bs
   where
   embedDefs = map (\(l , a , aT) -> (l , embedVC a , embedVC aT))
 
