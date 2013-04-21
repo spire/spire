@@ -1,17 +1,12 @@
 module Spire.Expression.CheckingAndEvaluation where
 import Spire.Canonical.Types
+import Spire.Canonical.Embedding
 import Spire.Canonical.HereditarySubstitution
 import Spire.Expression.Types
 import Control.Monad.Error
 import Data.List
 
 ----------------------------------------------------------------------
-
-{-
-Do not explicitly inspect `NomBound' variables in `check' and `infer'.
-Instead, use helper functions like `checkExtend', which correctly
-extend the context.
--}
 
 check :: Ctx -> Check -> Type -> Result Val
 check ctx (CLam b) (VPi aT bT) = do
@@ -20,7 +15,7 @@ check ctx (CLam b) (VPi aT bT) = do
 check ctx (CPair a b) (VSg aT bT) = do
   a' <- check ctx a aT
   b' <- check ctx b (suB a' bT)
-  return $ VPair a' b'
+  return $ VPair aT bT a' b'
 check ctx (Infer a) bT = do
   (a' , aT) <- infer ctx a
   unless (aT == bT) $ throwError $
@@ -54,7 +49,8 @@ infer ctx (ISg aT bT) = do
   return (VSg aT' bT' , VType)
 infer ctx (IDefs as) = do
   as' <- checkDefs [] ctx as
-  return (VDefs as' , VProg)
+  let as'' = map (\(_ , a , aT) -> (a , aT))  as'
+  return (VDefs as'' , VProg)
 infer ctx (IIf b c1 c2) = do
   b'         <- check ctx b VBool
   (c1' , cT1)  <- infer ctx c1
@@ -103,7 +99,7 @@ infer ctx (IVar l) =
       "Referenced variable:\n" ++ l ++
       "\nCurrent context:\n" ++ show (map fst ctx)
     Just i ->
-      return (Neut (NVar i) , snd (ctx !! i))
+      return (Neut (NVar (NomVar (l , i))) , snd (ctx !! i))
 infer ctx (IAnn a aT) = do
   aT' <- check ctx aT VType
   a'  <- check ctx a aT'
@@ -111,23 +107,38 @@ infer ctx (IAnn a aT) = do
 
 ----------------------------------------------------------------------
 
-checkExtend2 :: Type -> Ctx -> NomBound Check -> Bound Type -> Result (Bound Val)
-checkExtend2 aT ctx b (Bound bT) = checkExtend aT ctx b bT
+checkExtend2 :: Type -> Ctx -> Bound Check -> Bound Type -> Result (Bound Val)
+checkExtend2 aT ctx b (Bound (_ , bT)) = checkExtend aT ctx b bT
 
-checkExtend :: Type -> Ctx -> NomBound Check -> Type -> Result (Bound Val)
-checkExtend aT ctx (Bound (l , b)) bT = return . Bound =<< check ((l , aT) : ctx) b bT
+checkExtend :: Type -> Ctx -> Bound Check -> Type -> Result (Bound Val)
+checkExtend aT ctx (Bound (l , b)) bT = do
+  b' <- check ((l , aT) : ctx) b bT
+  return $ Bound (l , b')
 
-inferExtend :: Type -> Ctx -> NomBound Infer -> Result (Bound Val , Bound Type)
+inferExtend :: Type -> Ctx -> Bound Infer -> Result (Bound Val , Bound Type)
 inferExtend aT ctx (Bound (l , b)) = do
   (b' , bT) <- infer ((l , aT) : ctx) b
-  return (Bound b' , Bound bT)
+  return (Bound (l , b') , Bound (l , bT))
 
-checkDefs :: [Val] -> Ctx -> [Def] -> Result [(Val , Type)]
+checkDefs :: [Val] -> Ctx -> [Def] -> Result [(Ident , Val , Type)]
 checkDefs x ctx [] = return []
 checkDefs xs ctx ((l , a , aT) : as) = do
   aT' <- return . foldSub xs =<< check ctx aT VType
   a' <- return . foldSub xs =<< check ctx a aT'
   as' <- checkDefs (a' : xs) ((l , aT') : ctx) as
-  return ((a' , aT') : as')
+  return ((l , a' , aT') : as')
+
+checkDefsStable :: [Def] -> Result [(Ident , Check , Check)]
+checkDefsStable as = do
+  as' <- checkDefs [] [] as
+  let bs = embedDefs as'
+  bs' <- checkDefs [] [] bs
+  let cs =  embedDefs bs'
+  cs' <- checkDefs [] [] cs
+  unless (bs' == cs') $ throwError $
+    "Embedding is unstable!"
+  return cs
+  where
+  embedDefs = map (\(l , a , aT) -> (l , embedVC a , embedVC aT))
 
 ----------------------------------------------------------------------

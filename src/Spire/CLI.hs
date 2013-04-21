@@ -25,15 +25,15 @@ checkFromFile name = do
       putStrLn $ show program
       putStrLn ""
 
-      case checkDefs [] [] program of
+      case checkDefsStable program of
         Left error -> do
           putStrLn error
 
         Right program' -> do
           putStrLn "Well-typed!"
           putStrLn $ "Evaluated program:\n"
-          mapM_ (\(tm , tp) ->
-            putStrLn (show tm ++ " : " ++ show tp)
+          mapM_ (\(l , a , aT) ->
+            putStrLn (l ++ " : " ++ show aT ++ " = " ++ show a)
             ) program'
 
 checkFromUser :: IO ()
