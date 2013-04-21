@@ -10,13 +10,19 @@ increment the De Bruijn index.
 -}
 
 subV :: Var -> Val -> Val -> Val
+subV i x a@VUnit = a
+subV i x a@VBool = a
+subV i x a@VProg = a
+subV i x a@VType = a
+subV i x a@VTT = a
+subV i x a@VTrue = a
+subV i x a@VFalse = a
 subV i x (VPi aT bT) = VPi (subV i x aT) (subExtend i x bT)
 subV i x (VSg aT bT) = VSg (subV i x aT) (subExtend i x bT)
 subV i x (VPair a b) = VPair (subV i x a) (subV i x b)
 subV i x (VLam aT f) = VLam (subV i x aT) (subExtend i x f)
 subV i x (VDefs as) = VDefs (subVs i x as)
 subV i x (Neut n) = subN i x n
-subV _ _ a = a
 
 subN :: Var -> Val -> Neut -> Val
 subN i x (NVar j) | i == j = x
