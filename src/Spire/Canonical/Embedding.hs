@@ -33,6 +33,11 @@ embedN (NApp f a) = IApp (embedN f) (embedVC a)
 
 ----------------------------------------------------------------------
 
+inferToCheck :: Infer -> Check
+inferToCheck (IAnn a' _) = a'
+inferToCheck (ILamAnn _ (Bound (l , a'))) = CLam $ Bound (l , Infer a')
+inferToCheck a' = Infer a'
+
 embedVB :: Bound Val -> Bound Infer
 embedVB (Bound (l , a)) = Bound (l , embedV a)
 
@@ -40,10 +45,10 @@ embedNB :: Bound Neut -> Bound Infer
 embedNB (Bound (l , a)) = Bound (l , embedN a)
 
 embedVC :: Val -> Check
-embedVC a = Infer $ embedV a
+embedVC =  inferToCheck . embedV
 
 embedNC :: Neut -> Check
-embedNC a = Infer $ embedN a
+embedNC = inferToCheck . embedN
 
 embedVBC :: Bound Val -> Bound Check
 embedVBC (Bound (l , a)) = Bound (l , embedVC a)
