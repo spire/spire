@@ -32,8 +32,9 @@ checkFromFile name = do
         Right program' -> do
           putStrLn "Well-typed!"
           putStrLn $ "Evaluated program:\n"
-          mapM_ (\(l , a , aT) ->
-            putStrLn (l ++ " : " ++ show aT ++ " = " ++ show a)
+          mapM_ (\(l , a , aT) -> do
+            putStrLn $ l ++ " : " ++ show aT
+            putStrLn $ l ++ " = " ++ show a ++ "\n"
             ) program'
 
 checkFromUser :: IO ()
