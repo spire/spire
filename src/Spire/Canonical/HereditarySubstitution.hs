@@ -3,24 +3,25 @@ import Spire.Canonical.Types
 
 ----------------------------------------------------------------------
 
-{-
-Do not explicitly inspect `Bound' variables in `subV' and `subN'.
-Instead, use helper functions like `subExtend', which correctly
-increment the De Bruijn index.
--}
-
 subV :: Var -> Val -> Val -> Val
+subV i x aT@VUnit = aT
+subV i x aT@VBool = aT
+subV i x aT@VProg = aT
+subV i x aT@VType = aT
+subV i x a@VTT = a
+subV i x a@VTrue = a
+subV i x a@VFalse = a
 subV i x (VPi aT bT) = VPi (subV i x aT) (subExtend i x bT)
 subV i x (VSg aT bT) = VSg (subV i x aT) (subExtend i x bT)
-subV i x (VPair a b) = VPair (subV i x a) (subV i x b)
+subV i x (VPair aT bT a b) =
+  VPair (subV i x aT) (subExtend i x bT) (subV i x a) (subV i x b)
 subV i x (VLam aT f) = VLam (subV i x aT) (subExtend i x f)
 subV i x (VDefs as) = VDefs (subVs i x as)
 subV i x (Neut n) = subN i x n
-subV _ _ a = a
 
 subN :: Var -> Val -> Neut -> Val
-subN i x (NVar j) | i == j = x
-subN i x (NVar j) | i < j = Neut (NVar (j - succ i))
+subN i x (NVar (NomVar (l , j))) | i == j = x
+subN i x (NVar (NomVar (l , j))) | i < j = Neut (NVar (NomVar (l , (j - succ i))))
 subN i x (NVar j) = Neut (NVar j)
 subN i x (NIf b c1 c2) =
   evalIf (subN i x b) (subV i x c1) (subV i x c2)
@@ -58,12 +59,12 @@ evalCaseBool pT pt pf (Neut b) = Neut $ NCaseBool pT pt pf b
 evalCaseBool _ _ _ _ = error "Ill-typed evaluation of CaseBool"
 
 evalProj1 :: Val -> Val
-evalProj1 (VPair a b) = a
+evalProj1 (VPair aT bT a b) = a
 evalProj1 (Neut ab) = Neut $ NProj1 ab
 evalProj1 _ = error "Ill-typed evaluation of Proj1"
 
 evalProj2 :: Val -> Val
-evalProj2 (VPair a b) = b
+evalProj2 (VPair aT bT a b) = b
 evalProj2 (Neut ab) = Neut $ NProj1 ab
 evalProj2 _ = error "Ill-typed evaluation of Proj2"
 
@@ -85,9 +86,9 @@ foldSub xs a = helper (reverse xs) a
 ----------------------------------------------------------------------
 
 suB :: Val -> Bound Val -> Val
-suB x (Bound a) = sub x a
+suB x (Bound (_ , a)) = sub x a
 
 subExtend :: Var -> Val -> Bound Val -> Bound Val
-subExtend i x (Bound a) = Bound $ subV (succ i) x a
+subExtend i x (Bound (l , a)) = Bound (l , subV (succ i) x a)
 
 ----------------------------------------------------------------------

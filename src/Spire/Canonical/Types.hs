@@ -3,34 +3,50 @@ import Control.Monad.Error
 
 ----------------------------------------------------------------------
 
-newtype Bound a = Bound a
-  deriving ( Eq, Show, Read )
-
-type Var = Int
-type Type = Val
-type VDef = (Val , Type)
-type Result a = Either String a
-type VCtx = [Type]
-
 data Val =
     VUnit | VBool | VProg | VType
   | VPi Type (Bound Type)
   | VSg Type (Bound Type)
 
   | VTT | VTrue | VFalse
-  | VPair Val Val
-  | VLam Type (Bound Val)      -- Abstracted over Neut (NVar 0)
+  | VPair Type (Bound Type) Val Val
+  | VLam Type (Bound Val)
   | VDefs [VDef]
   | Neut Neut
   deriving ( Eq, Show, Read )
 
 data Neut =
-    NVar Var
+    NVar NomVar
   | NIf Neut Val Val
   | NCaseBool (Bound Type) Val Val Neut
   | NProj1 Neut
   | NProj2 Neut
   | NApp Neut Val
   deriving ( Eq, Show, Read )
+
+----------------------------------------------------------------------
+
+type Ident = String
+newtype Bound a = Bound (Ident , a)
+  deriving ( Show, Read )
+
+instance Eq a => Eq (Bound a) where
+  Bound (_ , x) == Bound (_ , y) = x == y
+
+----------------------------------------------------------------------
+
+type Var = Int
+newtype NomVar = NomVar (Ident , Var)
+  deriving ( Show, Read )
+
+instance Eq NomVar where
+  NomVar (_ , i) == NomVar (_ , j) = i == j
+
+----------------------------------------------------------------------
+
+type Type = Val
+type VDef = (Val , Type)
+type Result a = Either String a
+type VCtx = [Type]
 
 ----------------------------------------------------------------------
