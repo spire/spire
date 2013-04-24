@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, RankNTypes #-}
-module Spire.Surface.PrettyPrinting (display , DisplayData (..)) where
+module Spire.Surface.PrettyPrinting (prettyPrint) where
 import Spire.Canonical.Types
 import Spire.Expression.Types
 
@@ -7,10 +7,15 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader
 import Text.PrettyPrint as PP
 
+prettyPrint :: Display t => t -> String
+prettyPrint t = render $ runReader (display t) initialDisplayData
+
 -- The 'Reader' data of the 'DisplayMonad'.  E.g., the "flags" Tim
 -- mentioned would go in here.
 data DisplayData =
   DisplayData { numEnclosingBinders :: Int }
+initialDisplayData :: DisplayData
+initialDisplayData = DisplayData { numEnclosingBinders = 0 }
 
 type DisplayMonad t = Reader DisplayData t
 
@@ -79,7 +84,7 @@ instance Display Infer where
     IAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
 
 instance Display Def where
-  display (id , tp , tm) =
+  display (id , tm , tp) =
     vcatM [sepM [d id , d ":" , d tp] , sepM [d id , d "=" , d tm]]
 
 instance Display t => Display (Bound t) where
