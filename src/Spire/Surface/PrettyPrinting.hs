@@ -59,8 +59,8 @@ instance Display Check where
 instance Display Infer where
   display i = case i of
     ITT -> d "tt"
-    ITrue -> d "True"
-    IFalse -> d "False"
+    ITrue -> d "true"
+    IFalse -> d "false"
     ILamAnn tp (Bound (id , body)) ->
       sepM [d "\\" , d id , d "->" , d body , d ":" , d tp]
     IUnit -> d "Unit"
