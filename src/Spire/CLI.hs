@@ -1,7 +1,9 @@
 module Spire.CLI where
 import Control.Monad.Error
 import System.Environment
+import Text.Printf
 import Spire.Surface.Parsing
+import Spire.Surface.PrettyPrinting
 import Spire.Expression.CheckingAndEvaluation
 import Spire.Canonical.Types
 
@@ -32,10 +34,21 @@ checkFromFile name = do
         Right program' -> do
           putStrLn "Well-typed!"
           putStrLn $ "Evaluated program:\n"
-          mapM_ (\(l , a , aT) -> do
-            putStrLn $ l ++ " : " ++ show aT
-            putStrLn $ l ++ " = " ++ show a ++ "\n"
-            ) program'
+          let -- print :: (Show t , Display t) => String -> String -> t -> IO ()
+              print name sep x = do
+                let prefix = printf "%s %s" name sep :: String
+                putStrLn $ printf  "%s %s"  prefix             (show x)
+                putStrLn $ printf "%*s %s"  (length prefix) "" (prettyPrint x)
+
+          forM_ program $ \d@(l , a , aT) -> do
+            print l ":" aT
+            print l "=" a
+            putStrLn ""
+
+          -- Whole program, for checking that output of pretty printer
+          -- is valid input to type checker.
+          putStrLn "\nPretty printed:\n"
+          mapM_ (putStrLn . (++"\n") . prettyPrint) program
 
 checkFromUser :: IO ()
 checkFromUser = do

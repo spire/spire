@@ -126,6 +126,7 @@ parseUnit = parseKeyword "Unit" >> return IUnit
 parseBool = parseKeyword "Bool" >> return IBool
 parseType = parseKeyword "Type" >> return IType
 
+-- (x : t1) -> t2
 parsePi = do
   (l , a) <- parseParens $ do
     l <- parseIdent
@@ -136,6 +137,7 @@ parsePi = do
   b <- parseCheck
   return $ IPi a (Bound (l , b))
 
+-- (x : t1) * t2
 parseSg = do
   (l , a) <- parseParens $ do
     l <- parseIdent
@@ -150,6 +152,7 @@ parseVar = do
   l <- parseIdent
   return $ IVar l
 
+-- if c then t else f
 parseIf = do
   parseKeyword "if"
   b <- parseCheck
@@ -159,6 +162,7 @@ parseIf = do
   c2 <- parseInfer
   return $ IIf b c1 c2
 
+-- caseBool (x in M) t f b
 parseCaseBool = do
   parseKeyword "caseBool"
   (l , pT) <- parseParens $ do
@@ -181,6 +185,7 @@ parseProj2 = do
   ab <- parseInfer
   return $ IProj2 ab
 
+-- f $ x
 parseApp = parseParens $ do
   f <- parseInfer
   parseOp "$"
