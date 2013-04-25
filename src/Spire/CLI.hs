@@ -40,7 +40,7 @@ checkFromFile file = do
                 putStrLn $ printf  "%s %s"  prefix             (show x)
                 putStrLn $ printf "%*s %s"  (length prefix) "" (prettyPrint x)
 
-          forM_ program $ \d@(l , a , aT) -> do
+          forM_ program' $ \d@(l , a , aT) -> do
             print l ":" aT
             print l "=" a
             putStrLn ""

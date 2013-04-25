@@ -28,13 +28,16 @@ check ctx (Infer a) bT = do
 check ctx a aT = throwError "Ill-typed!"
 
 infer :: Ctx -> Infer -> Result (Val , Type)
-infer ctx ITT    = return (VTT , VUnit)
-infer ctx ITrue  = return (VTrue , VBool)
-infer ctx IFalse = return (VFalse , VBool)
-infer ctx IUnit  = return (VUnit , VType)
-infer ctx IBool  = return (VBool , VType)
-infer ctx IProg  = return (VProg , VType)
-infer ctx IType  = return (VType , VType)
+infer ctx ITT     = return (VTT , VUnit)
+infer ctx ITrue   = return (VTrue , VBool)
+infer ctx IFalse  = return (VFalse , VBool)
+infer ctx IUnit   = return (VUnit , VType)
+infer ctx IBool   = return (VBool , VType)
+infer ctx IString = return (VString , VType)
+infer ctx IProg   = return (VProg , VType)
+infer ctx IType   = return (VType , VType)
+infer ctx (IQuotes str) =
+  return (VQuotes str , VString)
 infer ctx (ILamAnn aT b) = do
   aT'       <- check ctx aT VType
   (b' , bT) <- inferExtend aT' ctx b
@@ -51,9 +54,17 @@ infer ctx (IDefs as) = do
   as' <- checkDefs [] ctx as
   let as'' = map (\(_ , a , aT) -> (a , aT))  as'
   return (VDefs as'' , VProg)
+infer ctx (IStrAppend s1 s2) = do
+ s1' <- check ctx s1 VString
+ s2' <- check ctx s2 VString
+ return (evalStrAppend s1' s2' , VString)
+infer ctx (IStrEq s1 s2) = do
+ s1' <- check ctx s1 VString
+ s2' <- check ctx s2 VString
+ return (evalStrEq s1' s2' , VBool)
 infer ctx (IIf b c1 c2) = do
-  b'         <- check ctx b VBool
-  (c1' , cT1)  <- infer ctx c1
+  b'          <- check ctx b VBool
+  (c1' , cT1) <- infer ctx c1
   (c2' , cT2) <- infer ctx c2
   unless (cT1 == cT2) $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
@@ -128,7 +139,7 @@ checkDefs xs ctx ((l , a , aT) : as) = do
   as' <- checkDefs (a' : xs) ((l , aT') : ctx) as
   return ((l , a' , aT') : as')
 
-checkDefsStable :: [Def] -> Result [(Ident , Check , Check)]
+checkDefsStable :: [Def] -> Result [Def]
 checkDefsStable as = do
   as' <- checkDefs [] [] as
   let bs = embedDefs as'

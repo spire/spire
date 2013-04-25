@@ -4,11 +4,12 @@ import Control.Monad.Error
 ----------------------------------------------------------------------
 
 data Val =
-    VUnit | VBool | VProg | VType
+    VUnit | VBool | VString | VProg | VType
   | VPi Type (Bound Type)
   | VSg Type (Bound Type)
 
   | VTT | VTrue | VFalse
+  | VQuotes StrLit
   | VPair Type (Bound Type) Val Val
   | VLam Type (Bound Val)
   | VDefs [VDef]
@@ -17,6 +18,10 @@ data Val =
 
 data Neut =
     NVar NomVar
+  | NStrAppendL Neut Val
+  | NStrAppendR Val Neut
+  | NStrEqL Neut Val
+  | NStrEqR Val Neut
   | NIf Neut Val Val
   | NCaseBool (Bound Type) Val Val Neut
   | NProj1 Neut
@@ -48,5 +53,6 @@ type Type = Val
 type VDef = (Val , Type)
 type Result a = Either String a
 type VCtx = [Type]
+type StrLit = String
 
 ----------------------------------------------------------------------

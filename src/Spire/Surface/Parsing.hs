@@ -33,9 +33,9 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "in", "="]
+ops = ["\\", "->", "*", ",", ":", "$", "in", "=", "++", "=="]
 keywords = [
-  "Unit", "Bool", "Type",
+  "Unit", "Bool", "String", "Type",
   "tt", "true", "false",
   "caseBool", "if", "then", "else",
   "proj1", "proj2"
@@ -61,6 +61,7 @@ parseKeyword = reserved tokenizer
 parseIdent = identifier tokenizer
 parseToken = symbol tokenizer
 parseSpaces = whiteSpace tokenizer
+parseStringLit = stringLiteral tokenizer
 parseParens :: MParser a -> MParser a
 parseParens = parens tokenizer
 
@@ -87,8 +88,12 @@ parseInfer = do
   <|> parseFalse
   <|> parseUnit
   <|> parseBool
+  <|> parseString
   <|> parseType
+  <|> try parseQuotes
   <|> try parseVar
+  <|> try parseStrAppend
+  <|> try parseStrEq
   <|> try parseIf
   <|> try parseProj1
   <|> try parseProj2
@@ -141,6 +146,7 @@ parseTrue = parseKeyword "true" >> return ITrue
 parseFalse = parseKeyword "false" >> return IFalse
 parseUnit = parseKeyword "Unit" >> return IUnit
 parseBool = parseKeyword "Bool" >> return IBool
+parseString = parseKeyword "String" >> return IString
 parseType = parseKeyword "Type" >> return IType
 
 -- (x : t1) -> t2
@@ -165,9 +171,27 @@ parseSg = do
   b <- parseCheck
   return $ ISg a (Bound (l , b))
 
+parseQuotes = do
+  s <- parseStringLit
+  return $ IQuotes s
+
 parseVar = do
   l <- parseIdent
   return $ IVar l
+
+-- (s1 ++ s2)
+parseStrAppend = parseParens $ do
+  s1 <- parseCheck
+  parseOp "++"
+  s2 <- parseCheck
+  return $ IStrAppend s1 s2
+
+-- (s1 == s2)
+parseStrEq = parseParens $ do
+  s1 <- parseCheck
+  parseOp "=="
+  s2 <- parseCheck
+  return $ IStrEq s1 s2
 
 -- if c then t else f
 parseIf = do
@@ -202,13 +226,14 @@ parseProj2 = do
   ab <- parseInfer
   return $ IProj2 ab
 
--- f $ x
+-- (f $ x)
 parseApp = parseParens $ do
   f <- parseInfer
   parseOp "$"
   a <- parseCheck
   return $ IApp f a
 
+-- (a $ aT)
 parseAnn = parseParens $ do
   tm <- parseCheck
   parseOp ":"

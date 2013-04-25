@@ -7,11 +7,13 @@ import Spire.Canonical.Types
 embedV :: Val -> Infer
 embedV VUnit = IUnit
 embedV VBool = IBool
+embedV VString = IString
 embedV VProg = IProg
 embedV VType = IType
 embedV VTT = ITT
 embedV VTrue = ITrue
 embedV VFalse = IFalse
+embedV (VQuotes str) = IQuotes str
 
 embedV (VPi aT bT) = IPi (embedVC aT) (embedVBC bT)
 embedV (VSg aT bT) = ISg (embedVC aT) (embedVBC bT)
@@ -24,6 +26,10 @@ embedV (VDefs _) = error "TODO Embedding programs is not supported yet."
 
 embedN :: Neut -> Infer
 embedN (NVar (NomVar (l , _))) = IVar l
+embedN (NStrAppendL s1 s2) = IStrAppend (embedNC s1) (embedVC s2)
+embedN (NStrAppendR s1 s2) = IStrAppend (embedVC s1) (embedNC s2)
+embedN (NStrEqL s1 s2) = IStrEq (embedNC s1) (embedVC s2)
+embedN (NStrEqR s1 s2) = IStrEq (embedVC s1) (embedNC s2)
 embedN (NIf b c1 c2) = IIf (embedNC b) (embedV c1) (embedV c2)
 embedN (NCaseBool pT pt pf b) =
   ICaseBool (embedVBC pT) (embedVC pt) (embedVC pf) (embedNC b)

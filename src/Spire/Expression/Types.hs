@@ -11,12 +11,15 @@ data Check =
 
 data Infer =
     ITT | ITrue | IFalse
+  | IQuotes StrLit
   | ILamAnn Check (Bound Infer)
-  | IUnit | IBool | IProg | IType
+  | IUnit | IBool | IString | IProg | IType
   | IPi Check (Bound Check)
   | ISg Check (Bound Check)
   | IDefs [Def]
   | IVar Ident
+  | IStrAppend Check Check
+  | IStrEq Check Check
   | IIf Check Infer Infer
   | ICaseBool (Bound Check) Check Check Check
   | IProj1 Infer

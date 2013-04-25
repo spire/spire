@@ -7,6 +7,8 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader
 import Text.PrettyPrint as PP
 
+----------------------------------------------------------------------
+
 prettyPrint :: Display t => t -> String
 prettyPrint t = render $ runReader (display t) initialDisplayData
 
@@ -65,6 +67,7 @@ instance Display Infer where
       sepM [d "\\" , d id , d "->" , d body , d ":" , d tp]
     IUnit -> d "Unit"
     IBool -> d "Bool"
+    IString -> d "String"
     IProg -> d "Prog" -- NC: ??? Don't see this parsed anywhere.
     IType -> d "Type"
     IPi tp1 (Bound (id, tp2)) ->
@@ -73,6 +76,9 @@ instance Display Infer where
       sepM [parensM . sepM $ [d id , d ":" , d tp1] , d "*", w tp2]
     IDefs defs -> vcatM . map d $ defs
     IVar id -> d id
+    IQuotes str -> d . show $ str
+    IStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
+    IStrEq s1 s2 -> sepM [w s1 , d "==" , d s2]
     IIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     ICaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
@@ -80,7 +86,7 @@ instance Display Infer where
            , w t , w f , w b ]
     IProj1 xy -> sepM [d "proj1" , w xy]
     IProj2 xy -> sepM [d "proj2" , w xy]
-    IApp f x -> sepM [d f , d "$" , w x]
+    IApp f x -> sepM [w f , d "$" , d x]
     IAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
 
 instance Display Def where
@@ -108,6 +114,7 @@ instance Display Val where
   display v = case v of
     VUnit -> d "Unit"
     VBool -> d "Bool"
+    VString -> d "String"
     VProg -> d "Prog"
     VType -> d "Type"
     VPi tp1 tp2 ->
@@ -117,6 +124,7 @@ instance Display Val where
     VTT -> d "tt"
     VTrue -> d "True"
     VFalse -> d "False"
+    VQuotes str -> d . show $ str
     -- ???: what's the right way to display type-annotated pairs?
     VPair tx ty x y -> sepM [ parensM . sepM $ [d x , d "," , d y]
                             , d ":" , d (VSg tx ty) ]
@@ -133,6 +141,10 @@ instance Display Neut where
       -- binding site of this var.  So, we could perform a sanity
       -- check here, if the list of binders were in the state.
       d $ id ++ show (k - v)
+    NStrAppendL s1 s2 -> sepM [w s1 , d "++" , d s2]
+    NStrAppendR s1 s2 -> sepM [w s1 , d "++" , d s2]
+    NStrEqL s1 s2 -> sepM [w s1 , d "==" , d s2]
+    NStrEqR s1 s2 -> sepM [w s1 , d "==" , d s2]
     NIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     NCaseBool m t f b ->
       sepM [ d "caseBool"
@@ -156,15 +168,19 @@ instance Wrap Infer where
     ITT -> False
     ITrue -> False
     IFalse -> False
+    IQuotes str -> False
     ILamAnn tp (Bound (id , body)) -> False
     IUnit -> False
     IBool -> False
+    IString -> False
     IProg -> False
     IType -> False
     IPi tp1 (Bound (id, tp2)) -> False
     ISg tp1 (Bound (id, tp2)) -> False
     IDefs defs -> False
     IVar id -> False
+    IStrAppend s1 s2 -> True
+    IStrEq s1 s2 -> True
     IIf c t f -> True
     ICaseBool (Bound (id, m)) t f b -> True
     IProj1 xy -> True
@@ -179,6 +195,7 @@ instance Wrap Val where
   wrapped v = case v of
     VUnit -> False
     VBool -> False
+    VString -> False
     VProg -> False
     VType -> False
     VPi tp1 tp2 -> False
@@ -186,6 +203,7 @@ instance Wrap Val where
     VTT -> False
     VTrue -> False
     VFalse -> False
+    VQuotes str -> False
     VPair tx ty x y -> False
     VLam tp body -> False
     VDefs defs -> False
@@ -194,6 +212,10 @@ instance Wrap Val where
 instance Wrap Neut where
   wrapped n = case n of
     NVar v -> False
+    NStrAppendL s1 s2 -> True
+    NStrAppendR s1 s2 -> True
+    NStrEqL s1 s2 -> True
+    NStrEqR s1 s2 -> True
     NIf c t f -> True
     NCaseBool m t f b -> True
     NProj1 xy -> True

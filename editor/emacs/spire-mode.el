@@ -24,7 +24,7 @@
 (define-generic-mode 'spire-mode
   '("--") ;; comments
   '("in") ;; keywords
-  '(("\\<\\(Unit\\|Bool\\|Type\\)\\>" . 'font-lock-type-face) ;; types
+  '(("\\<\\(Unit\\|Bool\\|String\\|Type\\)\\>" . 'font-lock-type-face) ;; types
     ("\\<\\(if\\|then\\|else\\|caseBool\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
     ("\\<\\(tt\\|true\\|false\\)\\>" . 'font-lock-constant-face) ;; constants
     )
