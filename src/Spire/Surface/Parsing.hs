@@ -1,4 +1,4 @@
-module Spire.Surface.Parsing where
+module Spire.Surface.Parsing (parseProgram , parseTerm , formatParseError) where
 import Spire.Canonical.Types
 import Spire.Expression.Types
 import Text.Parsec
@@ -6,7 +6,30 @@ import Text.Parsec.String
 import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language
+import Text.Parsec.Error
+import Text.Printf
 import Data.Functor.Identity(Identity)
+
+
+parseProgram :: FilePath -> String -> Either ParseError [Def]
+parseProgram = parse (parseSpaces >> parseDefs)
+
+parseTerm :: String -> Either ParseError Check
+parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
+
+-- Format error message so that Emacs' compilation mode can parse the
+-- location information.
+formatParseError :: ParseError -> String
+formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
+  where
+  file = sourceName . errorPos $ error
+  line = sourceLine . errorPos $ error
+  col = sourceColumn . errorPos $ error
+  -- Copied from 'Show' instance for 'ParseError':
+  -- http://hackage.haskell.org/packages/archive/parsec/latest/doc/html/src/Text-Parsec-Error.html#ParseError
+  msg = showErrorMessages "or" "unknown parse error"
+          "expecting" "unexpected" "end of input"
+          (errorMessages error)
 
 ----------------------------------------------------------------------
 
@@ -40,12 +63,6 @@ parseToken = symbol tokenizer
 parseSpaces = whiteSpace tokenizer
 parseParens :: MParser a -> MParser a
 parseParens = parens tokenizer
-
-parseTerm :: String -> Either ParseError Check
-parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
-
-parseProgram :: String -> Either ParseError [Def]
-parseProgram = parse (parseSpaces >> parseDefs) "(unknown)"
 
 ----------------------------------------------------------------------
 

@@ -55,6 +55,13 @@
   (apply 'make-comint "Spire" spire-command nil
          (list (buffer-file-name))
          )
+  ;; Turn on compilation mode so that, e.g., 'C-x `' can be used to
+  ;; jump to the next error.  This depends on compilation mode being
+  ;; able to recognize the location information in the error messages.
+  ;; Regexps associated with compilation mode define the location
+  ;; patterns; one built-in pattern is "<file>:<line>:<column>:".
+  (with-current-buffer *spire*
+    (compilation-minor-mode 1))
   (display-buffer *spire*)
   )
 

@@ -14,13 +14,13 @@ run = do
   then checkFromUser
   else checkFromFile (head args)
 
-checkFromFile :: String -> IO ()
-checkFromFile name = do
-  source <- readFile name
-  case parseProgram source of
+checkFromFile :: FilePath -> IO ()
+checkFromFile file = do
+  source <- readFile file
+  case parseProgram file source of
     Left error -> do
       putStrLn "Parse error:"
-      putStrLn $ show error
+      putStrLn $ formatParseError error
 
     Right program -> do
       putStrLn $ "Parsed program:"

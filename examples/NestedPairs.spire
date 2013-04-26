@@ -1,0 +1,8 @@
+p1 : (u:Unit) * ((u:Unit) * Unit)
+p1 = (tt , (tt , tt))
+
+p2 : (u:(u:Unit) * Unit) * Unit
+p2 = ((tt , tt) , tt)
+
+p3 : (u:Unit) * (u:Unit) * Unit
+p3 = tt , tt , tt
