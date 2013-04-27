@@ -1,6 +1,8 @@
-module Spire.Surface.Parsing (parseProgram , parseTerm , formatParseError) where
+module Spire.Surface.Parsing
+  (parseProgram, parseTerm, wildcard, formatParseError)
+where
+import Spire.Surface.Types
 import Spire.Canonical.Types
-import Spire.Expression.Types
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
@@ -10,12 +12,13 @@ import Text.Parsec.Error
 import Text.Printf
 import Data.Functor.Identity(Identity)
 
+----------------------------------------------------------------------
 
-parseProgram :: FilePath -> String -> Either ParseError [Def]
+parseProgram :: FilePath -> String -> Either ParseError Statements
 parseProgram = parse (parseSpaces >> parseDefs)
 
-parseTerm :: String -> Either ParseError Check
-parseTerm = parse (parseSpaces >> parseCheck) "(unknown)"
+parseTerm :: FilePath -> String -> Either ParseError Syntax
+parseTerm = parse (parseSpaces >> parseSyntax)
 
 -- Format error message so that Emacs' compilation mode can parse the
 -- location information.
@@ -33,11 +36,13 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "in", "=", "++", "=="]
+wildcard = "_"
+ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "=="]
 keywords = [
+  "in", "if", "then", "else",
   "Unit", "Bool", "String", "Type",
   "tt", "true", "false",
-  "caseBool", "if", "then", "else",
+  "caseBool",
   "proj1", "proj2"
   ]
 
@@ -61,183 +66,135 @@ parseKeyword = reserved tokenizer
 parseIdent = identifier tokenizer
 parseToken = symbol tokenizer
 parseSpaces = whiteSpace tokenizer
-parseStringLit = stringLiteral tokenizer
+parseStringLit = try $ stringLiteral tokenizer
 parseParens :: MParser a -> MParser a
-parseParens = parens tokenizer
+parseParens = try . parens tokenizer
 
 ----------------------------------------------------------------------
 
-parseCheck :: MParser Check
-parseCheck = do
-      try (parseParens parseCheck)
-  <|> try parsePair
-  <|> try parseLam
-  <|> (return . Infer =<< try parseInfer)
-
-parseInfer :: MParser Infer
-parseInfer = do
-      try parsePi
-  <|> try parseSg
-  <|> try parseCaseBool
-  <|> try parseLamAnn
-  <|> try parseApp
-  <|> try parseAnn
-  <|> try (parseParens parseInfer)
-  <|> parseTT
-  <|> parseTrue
-  <|> parseFalse
-  <|> parseUnit
-  <|> parseBool
-  <|> parseString
-  <|> parseType
-  <|> try parseQuotes
-  <|> try parseVar
-  <|> try parseStrAppend
-  <|> try parseStrEq
-  <|> try parseIf
-  <|> try parseProj1
-  <|> try parseProj2
-
-----------------------------------------------------------------------
-
-parseDefs :: MParser [Def]
+parseDefs :: MParser Statements
 parseDefs = many parseDef
 
-parseDef :: MParser Def
+parseDef :: MParser Statement
 parseDef = do
   l <- parseIdent
   parseOp ":"
-  tp <- parseCheck
+  tp <- parseSyntax
   parseToken l
   parseOp "="
-  tm <- parseCheck
-  return (l , tm , tp)
+  tm <- parseSyntax
+  return $ SDef l tm tp
 
 ----------------------------------------------------------------------
 
-parsePair = parseParens $ do
-  x <- parseCheck
-  parseOp ","
-  y <- parseCheck
-  return $ CPair x y
+parseSyntax :: MParser Syntax
+parseSyntax = buildExpressionParser table parseChoice
 
-parseLam = do
-  parseOp "\\"
-  l <- parseIdent
-  parseOp "->"
-  tm <- parseCheck
-  return $ CLam (Bound (l , tm))
+parseChoice :: MParser Syntax
+parseChoice = try $ choice [
+    parseParens parseSyntax
+  , parseUnit
+  , parseBool
+  , parseString
+  , parseType
+  , parseTT
+  , parseTrue
+  , parseFalse
+  , parseQuotes
+  , parseIf
+  , parseCaseBool
+  , parseProj1
+  , parseProj2
+  , parseVar
+  , parseLam
+  , parseAnn
+  ]
 
-parseLamAnn = do
-  parseOp "\\"
-  (l , aT) <- parseParens $ do
-    l <- parseIdent
-    parseOp ":"
-    aT <- parseCheck
-    return (l , aT)
-  parseOp "->"
-  a <- parseInfer
-  return $ ILamAnn aT (Bound (l , a))
+failIfStmt =
+  -- definition type declaration or assignment is next
+  try . notFollowedBy $ parseIdent >> (parseOp ":" <|> parseOp "=")
+
+table = [
+    [Infix parseSpaceApp AssocLeft]
+  , [Infix (parseInfix "++" SStrAppend) AssocRight]
+  , [Infix (parseInfix "==" SStrEq) AssocNone,
+     Infix (parseInfix "," SPair) AssocRight]
+  , [Infix (parseInfix "$" SApp) AssocRight]
+  , [Infix (parseInfix "*" (boundInfix SSg)) AssocRight]
+  , [Infix (parseInfix "->" (boundInfix SPi)) AssocRight]
+  ] where
+  parseSpaceApp = failIfStmt >> return SApp
+  parseInfix op con = parseOp op >> return con
+
+  boundInfix con = \ aT bT -> case aT of
+    SAnn (SVar l) aT' -> con aT' $ Bound (l , bT)
+    _ -> con aT $ Bound (wildcard , bT)
 
 ----------------------------------------------------------------------
 
-parseTT = parseKeyword "tt" >> return ITT
-parseTrue = parseKeyword "true" >> return ITrue
-parseFalse = parseKeyword "false" >> return IFalse
-parseUnit = parseKeyword "Unit" >> return IUnit
-parseBool = parseKeyword "Bool" >> return IBool
-parseString = parseKeyword "String" >> return IString
-parseType = parseKeyword "Type" >> return IType
-
--- (x : t1) -> t2
-parsePi = do
-  (l , a) <- parseParens $ do
-    l <- parseIdent
-    parseOp ":"
-    a <- parseCheck
-    return (l , a)
-  parseOp "->"
-  b <- parseCheck
-  return $ IPi a (Bound (l , b))
-
--- (x : t1) * t2
-parseSg = do
-  (l , a) <- parseParens $ do
-    l <- parseIdent
-    parseOp ":"
-    a <- parseCheck
-    return (l , a)
-  parseOp "*"
-  b <- parseCheck
-  return $ ISg a (Bound (l , b))
-
-parseQuotes = do
-  s <- parseStringLit
-  return $ IQuotes s
-
-parseVar = do
-  l <- parseIdent
-  return $ IVar l
-
--- (s1 ++ s2)
-parseStrAppend = parseParens $ do
-  s1 <- parseCheck
-  parseOp "++"
-  s2 <- parseCheck
-  return $ IStrAppend s1 s2
-
--- (s1 == s2)
-parseStrEq = parseParens $ do
-  s1 <- parseCheck
-  parseOp "=="
-  s2 <- parseCheck
-  return $ IStrEq s1 s2
-
--- if c then t else f
 parseIf = do
   parseKeyword "if"
-  b <- parseCheck
+  b <- parseSyntax
   parseKeyword "then"
-  c1 <- parseInfer
+  c1 <- parseSyntax
   parseKeyword "else"
-  c2 <- parseInfer
-  return $ IIf b c1 c2
+  c2 <- parseSyntax
+  return $ SIf b c1 c2
 
--- caseBool (x in M) t f b
-parseCaseBool = do
+parseCaseBool = try $ do
   parseKeyword "caseBool"
   (l , pT) <- parseParens $ do
     l <- parseIdent
-    parseOp "in"
-    pT <- parseCheck
+    parseKeyword "in"
+    pT <- parseSyntax
     return (l , pT)
-  pt <- parseCheck
-  pf <- parseCheck
-  b <- parseCheck
-  return $ ICaseBool (Bound (l , pT)) pt pf b
+  b <- parseSyntax
+  parseKeyword "then"
+  pt <- parseSyntax
+  parseKeyword "else"
+  pf <- parseSyntax
+  return $ SCaseBool (Bound (l , pT)) pt pf b
 
-parseProj1 = do
+parseProj1 = try $ do
   parseKeyword "proj1"
-  ab <- parseInfer
-  return $ IProj1 ab
+  ab <- parseSyntax
+  return $ SProj1 ab
 
-parseProj2 = do
+parseProj2 = try $ do
   parseKeyword "proj2"
-  ab <- parseInfer
-  return $ IProj2 ab
+  ab <- parseSyntax
+  return $ SProj2 ab
 
--- (f $ x)
-parseApp = parseParens $ do
-  f <- parseInfer
-  parseOp "$"
-  a <- parseCheck
-  return $ IApp f a
+parseLam = try $ do
+  parseOp "\\"
+  l <- parseIdent
+  parseOp "->"
+  tm <- parseSyntax
+  return $ SLam (Bound (l , tm))
 
--- (a $ aT)
 parseAnn = parseParens $ do
-  tm <- parseCheck
+  --    binding   or  annotation
+  a <- parseVar <|> parseSyntax
   parseOp ":"
-  tp <- parseCheck
-  return $ IAnn tm tp
+  b <- parseSyntax
+  return $ SAnn a b
+
+----------------------------------------------------------------------
+
+parseTT = parseKeyword "tt" >> return STT
+parseTrue = parseKeyword "true" >> return STrue
+parseFalse = parseKeyword "false" >> return SFalse
+parseUnit = parseKeyword "Unit" >> return SUnit
+parseBool = parseKeyword "Bool" >> return SBool
+parseString = parseKeyword "String" >> return SString
+parseType = parseKeyword "Type" >> return SType
+
+parseQuotes = do
+  s <- parseStringLit
+  return $ SQuotes s
+
+parseVar = do
+  l <- parseIdent
+  return $ SVar l
 
 ----------------------------------------------------------------------

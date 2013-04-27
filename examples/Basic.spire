@@ -1,25 +1,25 @@
 
-not : (b : Bool) -> Bool
+not : Bool -> Bool
 not = \ b ->
-  (if b then false else true)
+  if b then false else true
 
 myTrue : Bool
 myTrue = true
 
-If : (b : Bool) -> Type
-If = \ b -> (if b then Bool else Unit)
+If : Bool -> Type
+If = \ b -> if b then Bool else Unit
 
-myFalse : (If $ myTrue)
+myFalse : If myTrue
 myFalse = if myTrue then false else true
 
 myFalse2 : Bool
-myFalse2 = (not $ myTrue)
+myFalse2 = not myTrue
 
---       (b : Bool) * (if b then Unit else Bool)
-myPair : (b : Bool) * (If $ (not $ b))
-myPair = (false, true)
+--       (b : Bool) * if b then Unit else Bool
+myPair : (b : Bool) * If (not b)
+myPair = false, true
 
-myFun : (b : Bool) -> (if b then Unit else Bool)
+myFun : (b : Bool) -> if b then Unit else Bool
 myFun = \ b ->
-  (caseBool (x in if x then Unit else Bool)
-    tt false b)
+  caseBool (x in if x then Unit else Bool) b
+    then tt else false)

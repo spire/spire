@@ -32,5 +32,6 @@ data Infer =
 
 type Ctx = [(Ident , Type)]
 type Def = (Ident , Check , Check)
+type Defs = [Def]
 
 ----------------------------------------------------------------------

@@ -1,6 +1,5 @@
-not : (b : Bool) -> Bool
-not = \ b ->
-  (if b then false else true)
+not : Bool -> Bool
+not = \ b -> if b then false else true
 
 myUnit : Unit
 myUnit = tt
@@ -9,18 +8,18 @@ myUnit2 : Unit
 myUnit2 = tt
 
 If : (b : Bool) -> Type
-If = \ b -> (if b then Bool else Unit)
+If = \ b -> if b then Bool else Unit
 
-myFalse : (If $ (not $ false))
+myFalse : If (not false)
 myFalse = false
 
 myType : Type
-myType = (arg : Bool) -> (if (not $ false) then Unit else Bool)
+myType = Bool -> if not false then Unit else Bool
 
 myType2 : Type
-myType2 = (arg : Bool) -> (if (not $ myFalse) then Unit else Bool)
+myType2 = Bool -> (if not myFalse then Unit else Bool)
 
-myPair    : (b : Bool) * (If $ (not $ b))
-myPair = (true , tt)
+myPair    : (b : Bool) * If (not b)
+myPair = true , tt
 
 

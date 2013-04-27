@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, RankNTypes #-}
 module Spire.Surface.PrettyPrinting (prettyPrint) where
+import Spire.Surface.Types
+import Spire.Surface.Parsing
 import Spire.Canonical.Types
 import Spire.Expression.Types
 
@@ -11,26 +13,6 @@ import Text.PrettyPrint as PP
 
 prettyPrint :: Display t => t -> String
 prettyPrint t = render $ runReader (display t) initialDisplayData
-
--- The 'Reader' data of the 'DisplayMonad'.  E.g., the "flags" Tim
--- mentioned would go in here.
-data DisplayData =
-  DisplayData { numEnclosingBinders :: Int }
-initialDisplayData :: DisplayData
-initialDisplayData = DisplayData { numEnclosingBinders = 0 }
-
-type DisplayMonad t = Reader DisplayData t
-
--- Convert 't' to 'Doc', using 'DisplayData'.
-class Display t where
-  display :: t -> DisplayMonad Doc
-
-class Display t => Wrap t where
-  wrap :: t -> DisplayMonad Doc
-  wrap x = (if wrapped x then parensM else id) $ display x
-  -- Returns 'True' iff argument should be wrapped in parens when
-  -- appearing as a subexpression.
-  wrapped :: t -> Bool
 
 -- Short hands.
 d :: Display t => t -> DisplayMonad Doc
@@ -49,8 +31,49 @@ vcatM xs = PP.vcat <$> sequence xs
 parensM :: Functor m => m Doc -> m Doc
 parensM = fmap PP.parens
 
-instance Display String where
-  display = return . text
+-- Would be better to keep around the original names from the
+-- 'NomBound's and reuse them here ...
+var :: Bound t -> DisplayMonad Doc
+var (Bound (id , _)) = do
+  k <- asks numEnclosingBinders
+  d $ id ++ show k
+
+binding :: Display t => Ident -> t -> DisplayMonad Doc
+binding id tp | id == wildcard  = d tp
+binding id tp = parensM . sepM $ [d id , d ":" , d tp]
+
+----------------------------------------------------------------------
+
+instance Display Syntax where
+  display s = case s of
+    STT -> d "tt"
+    STrue -> d "true"
+    SFalse -> d "false"
+    SPair x y -> parensM . sepM $ [d x , d "," , d y]
+    SLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
+    SUnit -> d "Unit"
+    SBool -> d "Bool"
+    SString -> d "String"
+    SType -> d "Type"
+    SPi tp1 (Bound (id, tp2)) ->
+      sepM [binding id tp1 , d "->" , w tp2]
+    SSg tp1 (Bound (id, tp2)) ->
+      sepM [binding id tp1 , d "*", w tp2]
+    SVar id -> d id
+    SQuotes str -> d . show $ str
+    SStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
+    SStrEq s1 s2 -> sepM [w s1 , d "==" , d s2]
+    SIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
+    SCaseBool (Bound (id, m)) t f b ->
+      sepM [ d "caseBool"
+           , parensM . sepM $ [d id , d "in" , d m]
+           , w b , w t , w f ]
+    SProj1 xy -> sepM [d "proj1" , w xy]
+    SProj2 xy -> sepM [d "proj2" , w xy]
+    SApp f x -> sepM [w f , d x]
+    SAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+
+----------------------------------------------------------------------
 
 instance Display Check where
   display c = case c of
@@ -71,9 +94,9 @@ instance Display Infer where
     IProg -> d "Prog" -- NC: ??? Don't see this parsed anywhere.
     IType -> d "Type"
     IPi tp1 (Bound (id, tp2)) ->
-      sepM [parensM . sepM $ [d id , d ":" , d tp1] , d "->" , w tp2]
+      sepM [binding id tp1 , d "->" , w tp2]
     ISg tp1 (Bound (id, tp2)) ->
-      sepM [parensM . sepM $ [d id , d ":" , d tp1] , d "*", w tp2]
+      sepM [binding id tp1 , d "*", w tp2]
     IDefs defs -> vcatM . map d $ defs
     IVar id -> d id
     IQuotes str -> d . show $ str
@@ -83,32 +106,13 @@ instance Display Infer where
     ICaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
            , parensM . sepM $ [d id , d "in" , d m]
-           , w t , w f , w b ]
+           , w b , w t , w f ]
     IProj1 xy -> sepM [d "proj1" , w xy]
     IProj2 xy -> sepM [d "proj2" , w xy]
-    IApp f x -> sepM [w f , d "$" , d x]
+    IApp f x -> sepM [w f , d x]
     IAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
 
-instance Display Def where
-  display (id , tm , tp) =
-    vcatM [sepM [d id , d ":" , d tp] , sepM [d id , d "=" , d tm]]
-
-instance Display t => Display (Bound t) where
-  display (Bound (_ , x)) = local incNumEnclosingBinders $ display x
-incNumEnclosingBinders :: DisplayData -> DisplayData
--- XXX: could store list of 'Bound's, instead of the length of this
--- list, which would allow us to only uniquify (by appending a number)
--- when necessary.
-
-incNumEnclosingBinders d@(DisplayData { numEnclosingBinders = k }) =
-  d { numEnclosingBinders = k + 1 }
-
--- Would be better to keep around the original names from the
--- 'NomBound's and reuse them here ...
-var :: Bound t -> DisplayMonad Doc
-var (Bound (id , _)) = do
-  k <- asks numEnclosingBinders
-  d $ id ++ show k
+----------------------------------------------------------------------
 
 instance Display Val where
   display v = case v of
@@ -149,13 +153,38 @@ instance Display Neut where
     NCaseBool m t f b ->
       sepM [ d "caseBool"
            , parensM . sepM $ [var m , d "in" , d m]
-           , w t , w f , w b ]
+           , w b , w t , w f ]
     NProj1 xy -> sepM [d "proj1" , w xy]
     NProj2 xy -> sepM [d "proj2" , w xy]
-    NApp f x -> sepM [d f , d "$" , w x]
+    NApp f x -> sepM [d f , w x]
 
-instance Display VDef where
-  display (v , tp) = sepM [d v , d ":" , d tp]
+----------------------------------------------------------------------
+
+instance Wrap Syntax where
+  wrapped s = case s of
+    STT -> False
+    STrue -> False
+    SFalse -> False
+    SQuotes str -> False
+    SPair x y -> False
+    SLam (Bound (id , body)) -> False
+    SUnit -> False
+    SBool -> False
+    SString -> False
+    SType -> False
+    SPi tp1 (Bound (id, tp2)) -> False
+    SSg tp1 (Bound (id, tp2)) -> False
+    SVar id -> False
+    SStrAppend s1 s2 -> True
+    SStrEq s1 s2 -> True
+    SIf c t f -> True
+    SCaseBool (Bound (id, m)) t f b -> True
+    SProj1 xy -> True
+    SProj2 xy -> True
+    SApp f x -> True
+    SAnn x tp -> False
+
+----------------------------------------------------------------------
 
 instance Wrap Check where
   wrapped c = case c of
@@ -188,8 +217,7 @@ instance Wrap Infer where
     IApp f x -> True
     IAnn x tp -> False
 
-instance Wrap t => Wrap (Bound t) where
-  wrapped (Bound (_ , x)) = wrapped x
+----------------------------------------------------------------------
 
 instance Wrap Val where
   wrapped v = case v of
@@ -221,3 +249,54 @@ instance Wrap Neut where
     NProj1 xy -> True
     NProj2 xy -> True
     NApp f x -> True
+
+----------------------------------------------------------------------
+
+instance Display String where
+  display = return . text
+
+instance Display Def where
+  display (id , tm , tp) =
+    vcatM [sepM [d id , d ":" , d tp] , sepM [d id , d "=" , d tm]]
+
+instance Display t => Display (Bound t) where
+  display (Bound (_ , x)) = local incNumEnclosingBinders $ display x
+
+instance Display VDef where
+  display (v , tp) = sepM [d v , d ":" , d tp]
+
+instance Wrap t => Wrap (Bound t) where
+  wrapped (Bound (_ , x)) = wrapped x
+
+----------------------------------------------------------------------
+
+incNumEnclosingBinders :: DisplayData -> DisplayData
+-- XXX: could store list of 'Bound's, instead of the length of this
+-- list, which would allow us to only uniquify (by appending a number)
+-- when necessary.
+incNumEnclosingBinders d@(DisplayData { numEnclosingBinders = k }) =
+  d { numEnclosingBinders = k + 1 }
+
+----------------------------------------------------------------------
+
+-- The 'Reader' data of the 'DisplayMonad'.  E.g., the "flags" Tim
+-- mentioned would go in here.
+data DisplayData =
+  DisplayData { numEnclosingBinders :: Int }
+initialDisplayData :: DisplayData
+initialDisplayData = DisplayData { numEnclosingBinders = 0 }
+
+type DisplayMonad t = Reader DisplayData t
+
+-- Convert 't' to 'Doc', using 'DisplayData'.
+class Display t where
+  display :: t -> DisplayMonad Doc
+
+class Display t => Wrap t where
+  wrap :: t -> DisplayMonad Doc
+  wrap x = (if wrapped x then parensM else id) $ display x
+  -- Returns 'True' iff argument should be wrapped in parens when
+  -- appearing as a subexpression.
+  wrapped :: t -> Bool
+
+----------------------------------------------------------------------

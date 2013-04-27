@@ -1,6 +1,6 @@
 
-oneApp : (x : Bool) -> Bool
-oneApp = \ x -> ((\ (y : Unit) -> x) $ tt)
+oneApp : Bool -> Bool
+oneApp = \ x -> (\ y -> x : Unit -> Bool) tt
 
-twoApps : Bool
-twoApps = ((\ (x : Bool) -> ((\ (y : Unit) -> x) $ tt)) $ true)
+-- twoApps : Bool
+-- twoApps = ((\ (x : Bool) -> ((\ (y : Unit) -> x) $ tt)) $ true)
