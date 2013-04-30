@@ -54,7 +54,16 @@ instance Display Syntax where
     SUnit -> d "Unit"
     SBool -> d "Bool"
     SString -> d "String"
+    SDesc -> d "Desc"
     SType -> d "Type"
+
+    SDUnit -> d "Done"
+    SDRec -> d "Rec"
+    SDSum x y -> sepM [w x , d "|" , d y]
+    SDProd x y -> sepM [w x , d "#" , d y]
+    SDPi x y -> error "TODO"
+    SDSg x y -> error "TODO"
+
     SPi tp1 (Bound (id, tp2)) ->
       sepM [binding id tp1 , d "->" , w tp2]
     SSg tp1 (Bound (id, tp2)) ->
@@ -91,13 +100,23 @@ instance Display Infer where
     IUnit -> d "Unit"
     IBool -> d "Bool"
     IString -> d "String"
+    IDesc -> d "Desc"
     IProg -> d "Prog" -- NC: ??? Don't see this parsed anywhere.
     IType -> d "Type"
+
+    IDUnit -> d "Done"
+    IDRec -> d "Rec"
+    IDSum x y -> sepM [w x , d "|" , d y]
+    IDProd x y -> sepM [w x , d "#" , d y]
+    IDPi x y -> error "TODO"
+    IDSg x y -> error "TODO"
+
     IPi tp1 (Bound (id, tp2)) ->
       sepM [binding id tp1 , d "->" , w tp2]
     ISg tp1 (Bound (id, tp2)) ->
       sepM [binding id tp1 , d "*", w tp2]
     IDefs defs -> vcatM . map d $ defs
+
     IVar id -> d id
     IQuotes str -> d . show $ str
     IStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
@@ -119,6 +138,7 @@ instance Display Val where
     VUnit -> d "Unit"
     VBool -> d "Bool"
     VString -> d "String"
+    VDesc -> d "Desc"
     VProg -> d "Prog"
     VType -> d "Type"
     VPi tp1 tp2 ->
@@ -128,6 +148,14 @@ instance Display Val where
     VTT -> d "tt"
     VTrue -> d "True"
     VFalse -> d "False"
+
+    VDUnit -> d "Done"
+    VDRec -> d "Rec"
+    VDSum x y -> sepM [w x , d "|" , d y]
+    VDProd x y -> sepM [w x , d "#" , d y]
+    VDPi x y -> error "TODO"
+    VDSg x y -> error "TODO"
+
     VQuotes str -> d . show $ str
     -- ???: what's the right way to display type-annotated pairs?
     VPair tx ty x y -> sepM [ parensM . sepM $ [d x , d "," , d y]
@@ -171,7 +199,16 @@ instance Wrap Syntax where
     SUnit -> False
     SBool -> False
     SString -> False
+    SDesc -> False
     SType -> False
+
+    SDUnit -> False
+    SDRec -> False
+    SDSum x y -> False
+    SDProd x y -> False
+    SDPi x y -> False
+    SDSg x y -> False
+
     SPi tp1 (Bound (id, tp2)) -> False
     SSg tp1 (Bound (id, tp2)) -> False
     SVar id -> False
@@ -202,8 +239,17 @@ instance Wrap Infer where
     IUnit -> False
     IBool -> False
     IString -> False
+    IDesc -> False
     IProg -> False
     IType -> False
+
+    IDUnit -> False
+    IDRec -> False
+    IDSum x y -> False
+    IDProd x y -> False
+    IDPi x y -> False
+    IDSg x y -> False    
+
     IPi tp1 (Bound (id, tp2)) -> False
     ISg tp1 (Bound (id, tp2)) -> False
     IDefs defs -> False
@@ -224,6 +270,7 @@ instance Wrap Val where
     VUnit -> False
     VBool -> False
     VString -> False
+    VDesc -> False
     VProg -> False
     VType -> False
     VPi tp1 tp2 -> False
@@ -231,6 +278,14 @@ instance Wrap Val where
     VTT -> False
     VTrue -> False
     VFalse -> False
+
+    VDUnit -> False
+    VDRec -> False
+    VDSum x y -> False
+    VDProd x y -> False
+    VDPi x y -> False
+    VDSg x y -> False
+
     VQuotes str -> False
     VPair tx ty x y -> False
     VLam tp body -> False

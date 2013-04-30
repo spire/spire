@@ -1,0 +1,6 @@
+
+NatD : Desc
+NatD = Done | Rec
+
+TreeD : Desc
+TreeD = Done | Rec # Rec

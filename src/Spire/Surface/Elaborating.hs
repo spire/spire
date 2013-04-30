@@ -35,12 +35,33 @@ elabI :: Syntax -> Result Infer
 elabI SUnit = return IUnit
 elabI SBool = return IBool
 elabI SString = return IString
+elabI SDesc = return IDesc
 elabI SType = return IType
 elabI STT = return ITT
 elabI STrue = return ITrue
 elabI SFalse = return IFalse
 elabI (SQuotes str) = return $ IQuotes str
 elabI (SVar i) = return $ IVar i
+
+elabI SDUnit = return IDUnit
+elabI SDRec = return IDRec
+elabI (SDSum d e) = do
+  d' <- elabC d
+  e' <- elabC e
+  return $ IDSum d' e'
+elabI (SDProd d e) = do
+  d' <- elabC d
+  e' <- elabC e
+  return $ IDProd d' e'
+elabI (SDPi aT fD) = do
+  aT' <- elabC aT
+  fD' <- elabBC fD
+  return $ IDPi aT' fD'
+elabI (SDSg aT fD) = do
+  aT' <- elabC aT
+  fD' <- elabBC fD
+  return $ IDSg aT' fD'
+
 elabI (SPi aT bT) = do
   aT' <- elabC aT
   bT' <- elabBC bT

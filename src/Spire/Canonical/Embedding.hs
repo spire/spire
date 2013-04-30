@@ -8,12 +8,20 @@ embedV :: Val -> Infer
 embedV VUnit = IUnit
 embedV VBool = IBool
 embedV VString = IString
+embedV VDesc = IDesc
 embedV VProg = IProg
 embedV VType = IType
 embedV VTT = ITT
 embedV VTrue = ITrue
 embedV VFalse = IFalse
 embedV (VQuotes str) = IQuotes str
+
+embedV VDUnit = IDUnit
+embedV VDRec = IDRec
+embedV (VDSum d e) = IDSum (embedVC d) (embedVC e)
+embedV (VDProd d e) = IDProd (embedVC d) (embedVC e)
+embedV (VDPi aT fD) = IDPi (embedVC aT) (embedVBC fD)
+embedV (VDSg aT fD) = IDSg (embedVC aT) (embedVBC fD)
 
 embedV (VPi aT bT) = IPi (embedVC aT) (embedVBC bT)
 embedV (VSg aT bT) = ISg (embedVC aT) (embedVBC bT)
