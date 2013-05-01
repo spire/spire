@@ -20,7 +20,6 @@ data Syntax =
 
   | SDUnit | SDRec
   | SDSum Syntax Syntax
-  | SDProd Syntax Syntax
   | SDPi Syntax (Bound Syntax)
   | SDSg Syntax (Bound Syntax)
 

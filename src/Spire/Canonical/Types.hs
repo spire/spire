@@ -15,7 +15,6 @@ data Val =
 
   | VDUnit | VDRec
   | VDSum Val Val
-  | VDProd Val Val
   | VDPi Type (Bound Val)
   | VDSg Type (Bound Val)
 

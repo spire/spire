@@ -60,9 +60,8 @@ instance Display Syntax where
     SDUnit -> d "Done"
     SDRec -> d "Rec"
     SDSum x y -> sepM [w x , d "|" , d y]
-    SDProd x y -> sepM [w x , d "#" , d y]
-    SDPi x y -> error "TODO"
-    SDSg x y -> error "TODO"
+    SDPi x y -> sepM [w x , d "=>" , d y]
+    SDSg x y -> sepM [w x , d "#" , d y]
 
     SPi tp1 (Bound (id, tp2)) ->
       sepM [binding id tp1 , d "->" , w tp2]
@@ -107,9 +106,8 @@ instance Display Infer where
     IDUnit -> d "Done"
     IDRec -> d "Rec"
     IDSum x y -> sepM [w x , d "|" , d y]
-    IDProd x y -> sepM [w x , d "#" , d y]
-    IDPi x y -> error "TODO"
-    IDSg x y -> error "TODO"
+    IDPi x y -> sepM [w x , d "=>" , d y]
+    IDSg x y -> sepM [w x , d "#" , d y]
 
     IPi tp1 (Bound (id, tp2)) ->
       sepM [binding id tp1 , d "->" , w tp2]
@@ -152,9 +150,10 @@ instance Display Val where
     VDUnit -> d "Done"
     VDRec -> d "Rec"
     VDSum x y -> sepM [w x , d "|" , d y]
-    VDProd x y -> sepM [w x , d "#" , d y]
-    VDPi x y -> error "TODO"
-    VDSg x y -> error "TODO"
+    VDPi x y ->
+      sepM [parensM . sepM $ [var y , d ":" , d x] , d "=>", w y]
+    VDSg x y ->
+      sepM [parensM . sepM $ [var y , d ":" , d x] , d "#", w y]
 
     VQuotes str -> d . show $ str
     -- ???: what's the right way to display type-annotated pairs?
@@ -205,7 +204,6 @@ instance Wrap Syntax where
     SDUnit -> False
     SDRec -> False
     SDSum x y -> False
-    SDProd x y -> False
     SDPi x y -> False
     SDSg x y -> False
 
@@ -246,7 +244,6 @@ instance Wrap Infer where
     IDUnit -> False
     IDRec -> False
     IDSum x y -> False
-    IDProd x y -> False
     IDPi x y -> False
     IDSg x y -> False    
 
@@ -282,7 +279,6 @@ instance Wrap Val where
     VDUnit -> False
     VDRec -> False
     VDSum x y -> False
-    VDProd x y -> False
     VDPi x y -> False
     VDSg x y -> False
 

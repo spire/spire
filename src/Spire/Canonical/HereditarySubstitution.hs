@@ -23,7 +23,6 @@ subV i x (VDefs as) = VDefs (subVs i x as)
 subV i x d@VDUnit = d
 subV i x d@VDRec = d
 subV i x (VDSum d e) = VDSum (subV i x d) (subV i x e)
-subV i x (VDProd d e) = VDProd (subV i x d) (subV i x e)
 subV i x (VDPi aT fD) = VDPi (subV i x aT) (subExtend i x fD)
 subV i x (VDSg aT fD) = VDSg (subV i x aT) (subExtend i x fD)
 subV i x (Neut n) = subN i x n

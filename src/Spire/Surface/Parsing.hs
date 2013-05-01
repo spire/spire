@@ -38,7 +38,7 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 wildcard = "_"
 ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "==",
-       "|", "#"]
+       "|", "#", "=>"]
 keywords = [
   "in", "if", "then", "else",
   "Unit", "Bool", "String", "Type",
@@ -127,7 +127,8 @@ table = [
   , [Infix (parseInfix "$" SApp) AssocRight]
   , [Infix (parseInfix "*" (boundInfix SSg)) AssocRight]
   , [Infix (parseInfix "->" (boundInfix SPi)) AssocRight]
-  , [Infix (parseInfix "#" SDProd) AssocRight]
+  , [  Infix (parseInfix "=>" (boundInfix SDPi)) AssocRight
+     , Infix (parseInfix "#" (boundInfix SDSg)) AssocRight]
   , [Infix (parseInfix "|" SDSum) AssocRight]
   ] where
   parseSpaceApp = failIfStmt >> return SApp

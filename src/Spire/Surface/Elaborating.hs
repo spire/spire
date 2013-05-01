@@ -49,10 +49,6 @@ elabI (SDSum d e) = do
   d' <- elabC d
   e' <- elabC e
   return $ IDSum d' e'
-elabI (SDProd d e) = do
-  d' <- elabC d
-  e' <- elabC e
-  return $ IDProd d' e'
 elabI (SDPi aT fD) = do
   aT' <- elabC aT
   fD' <- elabBC fD

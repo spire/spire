@@ -19,7 +19,6 @@ data Infer =
 
   | IDUnit | IDRec
   | IDSum Check Check
-  | IDProd Check Check
   | IDPi Check (Bound Check)
   | IDSg Check (Bound Check)
 

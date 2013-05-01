@@ -19,7 +19,6 @@ embedV (VQuotes str) = IQuotes str
 embedV VDUnit = IDUnit
 embedV VDRec = IDRec
 embedV (VDSum d e) = IDSum (embedVC d) (embedVC e)
-embedV (VDProd d e) = IDProd (embedVC d) (embedVC e)
 embedV (VDPi aT fD) = IDPi (embedVC aT) (embedVBC fD)
 embedV (VDSg aT fD) = IDSg (embedVC aT) (embedVBC fD)
 

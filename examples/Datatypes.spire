@@ -2,5 +2,11 @@
 NatD : Desc
 NatD = Done | Rec
 
+ListD : Type -> Desc
+ListD = \ A -> Done | A # Rec
+
+Rec2 : Desc
+Rec2 = (b : Bool) => if b then Rec else Rec
+
 TreeD : Desc
-TreeD = Done | Rec # Rec
+TreeD = Done | Rec2

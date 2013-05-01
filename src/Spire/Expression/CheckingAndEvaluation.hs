@@ -34,20 +34,16 @@ infer ctx IFalse  = return (VFalse , VBool)
 infer ctx IUnit   = return (VUnit , VType)
 infer ctx IBool   = return (VBool , VType)
 infer ctx IString = return (VString , VType)
-infer ctx IDesc = return (VDesc , VType)
+infer ctx IDesc   = return (VDesc , VType)
 infer ctx IProg   = return (VProg , VType)
 infer ctx IType   = return (VType , VType)
 
-infer ctx IDUnit   = return (VDUnit , VDesc)
+infer ctx IDUnit  = return (VDUnit , VDesc)
 infer ctx IDRec   = return (VDRec , VDesc)
 infer ctx (IDSum d e) = do
   d' <- check ctx d VDesc
   e' <- check ctx e VDesc
   return (VDSum d' e' , VDesc)
-infer ctx (IDProd d e) = do
-  d' <- check ctx d VDesc
-  e' <- check ctx e VDesc
-  return (VDProd d' e' , VDesc)
 infer ctx (IDPi aT fD) = do
   aT' <- check ctx aT VType
   fD' <- checkExtend aT' ctx fD VDesc
