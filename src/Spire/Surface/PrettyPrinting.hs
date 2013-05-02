@@ -17,8 +17,6 @@ prettyPrint t = render $ runReader (display t) initialDisplayData
 -- Short hands.
 d :: Display t => t -> DisplayMonad Doc
 d = display
-w :: Wrap t => t -> DisplayMonad Doc
-w = wrap
 
 -- Lift standard pretty printing ops to a monad.
 --
@@ -38,9 +36,9 @@ var (Bound (id , _)) = do
   k <- asks numEnclosingBinders
   d $ id ++ show k
 
-binding :: Display t => Ident -> t -> DisplayMonad Doc
-binding id tp | id == wildcard  = d tp
-binding id tp = parensM . sepM $ [d id , d ":" , d tp]
+binding :: (Precedence t', Precedence t, Display t) => t' -> Ident -> t -> DisplayMonad Doc
+binding outside id tp | id == wildcard  = wrapNonAssoc outside tp
+binding outside id tp = parensM . sepM $ [d id , d ":" , d tp]
 
 ----------------------------------------------------------------------
 
@@ -56,13 +54,13 @@ instance Display Syntax where
     SString -> d "String"
     SType -> d "Type"
     SPi tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "->" , w tp2]
+      sepM [binding s id tp1 , d "->" , d tp2]
     SSg tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "*", w tp2]
+      sepM [binding s id tp1 , d "*", d tp2]
     SVar id -> d id
     SQuotes str -> d . show $ str
     SStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
-    SStrEq s1 s2 -> sepM [w s1 , d "==" , d s2]
+    SStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
     SIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     SCaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
@@ -70,8 +68,12 @@ instance Display Syntax where
            , w b , w t , w f ]
     SProj1 xy -> sepM [d "proj1" , w xy]
     SProj2 xy -> sepM [d "proj2" , w xy]
-    SApp f x -> sepM [w f , d x]
+    SApp f x -> sepM [d f , w x]
     SAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' s
+      w = wrapNonAssoc s
 
 ----------------------------------------------------------------------
 
@@ -80,6 +82,9 @@ instance Display Check where
     CPair x y -> parensM . sepM $ [d x , d "," , d y]
     CLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
     Infer i -> d i
+    where
+      d :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' c
 
 instance Display Infer where
   display i = case i of
@@ -94,14 +99,14 @@ instance Display Infer where
     IProg -> d "Prog" -- NC: ??? Don't see this parsed anywhere.
     IType -> d "Type"
     IPi tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "->" , w tp2]
+      sepM [binding i id tp1 , d "->" , d tp2]
     ISg tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "*", w tp2]
+      sepM [binding i id tp1 , d "*", d tp2]
     IDefs defs -> vcatM . map d $ defs
     IVar id -> d id
     IQuotes str -> d . show $ str
     IStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
-    IStrEq s1 s2 -> sepM [w s1 , d "==" , d s2]
+    IStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
     IIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     ICaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
@@ -109,8 +114,12 @@ instance Display Infer where
            , w b , w t , w f ]
     IProj1 xy -> sepM [d "proj1" , w xy]
     IProj2 xy -> sepM [d "proj2" , w xy]
-    IApp f x -> sepM [w f , d x]
+    IApp f x -> sepM [d f , w x]
     IAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' i
+      w = wrapNonAssoc i
 
 ----------------------------------------------------------------------
 
@@ -122,9 +131,9 @@ instance Display Val where
     VProg -> d "Prog"
     VType -> d "Type"
     VPi tp1 tp2 ->
-      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "->" , w tp2]
+      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "->" , d tp2]
     VSg tp1 tp2 ->
-      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "*", w tp2]
+      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "*", d tp2]
     VTT -> d "tt"
     VTrue -> d "True"
     VFalse -> d "False"
@@ -136,6 +145,10 @@ instance Display Val where
       sepM [d "\\" , var body , d ":" , d tp , d "->" , d body]
     VDefs defs -> vcatM . map d $ defs
     Neut n -> d n
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' v
+      w = wrapNonAssoc v
 
 instance Display Neut where
   display n = case n of
@@ -147,8 +160,8 @@ instance Display Neut where
       d $ id ++ show (k - v)
     NStrAppendL s1 s2 -> sepM [w s1 , d "++" , d s2]
     NStrAppendR s1 s2 -> sepM [w s1 , d "++" , d s2]
-    NStrEqL s1 s2 -> sepM [w s1 , d "==" , d s2]
-    NStrEqR s1 s2 -> sepM [w s1 , d "==" , d s2]
+    NStrEqL s1 s2 -> sepM [d s1 , d "==" , d s2]
+    NStrEqR s1 s2 -> sepM [d s1 , d "==" , d s2]
     NIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     NCaseBool m t f b ->
       sepM [ d "caseBool"
@@ -157,6 +170,10 @@ instance Display Neut where
     NProj1 xy -> sepM [d "proj1" , w xy]
     NProj2 xy -> sepM [d "proj2" , w xy]
     NApp f x -> sepM [d f , w x]
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' n
+      w = wrapNonAssoc n
 
 ----------------------------------------------------------------------
 
@@ -291,6 +308,46 @@ type DisplayMonad t = Reader DisplayData t
 -- Convert 't' to 'Doc', using 'DisplayData'.
 class Display t where
   display :: t -> DisplayMonad Doc
+
+-- Same as 'Text.Parsec.Expr.Assoc', except with 'Eq' :P
+data Assoc = AssocLeft | AssocRight | AssocNone deriving Eq
+
+-- The precedence level is the tightness of binding: larger levels
+-- mean tighter binding.
+class Precedence t where
+  level :: t -> Float
+  assoc :: t -> Assoc
+  assoc _ = AssocNone
+
+-- XXX: remove this and add a precedence table
+instance Precedence t where
+  level _ = 0
+
+-- For non-infix operators, use 'wrap'' to wrap optionally recursive
+-- displays as needed.
+--
+-- For infix operators, use 'wrap'' to optionally wrap recursive
+-- displays in positions consistent with association, and use
+-- 'wrapNonAssoc' to optionally wrap recursive displays in positions
+-- inconsistent with association.
+--
+-- For example, for a left associative application 'App', the
+-- 'display' case could be written:
+--
+--   display s@(App f x) =
+--     sepM [ wrap' s f (display f) , wrapNonAssoc s x (display x) ]
+wrap' , wrapNonAssoc :: (Display t2, Precedence t1 , Precedence t2) =>
+                            t1 -> t2 -> DisplayMonad Doc
+wrap' outside inside =
+  if level outside  < level inside ||
+     level outside == level inside && assoc outside /= assoc inside
+  then parensM . display $ inside
+  else display inside
+
+wrapNonAssoc outside inside =
+  if level outside <= level inside
+  then parensM . display $ inside
+  else display inside
 
 class Display t => Wrap t where
   wrap :: t -> DisplayMonad Doc
