@@ -6,3 +6,12 @@ p2 = ((tt , tt) , tt)
 
 p3 : (u:Unit) * (u:Unit) * Unit
 p3 = tt , tt , tt
+
+p4 : Unit * ((u:Unit) * Unit)
+p4 = (tt , (tt , tt))
+
+p5 : (u: Unit * Unit) * Unit
+p5 = ((tt , tt) , tt)
+
+p6 : Unit * (u:Unit) * Unit
+p6 = tt , tt , tt

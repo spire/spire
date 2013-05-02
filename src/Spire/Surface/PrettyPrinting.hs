@@ -47,7 +47,7 @@ instance Display Syntax where
     STT -> d "tt"
     STrue -> d "true"
     SFalse -> d "false"
-    SPair x y -> parensM . sepM $ [d x , d "," , d y]
+    SPair x y -> sepM [w x , d "," , d y]
     SLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
     SUnit -> d "Unit"
     SBool -> d "Bool"
@@ -79,12 +79,13 @@ instance Display Syntax where
 
 instance Display Check where
   display c = case c of
-    CPair x y -> parensM . sepM $ [d x , d "," , d y]
+    CPair x y -> sepM [w x , d "," , d y]
     CLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
     Infer i -> d i
     where
-      d :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
       d = wrap' c
+      w = wrapNonAssoc c
 
 instance Display Infer where
   display i = case i of
