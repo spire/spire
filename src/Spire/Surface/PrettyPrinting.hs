@@ -17,8 +17,6 @@ prettyPrint t = render $ runReader (display t) initialDisplayData
 -- Short hands.
 d :: Display t => t -> DisplayMonad Doc
 d = display
-w :: Wrap t => t -> DisplayMonad Doc
-w = wrap
 
 -- Lift standard pretty printing ops to a monad.
 --
@@ -38,9 +36,9 @@ var (Bound (id , _)) = do
   k <- asks numEnclosingBinders
   d $ id ++ show k
 
-binding :: Display t => Ident -> t -> DisplayMonad Doc
-binding id tp | id == wildcard  = d tp
-binding id tp = parensM . sepM $ [d id , d ":" , d tp]
+binding :: (Precedence t', Precedence t, Display t) => t' -> Ident -> t -> DisplayMonad Doc
+binding outside id tp | id == wildcard  = wrapNonAssoc outside tp
+binding outside id tp = parensM . sepM $ [d id , d ":" , d tp]
 
 ----------------------------------------------------------------------
 
@@ -49,20 +47,20 @@ instance Display Syntax where
     STT -> d "tt"
     STrue -> d "true"
     SFalse -> d "false"
-    SPair x y -> parensM . sepM $ [d x , d "," , d y]
+    SPair x y -> sepM [w x , d "," , d y]
     SLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
     SUnit -> d "Unit"
     SBool -> d "Bool"
     SString -> d "String"
     SType -> d "Type"
     SPi tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "->" , w tp2]
+      sepM [binding s id tp1 , d "->" , d tp2]
     SSg tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "*", w tp2]
+      sepM [binding s id tp1 , d "*", d tp2]
     SVar id -> d id
     SQuotes str -> d . show $ str
     SStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
-    SStrEq s1 s2 -> sepM [w s1 , d "==" , d s2]
+    SStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
     SIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     SCaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
@@ -70,16 +68,24 @@ instance Display Syntax where
            , w b , w t , w f ]
     SProj1 xy -> sepM [d "proj1" , w xy]
     SProj2 xy -> sepM [d "proj2" , w xy]
-    SApp f x -> sepM [w f , d x]
+    SApp f x -> sepM [d f , w x]
     SAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' s
+      w = wrapNonAssoc s
 
 ----------------------------------------------------------------------
 
 instance Display Check where
   display c = case c of
-    CPair x y -> parensM . sepM $ [d x , d "," , d y]
+    CPair x y -> sepM [w x , d "," , d y]
     CLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
     Infer i -> d i
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' c
+      w = wrapNonAssoc c
 
 instance Display Infer where
   display i = case i of
@@ -94,14 +100,14 @@ instance Display Infer where
     IProg -> d "Prog" -- NC: ??? Don't see this parsed anywhere.
     IType -> d "Type"
     IPi tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "->" , w tp2]
+      sepM [binding i id tp1 , d "->" , d tp2]
     ISg tp1 (Bound (id, tp2)) ->
-      sepM [binding id tp1 , d "*", w tp2]
+      sepM [binding i id tp1 , d "*", d tp2]
     IDefs defs -> vcatM . map d $ defs
     IVar id -> d id
     IQuotes str -> d . show $ str
     IStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
-    IStrEq s1 s2 -> sepM [w s1 , d "==" , d s2]
+    IStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
     IIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     ICaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
@@ -109,8 +115,12 @@ instance Display Infer where
            , w b , w t , w f ]
     IProj1 xy -> sepM [d "proj1" , w xy]
     IProj2 xy -> sepM [d "proj2" , w xy]
-    IApp f x -> sepM [w f , d x]
+    IApp f x -> sepM [d f , w x]
     IAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' i
+      w = wrapNonAssoc i
 
 ----------------------------------------------------------------------
 
@@ -122,9 +132,9 @@ instance Display Val where
     VProg -> d "Prog"
     VType -> d "Type"
     VPi tp1 tp2 ->
-      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "->" , w tp2]
+      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "->" , d tp2]
     VSg tp1 tp2 ->
-      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "*", w tp2]
+      sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "*", d tp2]
     VTT -> d "tt"
     VTrue -> d "True"
     VFalse -> d "False"
@@ -136,6 +146,10 @@ instance Display Val where
       sepM [d "\\" , var body , d ":" , d tp , d "->" , d body]
     VDefs defs -> vcatM . map d $ defs
     Neut n -> d n
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' v
+      w = wrapNonAssoc v
 
 instance Display Neut where
   display n = case n of
@@ -147,8 +161,8 @@ instance Display Neut where
       d $ id ++ show (k - v)
     NStrAppendL s1 s2 -> sepM [w s1 , d "++" , d s2]
     NStrAppendR s1 s2 -> sepM [w s1 , d "++" , d s2]
-    NStrEqL s1 s2 -> sepM [w s1 , d "==" , d s2]
-    NStrEqR s1 s2 -> sepM [w s1 , d "==" , d s2]
+    NStrEqL s1 s2 -> sepM [d s1 , d "==" , d s2]
+    NStrEqR s1 s2 -> sepM [d s1 , d "==" , d s2]
     NIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     NCaseBool m t f b ->
       sepM [ d "caseBool"
@@ -157,103 +171,121 @@ instance Display Neut where
     NProj1 xy -> sepM [d "proj1" , w xy]
     NProj2 xy -> sepM [d "proj2" , w xy]
     NApp f x -> sepM [d f , w x]
+    where
+      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
+      d = wrap' n
+      w = wrapNonAssoc n
 
 ----------------------------------------------------------------------
 
-instance Wrap Syntax where
-  wrapped s = case s of
-    STT -> False
-    STrue -> False
-    SFalse -> False
-    SQuotes str -> False
-    SPair x y -> False
-    SLam (Bound (id , body)) -> False
-    SUnit -> False
-    SBool -> False
-    SString -> False
-    SType -> False
-    SPi tp1 (Bound (id, tp2)) -> False
-    SSg tp1 (Bound (id, tp2)) -> False
-    SVar id -> False
-    SStrAppend s1 s2 -> True
-    SStrEq s1 s2 -> True
-    SIf c t f -> True
-    SCaseBool (Bound (id, m)) t f b -> True
-    SProj1 xy -> True
-    SProj2 xy -> True
-    SApp f x -> True
-    SAnn x tp -> False
+instance Precedence Syntax where
+  level s = case s of
+    SPair x y                       -> pairLevel
+    SLam (Bound (id , body))        -> lamLevel
+    SPi tp1 (Bound (id, tp2))       -> piLevel
+    SSg tp1 (Bound (id, tp2))       -> sgLevel
+    SStrAppend s1 s2                -> strAppendLevel
+    SStrEq s1 s2                    -> strEqLevel
+    SIf c t f                       -> ifLevel
+    SCaseBool (Bound (id, m)) t f b -> caseBoolLevel
+    SProj1 xy                       -> projLevel
+    SProj2 xy                       -> projLevel
+    SApp f x                        -> appLevel
+    SAnn x tp                       -> annLevel
+    _                               -> atomicLevel
+  assoc s = case s of
+    SPi tp1 (Bound (id, tp2))       -> piAssoc
+    SSg tp1 (Bound (id, tp2))       -> sgAssoc
+    SStrAppend s1 s2                -> strAppendAssoc
+    SApp f x                        -> appAssoc
+    _                               -> AssocNone
 
 ----------------------------------------------------------------------
 
-instance Wrap Check where
-  wrapped c = case c of
-    CPair x y -> False
-    CLam (Bound (id , body)) -> False
-    Infer i -> wrapped i
+instance Precedence Check where
+  level c = case c of
+    CPair x y                -> pairLevel
+    CLam (Bound (id , body)) -> lamLevel
+    Infer i                  -> level i
+  assoc c = case c of
+    CPair x y                -> pairAssoc
+    Infer i                  -> assoc i
+    _                        -> AssocNone
 
-instance Wrap Infer where
-  wrapped i = case i of
-    ITT -> False
-    ITrue -> False
-    IFalse -> False
-    IQuotes str -> False
-    ILamAnn tp (Bound (id , body)) -> False
-    IUnit -> False
-    IBool -> False
-    IString -> False
-    IProg -> False
-    IType -> False
-    IPi tp1 (Bound (id, tp2)) -> False
-    ISg tp1 (Bound (id, tp2)) -> False
-    IDefs defs -> False
-    IVar id -> False
-    IStrAppend s1 s2 -> True
-    IStrEq s1 s2 -> True
-    IIf c t f -> True
-    ICaseBool (Bound (id, m)) t f b -> True
-    IProj1 xy -> True
-    IProj2 xy -> True
-    IApp f x -> True
-    IAnn x tp -> False
+instance Precedence Infer where
+  level i = case i of
+    ILamAnn tp (Bound (id , body))  -> lamLevel
+    IPi tp1 (Bound (id, tp2))       -> piLevel
+    ISg tp1 (Bound (id, tp2))       -> sgLevel
+    IDefs defs                      -> defsLevel
+    IStrAppend s1 s2                -> strAppendLevel
+    IStrEq s1 s2                    -> strEqLevel
+    IIf c t f                       -> ifLevel
+    ICaseBool (Bound (id, m)) t f b -> caseBoolLevel
+    IProj1 xy                       -> projLevel
+    IProj2 xy                       -> projLevel
+    IApp f x                        -> appLevel
+    IAnn x tp                       -> annLevel
+    _                               -> atomicLevel
+  assoc i = case i of
+    IPi tp1 (Bound (id, tp2))       -> piAssoc
+    ISg tp1 (Bound (id, tp2))       -> sgAssoc
+    IStrAppend s1 s2                -> strAppendAssoc
+    IApp f x                        -> appAssoc
+    _                               -> AssocNone
 
 ----------------------------------------------------------------------
 
-instance Wrap Val where
-  wrapped v = case v of
-    VUnit -> False
-    VBool -> False
-    VString -> False
-    VProg -> False
-    VType -> False
-    VPi tp1 tp2 -> False
-    VSg tp1 tp2 -> False
-    VTT -> False
-    VTrue -> False
-    VFalse -> False
-    VQuotes str -> False
-    VPair tx ty x y -> False
-    VLam tp body -> False
-    VDefs defs -> False
-    Neut n -> wrapped n
+instance Precedence Val where
+  level v = case v of
+    VPi tp1 tp2     -> piLevel
+    VSg tp1 tp2     -> sgLevel
+    VPair tx ty x y -> pairLevel
+    VLam tp body    -> lamLevel
+    VDefs defs      -> defsLevel
+    Neut n          -> level n
+    _               -> atomicLevel
+  assoc v = case v of
+    VPi tp1 tp2     -> piAssoc
+    VSg tp1 tp2     -> sgAssoc
+    VPair tx ty x y -> pairAssoc
+    Neut n          -> assoc n
+    _               -> AssocNone
 
-instance Wrap Neut where
-  wrapped n = case n of
-    NVar v -> False
-    NStrAppendL s1 s2 -> True
-    NStrAppendR s1 s2 -> True
-    NStrEqL s1 s2 -> True
-    NStrEqR s1 s2 -> True
-    NIf c t f -> True
-    NCaseBool m t f b -> True
-    NProj1 xy -> True
-    NProj2 xy -> True
-    NApp f x -> True
+instance Precedence Neut where
+  level n = case n of
+    NStrAppendL s1 s2 -> strAppendLevel
+    NStrAppendR s1 s2 -> strAppendLevel
+    NStrEqL s1 s2     -> strEqLevel
+    NStrEqR s1 s2     -> strEqLevel
+    NIf c t f         -> ifLevel
+    NCaseBool m t f b -> caseBoolLevel
+    NProj1 xy         -> projLevel
+    NProj2 xy         -> projLevel
+    NApp f x          -> appLevel
+    _                 -> atomicLevel
+  assoc n = case n of
+    NStrAppendL s1 s2 -> strAppendAssoc
+    NStrAppendR s1 s2 -> strAppendAssoc
+    NApp f x          -> appAssoc
+    _                 -> AssocNone
 
 ----------------------------------------------------------------------
 
 instance Display String where
   display = return . text
+
+instance Precedence String where
+  level _ = atomicLevel
+  assoc _ = AssocNone
+
+instance Precedence Def where
+  level _ = defLevel
+  assoc _ = AssocNone
+
+instance Precedence VDef where
+  level _ = defLevel
+  assoc _ = AssocNone
 
 instance Display Def where
   display (id , tm , tp) =
@@ -265,8 +297,9 @@ instance Display t => Display (Bound t) where
 instance Display VDef where
   display (v , tp) = sepM [d v , d ":" , d tp]
 
-instance Wrap t => Wrap (Bound t) where
-  wrapped (Bound (_ , x)) = wrapped x
+instance Precedence t => Precedence (Bound t) where
+  level (Bound (_ , x)) = level x
+  assoc (Bound (_ , x)) = assoc x
 
 ----------------------------------------------------------------------
 
@@ -292,11 +325,62 @@ type DisplayMonad t = Reader DisplayData t
 class Display t where
   display :: t -> DisplayMonad Doc
 
-class Display t => Wrap t where
-  wrap :: t -> DisplayMonad Doc
-  wrap x = (if wrapped x then parensM else id) $ display x
-  -- Returns 'True' iff argument should be wrapped in parens when
-  -- appearing as a subexpression.
-  wrapped :: t -> Bool
+-- Same as 'Text.Parsec.Expr.Assoc', except with 'Eq' :P
+data Assoc = AssocLeft | AssocRight | AssocNone deriving Eq
+
+-- The precedence level is the tightness of binding: larger levels
+-- mean tighter binding.
+class Precedence t where
+  level :: t -> Float
+  assoc :: t -> Assoc
+
+-- Precedence levels and infix op associativities.
+--
+-- Compare with table in used in Spire.Surface.Parsing.
+atomicLevel    = -1
+appLevel       = 0
+appAssoc       = AssocLeft
+projLevel      = 0
+strAppendLevel = 1
+strAppendAssoc = AssocRight
+strEqLevel     = 2
+pairLevel      = 3
+pairAssoc      = AssocRight
+sgLevel        = 4
+sgAssoc        = AssocRight
+piLevel        = 5
+piAssoc        = AssocRight
+ifLevel        = 6
+caseBoolLevel  = 6
+lamLevel       = 7
+annLevel       = 8
+defsLevel      = 9
+defLevel       = 10
+
+-- For non-infix operators, use 'wrap'' to wrap optionally recursive
+-- displays as needed.
+--
+-- For infix operators, use 'wrap'' to optionally wrap recursive
+-- displays in positions consistent with association, and use
+-- 'wrapNonAssoc' to optionally wrap recursive displays in positions
+-- inconsistent with association.
+--
+-- For example, for a left associative application 'App', the
+-- 'display' case could be written:
+--
+--   display s@(App f x) =
+--     sepM [ wrap' s f (display f) , wrapNonAssoc s x (display x) ]
+wrap' , wrapNonAssoc :: (Display t2, Precedence t1 , Precedence t2) =>
+                            t1 -> t2 -> DisplayMonad Doc
+wrap' outside inside =
+  if level outside  < level inside ||
+     level outside == level inside && assoc outside /= assoc inside
+  then parensM . display $ inside
+  else display inside
+
+wrapNonAssoc outside inside =
+  if level outside <= level inside
+  then parensM . display $ inside
+  else display inside
 
 ----------------------------------------------------------------------
