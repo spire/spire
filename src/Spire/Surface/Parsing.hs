@@ -95,26 +95,30 @@ parseSyntax = buildExpressionParser table parseChoice
 
 parseChoice :: MParser Syntax
 parseChoice = try $ choice [
-    parseParens parseSyntax
+    parseAtom
+  , parseIf
+  , parseCaseBool
+  , parseProj1
+  , parseProj2
+  , parseLam
+  ]
+
+parseAtom = choice
+  [ parseParens parseSyntax
+  , parseVar
+  , parseQuotes
+  , parseAnn
+
+  , parseTT
+  , parseTrue
+  , parseFalse
   , parseUnit
   , parseBool
   , parseString
   , parseDesc
   , parseType
-  , parseTT
-  , parseTrue
-  , parseFalse
-  , parseQuotes
   , parseDUnit
-  , parseDRec
-  , parseIf
-  , parseCaseBool
-  , parseProj1
-  , parseProj2
-  , parseVar
-  , parseLam
-  , parseAnn
-  ]
+  , parseDRec ]
 
 failIfStmt =
   -- definition type declaration or assignment is next
