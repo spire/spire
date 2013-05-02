@@ -45,7 +45,7 @@ keywords = [
   "tt", "true", "false",
   "caseBool",
   "proj1", "proj2",
-  "Done", "Rec"
+  "Done", "Rec" , wildcard
   ]
 
 def = emptyDef {
@@ -66,6 +66,7 @@ tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer
 parseKeyword = reserved tokenizer
 parseIdent = identifier tokenizer
+parseWildOrIdent = (parseKeyword wildcard >> return wildcard) <|> parseIdent
 parseToken = symbol tokenizer
 parseSpaces = whiteSpace tokenizer
 parseStringLit = try $ stringLiteral tokenizer
@@ -149,6 +150,7 @@ parseIf = do
   c2 <- parseSyntax
   return $ SIf b c1 c2
 
+-- casebool (x in e) e then e else e
 parseCaseBool = try $ do
   parseKeyword "caseBool"
   (l , pT) <- parseParens $ do
@@ -173,9 +175,11 @@ parseProj2 = try $ do
   ab <- parseSyntax
   return $ SProj2 ab
 
+-- \ x -> e
+-- \ _ -> e
 parseLam = try $ do
   parseOp "\\"
-  l <- parseIdent
+  l <- parseWildOrIdent
   parseOp "->"
   tm <- parseSyntax
   return $ SLam (Bound (l , tm))
