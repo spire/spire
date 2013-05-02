@@ -37,13 +37,15 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 ----------------------------------------------------------------------
 
 wildcard = "_"
-ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "=="]
+ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "==",
+       "|", "#", "=>"]
 keywords = [
   "in", "if", "then", "else",
   "Unit", "Bool", "String", "Type",
   "tt", "true", "false",
   "caseBool",
-  "proj1", "proj2"
+  "proj1", "proj2",
+  "Done", "Rec"
   ]
 
 def = emptyDef {
@@ -96,11 +98,14 @@ parseChoice = try $ choice [
   , parseUnit
   , parseBool
   , parseString
+  , parseDesc
   , parseType
   , parseTT
   , parseTrue
   , parseFalse
   , parseQuotes
+  , parseDUnit
+  , parseDRec
   , parseIf
   , parseCaseBool
   , parseProj1
@@ -122,6 +127,9 @@ table = [
   , [Infix (parseInfix "$" SApp) AssocRight]
   , [Infix (parseInfix "*" (boundInfix SSg)) AssocRight]
   , [Infix (parseInfix "->" (boundInfix SPi)) AssocRight]
+  , [  Infix (parseInfix "=>" (boundInfix SDPi)) AssocRight
+     , Infix (parseInfix "#" (boundInfix SDSg)) AssocRight]
+  , [Infix (parseInfix "|" SDSum) AssocRight]
   ] where
   parseSpaceApp = failIfStmt >> return SApp
   parseInfix op con = parseOp op >> return con
@@ -187,7 +195,10 @@ parseFalse = parseKeyword "false" >> return SFalse
 parseUnit = parseKeyword "Unit" >> return SUnit
 parseBool = parseKeyword "Bool" >> return SBool
 parseString = parseKeyword "String" >> return SString
+parseDesc = parseKeyword "Desc" >> return SDesc
 parseType = parseKeyword "Type" >> return SType
+parseDUnit = parseKeyword "Done" >> return SDUnit
+parseDRec = parseKeyword "Rec" >> return SDRec
 
 parseQuotes = do
   s <- parseStringLit

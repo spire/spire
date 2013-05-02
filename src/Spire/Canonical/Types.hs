@@ -4,7 +4,7 @@ import Control.Monad.Error
 ----------------------------------------------------------------------
 
 data Val =
-    VUnit | VBool | VString | VProg | VType
+    VUnit | VBool | VString | VDesc | VProg | VType
   | VPi Type (Bound Type)
   | VSg Type (Bound Type)
 
@@ -12,6 +12,12 @@ data Val =
   | VQuotes StrLit
   | VPair Type (Bound Type) Val Val
   | VLam Type (Bound Val)
+
+  | VDUnit | VDRec
+  | VDSum Val Val
+  | VDPi Type (Bound Val)
+  | VDSg Type (Bound Val)
+
   | VDefs [VDef]
   | Neut Neut
   deriving ( Eq, Show, Read )

@@ -14,9 +14,15 @@ data Syntax =
   | SQuotes StrLit
   | SPair Syntax Syntax
   | SLam (Bound Syntax)
-  | SUnit | SBool | SString | SType
+  | SUnit | SBool | SString | SDesc | SType
   | SPi Syntax (Bound Syntax)
   | SSg Syntax (Bound Syntax)
+
+  | SDUnit | SDRec
+  | SDSum Syntax Syntax
+  | SDPi Syntax (Bound Syntax)
+  | SDSg Syntax (Bound Syntax)
+
   | SVar Ident
   | SStrAppend Syntax Syntax
   | SStrEq Syntax Syntax

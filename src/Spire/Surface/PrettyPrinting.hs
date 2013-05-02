@@ -52,7 +52,15 @@ instance Display Syntax where
     SUnit -> d "Unit"
     SBool -> d "Bool"
     SString -> d "String"
+    SDesc -> d "Desc"
     SType -> d "Type"
+
+    SDUnit -> d "Done"
+    SDRec -> d "Rec"
+    SDSum x y -> sepM [w x , d "|" , d y]
+    SDPi x y -> sepM [w x , d "=>" , d y]
+    SDSg x y -> sepM [w x , d "#" , d y]
+
     SPi tp1 (Bound (id, tp2)) ->
       sepM [binding s id tp1 , d "->" , d tp2]
     SSg tp1 (Bound (id, tp2)) ->
@@ -97,13 +105,22 @@ instance Display Infer where
     IUnit -> d "Unit"
     IBool -> d "Bool"
     IString -> d "String"
+    IDesc -> d "Desc"
     IProg -> d "Prog" -- NC: ??? Don't see this parsed anywhere.
     IType -> d "Type"
+
+    IDUnit -> d "Done"
+    IDRec -> d "Rec"
+    IDSum x y -> sepM [w x , d "|" , d y]
+    IDPi x y -> sepM [w x , d "=>" , d y]
+    IDSg x y -> sepM [w x , d "#" , d y]
+
     IPi tp1 (Bound (id, tp2)) ->
       sepM [binding i id tp1 , d "->" , d tp2]
     ISg tp1 (Bound (id, tp2)) ->
       sepM [binding i id tp1 , d "*", d tp2]
     IDefs defs -> vcatM . map d $ defs
+
     IVar id -> d id
     IQuotes str -> d . show $ str
     IStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
@@ -129,6 +146,7 @@ instance Display Val where
     VUnit -> d "Unit"
     VBool -> d "Bool"
     VString -> d "String"
+    VDesc -> d "Desc"
     VProg -> d "Prog"
     VType -> d "Type"
     VPi tp1 tp2 ->
@@ -138,6 +156,15 @@ instance Display Val where
     VTT -> d "tt"
     VTrue -> d "True"
     VFalse -> d "False"
+
+    VDUnit -> d "Done"
+    VDRec -> d "Rec"
+    VDSum x y -> sepM [w x , d "|" , d y]
+    VDPi x y ->
+      sepM [parensM . sepM $ [var y , d ":" , d x] , d "=>", d y]
+    VDSg x y ->
+      sepM [parensM . sepM $ [var y , d ":" , d x] , d "#", d y]
+
     VQuotes str -> d . show $ str
     -- ???: what's the right way to display type-annotated pairs?
     VPair tx ty x y -> sepM [ parensM . sepM $ [d x , d "," , d y]
@@ -192,12 +219,18 @@ instance Precedence Syntax where
     SProj2 xy                       -> projLevel
     SApp f x                        -> appLevel
     SAnn x tp                       -> annLevel
+    SDSum x y                       -> dSumLevel
+    SDPi x y                        -> dPiLevel
+    SDSg x y                        -> dSgLevel
     _                               -> atomicLevel
   assoc s = case s of
     SPi tp1 (Bound (id, tp2))       -> piAssoc
     SSg tp1 (Bound (id, tp2))       -> sgAssoc
     SStrAppend s1 s2                -> strAppendAssoc
     SApp f x                        -> appAssoc
+    SDSum x y                       -> dSumAssoc
+    SDPi x y                        -> piAssoc
+    SDSg x y                        -> sgAssoc
     _                               -> AssocNone
 
 ----------------------------------------------------------------------
@@ -226,12 +259,18 @@ instance Precedence Infer where
     IProj2 xy                       -> projLevel
     IApp f x                        -> appLevel
     IAnn x tp                       -> annLevel
+    IDSum x y                       -> dSumLevel
+    IDPi x y                        -> dPiLevel
+    IDSg x y                        -> dSgLevel
     _                               -> atomicLevel
   assoc i = case i of
     IPi tp1 (Bound (id, tp2))       -> piAssoc
     ISg tp1 (Bound (id, tp2))       -> sgAssoc
     IStrAppend s1 s2                -> strAppendAssoc
     IApp f x                        -> appAssoc
+    IDSum x y                       -> dSumAssoc
+    IDPi x y                        -> piAssoc
+    IDSg x y                        -> sgAssoc
     _                               -> AssocNone
 
 ----------------------------------------------------------------------
@@ -244,12 +283,18 @@ instance Precedence Val where
     VLam tp body    -> lamLevel
     VDefs defs      -> defsLevel
     Neut n          -> level n
+    VDSum x y       -> dSumLevel
+    VDPi x y        -> dPiLevel
+    VDSg x y        -> dSgLevel
     _               -> atomicLevel
   assoc v = case v of
     VPi tp1 tp2     -> piAssoc
     VSg tp1 tp2     -> sgAssoc
     VPair tx ty x y -> pairAssoc
     Neut n          -> assoc n
+    VDSum x y       -> dSumAssoc
+    VDPi x y        -> piAssoc
+    VDSg x y        -> sgAssoc
     _               -> AssocNone
 
 instance Precedence Neut where
@@ -350,6 +395,10 @@ sgLevel        = 4
 sgAssoc        = AssocRight
 piLevel        = 5
 piAssoc        = AssocRight
+dPiLevel       = 5 + 1/3
+dSgLevel       = 5 + 1/3
+dSumLevel      = 5 + 2/3
+dSumAssoc      = AssocRight
 ifLevel        = 6
 caseBoolLevel  = 6
 lamLevel       = 7

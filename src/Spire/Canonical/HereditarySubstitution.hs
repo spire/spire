@@ -7,6 +7,7 @@ subV :: Var -> Val -> Val -> Val
 subV i x aT@VUnit = aT
 subV i x aT@VBool = aT
 subV i x aT@VString = aT
+subV i x aT@VDesc = aT
 subV i x aT@VProg = aT
 subV i x aT@VType = aT
 subV i x a@VTT = a
@@ -19,6 +20,11 @@ subV i x (VPair aT bT a b) =
   VPair (subV i x aT) (subExtend i x bT) (subV i x a) (subV i x b)
 subV i x (VLam aT f) = VLam (subV i x aT) (subExtend i x f)
 subV i x (VDefs as) = VDefs (subVs i x as)
+subV i x d@VDUnit = d
+subV i x d@VDRec = d
+subV i x (VDSum d e) = VDSum (subV i x d) (subV i x e)
+subV i x (VDPi aT fD) = VDPi (subV i x aT) (subExtend i x fD)
+subV i x (VDSg aT fD) = VDSg (subV i x aT) (subExtend i x fD)
 subV i x (Neut n) = subN i x n
 
 subN :: Var -> Val -> Neut -> Val
