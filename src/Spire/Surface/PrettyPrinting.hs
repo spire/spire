@@ -177,100 +177,114 @@ instance Display Neut where
 
 ----------------------------------------------------------------------
 
-instance Wrap Syntax where
-  wrapped s = case s of
-    STT -> False
-    STrue -> False
-    SFalse -> False
-    SQuotes str -> False
-    SPair x y -> False
-    SLam (Bound (id , body)) -> False
-    SUnit -> False
-    SBool -> False
-    SString -> False
-    SType -> False
-    SPi tp1 (Bound (id, tp2)) -> False
-    SSg tp1 (Bound (id, tp2)) -> False
-    SVar id -> False
-    SStrAppend s1 s2 -> True
-    SStrEq s1 s2 -> True
-    SIf c t f -> True
-    SCaseBool (Bound (id, m)) t f b -> True
-    SProj1 xy -> True
-    SProj2 xy -> True
-    SApp f x -> True
-    SAnn x tp -> False
+instance Precedence Syntax where
+  level s = case s of
+    SPair x y                       -> pairLevel
+    SLam (Bound (id , body))        -> lamLevel
+    SPi tp1 (Bound (id, tp2))       -> piLevel
+    SSg tp1 (Bound (id, tp2))       -> sgLevel
+    SStrAppend s1 s2                -> strAppendLevel
+    SStrEq s1 s2                    -> strEqLevel
+    SIf c t f                       -> ifLevel
+    SCaseBool (Bound (id, m)) t f b -> caseBoolLevel
+    SProj1 xy                       -> projLevel
+    SProj2 xy                       -> projLevel
+    SApp f x                        -> appLevel
+    SAnn x tp                       -> annLevel
+    _                               -> atomicLevel
+  assoc s = case s of
+    SPi tp1 (Bound (id, tp2))       -> piAssoc
+    SSg tp1 (Bound (id, tp2))       -> sgAssoc
+    SStrAppend s1 s2                -> strAppendAssoc
+    SApp f x                        -> appAssoc
+    _                               -> AssocNone
 
 ----------------------------------------------------------------------
 
-instance Wrap Check where
-  wrapped c = case c of
-    CPair x y -> False
-    CLam (Bound (id , body)) -> False
-    Infer i -> wrapped i
+instance Precedence Check where
+  level c = case c of
+    CPair x y                -> pairLevel
+    CLam (Bound (id , body)) -> lamLevel
+    Infer i                  -> level i
+  assoc c = case c of
+    CPair x y                -> pairAssoc
+    Infer i                  -> assoc i
+    _                        -> AssocNone
 
-instance Wrap Infer where
-  wrapped i = case i of
-    ITT -> False
-    ITrue -> False
-    IFalse -> False
-    IQuotes str -> False
-    ILamAnn tp (Bound (id , body)) -> False
-    IUnit -> False
-    IBool -> False
-    IString -> False
-    IProg -> False
-    IType -> False
-    IPi tp1 (Bound (id, tp2)) -> False
-    ISg tp1 (Bound (id, tp2)) -> False
-    IDefs defs -> False
-    IVar id -> False
-    IStrAppend s1 s2 -> True
-    IStrEq s1 s2 -> True
-    IIf c t f -> True
-    ICaseBool (Bound (id, m)) t f b -> True
-    IProj1 xy -> True
-    IProj2 xy -> True
-    IApp f x -> True
-    IAnn x tp -> False
+instance Precedence Infer where
+  level i = case i of
+    ILamAnn tp (Bound (id , body))  -> lamLevel
+    IPi tp1 (Bound (id, tp2))       -> piLevel
+    ISg tp1 (Bound (id, tp2))       -> sgLevel
+    IDefs defs                      -> defsLevel
+    IStrAppend s1 s2                -> strAppendLevel
+    IStrEq s1 s2                    -> strEqLevel
+    IIf c t f                       -> ifLevel
+    ICaseBool (Bound (id, m)) t f b -> caseBoolLevel
+    IProj1 xy                       -> projLevel
+    IProj2 xy                       -> projLevel
+    IApp f x                        -> appLevel
+    IAnn x tp                       -> annLevel
+    _                               -> atomicLevel
+  assoc i = case i of
+    IPi tp1 (Bound (id, tp2))       -> piAssoc
+    ISg tp1 (Bound (id, tp2))       -> sgAssoc
+    IStrAppend s1 s2                -> strAppendAssoc
+    IApp f x                        -> appAssoc
+    _                               -> AssocNone
 
 ----------------------------------------------------------------------
 
-instance Wrap Val where
-  wrapped v = case v of
-    VUnit -> False
-    VBool -> False
-    VString -> False
-    VProg -> False
-    VType -> False
-    VPi tp1 tp2 -> False
-    VSg tp1 tp2 -> False
-    VTT -> False
-    VTrue -> False
-    VFalse -> False
-    VQuotes str -> False
-    VPair tx ty x y -> False
-    VLam tp body -> False
-    VDefs defs -> False
-    Neut n -> wrapped n
+instance Precedence Val where
+  level v = case v of
+    VPi tp1 tp2     -> piLevel
+    VSg tp1 tp2     -> sgLevel
+    VPair tx ty x y -> pairLevel
+    VLam tp body    -> lamLevel
+    VDefs defs      -> defsLevel
+    Neut n          -> level n
+    _               -> atomicLevel
+  assoc v = case v of
+    VPi tp1 tp2     -> piAssoc
+    VSg tp1 tp2     -> sgAssoc
+    VPair tx ty x y -> pairAssoc
+    Neut n          -> assoc n
+    _               -> AssocNone
 
-instance Wrap Neut where
-  wrapped n = case n of
-    NVar v -> False
-    NStrAppendL s1 s2 -> True
-    NStrAppendR s1 s2 -> True
-    NStrEqL s1 s2 -> True
-    NStrEqR s1 s2 -> True
-    NIf c t f -> True
-    NCaseBool m t f b -> True
-    NProj1 xy -> True
-    NProj2 xy -> True
-    NApp f x -> True
+instance Precedence Neut where
+  level n = case n of
+    NStrAppendL s1 s2 -> strAppendLevel
+    NStrAppendR s1 s2 -> strAppendLevel
+    NStrEqL s1 s2     -> strEqLevel
+    NStrEqR s1 s2     -> strEqLevel
+    NIf c t f         -> ifLevel
+    NCaseBool m t f b -> caseBoolLevel
+    NProj1 xy         -> projLevel
+    NProj2 xy         -> projLevel
+    NApp f x          -> appLevel
+    _                 -> atomicLevel
+  assoc n = case n of
+    NStrAppendL s1 s2 -> strAppendAssoc
+    NStrAppendR s1 s2 -> strAppendAssoc
+    NApp f x          -> appAssoc
+    _                 -> AssocNone
 
 ----------------------------------------------------------------------
 
 instance Display String where
   display = return . text
+
+instance Precedence String where
+  level _ = atomicLevel
+  assoc _ = AssocNone
+
+instance Precedence Def where
+  level _ = defLevel
+  assoc _ = AssocNone
+
+instance Precedence VDef where
+  level _ = defLevel
+  assoc _ = AssocNone
 
 instance Display Def where
   display (id , tm , tp) =
@@ -282,8 +296,9 @@ instance Display t => Display (Bound t) where
 instance Display VDef where
   display (v , tp) = sepM [d v , d ":" , d tp]
 
-instance Wrap t => Wrap (Bound t) where
-  wrapped (Bound (_ , x)) = wrapped x
+instance Precedence t => Precedence (Bound t) where
+  level (Bound (_ , x)) = level x
+  assoc (Bound (_ , x)) = assoc x
 
 ----------------------------------------------------------------------
 
@@ -317,11 +332,29 @@ data Assoc = AssocLeft | AssocRight | AssocNone deriving Eq
 class Precedence t where
   level :: t -> Float
   assoc :: t -> Assoc
-  assoc _ = AssocNone
 
--- XXX: remove this and add a precedence table
-instance Precedence t where
-  level _ = 0
+-- Precedence levels and infix op associativities.
+--
+-- Compare with table in used in Spire.Surface.Parsing.
+atomicLevel    = -1
+appLevel       = 0
+appAssoc       = AssocLeft
+projLevel      = 0
+strAppendLevel = 1
+strAppendAssoc = AssocRight
+strEqLevel     = 2
+pairLevel      = 3
+pairAssoc      = AssocRight
+sgLevel        = 4
+sgAssoc        = AssocRight
+piLevel        = 5
+piAssoc        = AssocRight
+ifLevel        = 6
+caseBoolLevel  = 6
+lamLevel       = 7
+annLevel       = 8
+defsLevel      = 9
+defLevel       = 10
 
 -- For non-infix operators, use 'wrap'' to wrap optionally recursive
 -- displays as needed.
@@ -348,12 +381,5 @@ wrapNonAssoc outside inside =
   if level outside <= level inside
   then parensM . display $ inside
   else display inside
-
-class Display t => Wrap t where
-  wrap :: t -> DisplayMonad Doc
-  wrap x = (if wrapped x then parensM else id) $ display x
-  -- Returns 'True' iff argument should be wrapped in parens when
-  -- appearing as a subexpression.
-  wrapped :: t -> Bool
 
 ----------------------------------------------------------------------
