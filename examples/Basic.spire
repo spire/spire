@@ -22,4 +22,4 @@ myPair = false, true
 myFun : (b : Bool) -> if b then Unit else Bool
 myFun = \ b ->
   caseBool (x in if x then Unit else Bool) b
-    then tt else false)
+    then tt else false
