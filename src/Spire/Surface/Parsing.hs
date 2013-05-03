@@ -160,9 +160,9 @@ parseIf = do
 parseCaseBool = do
   parseKeyword "caseBool"
   SLam m <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
-  b <- parseAtom
   pt <- parseAtom
   pf <- parseAtom
+  b <- parseAtom
   return $ SCaseBool m pt pf b
 
 parseProj1 = try $ do

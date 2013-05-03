@@ -72,8 +72,8 @@ instance Display Syntax where
     SIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     SCaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
-           , parensM . sepM $ [d id , d "in" , d m]
-           , w b , w t , w f ]
+           , parensM . sepM $ [d "\\" , d id , d "->" , d m]
+           , w t , w f , w b]
     SProj1 xy -> sepM [d "proj1" , w xy]
     SProj2 xy -> sepM [d "proj2" , w xy]
     SApp f x -> sepM [d f , w x]
@@ -128,8 +128,8 @@ instance Display Infer where
     IIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     ICaseBool (Bound (id, m)) t f b ->
       sepM [ d "caseBool"
-           , parensM . sepM $ [d id , d "in" , d m]
-           , w b , w t , w f ]
+           , parensM . sepM $ [d "\\" , d id , d "->" , d m]
+           , w t , w f , w b ]
     IProj1 xy -> sepM [d "proj1" , w xy]
     IProj2 xy -> sepM [d "proj2" , w xy]
     IApp f x -> sepM [d f , w x]
@@ -193,8 +193,8 @@ instance Display Neut where
     NIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
     NCaseBool m t f b ->
       sepM [ d "caseBool"
-           , parensM . sepM $ [var m , d "in" , d m]
-           , w b , w t , w f ]
+           , parensM . sepM $ [d "\\" , var m , d "->" , d m]
+           , w t , w f , w b ]
     NProj1 xy -> sepM [d "proj1" , w xy]
     NProj2 xy -> sepM [d "proj2" , w xy]
     NApp f x -> sepM [d f , w x]
