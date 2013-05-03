@@ -1,7 +1,6 @@
 module Spire.CLI where
 import Control.Monad.Error
 import System.Environment
-import Text.Printf
 import Spire.Surface.Types
 import Spire.Surface.Parsing
 import Spire.Surface.Elaborating

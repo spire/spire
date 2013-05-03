@@ -7,13 +7,13 @@ import Spire.Expression.Types
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader
-import qualified Text.PrettyPrint as PP
-import Text.PrettyPrint (Doc)
+import qualified Text.PrettyPrint.Leijen as WL
+import Text.PrettyPrint.Leijen (Doc)
 
 ----------------------------------------------------------------------
 
 prettyPrint :: Display t => t -> String
-prettyPrint t = PP.render $ runReader (display t) initialDisplayData
+prettyPrint t = show $ runReader (display t) initialDisplayData
 
 -- Short hands.
 d :: Display t => t -> DisplayMonad Doc
@@ -21,15 +21,15 @@ d = display
 
 -- Lift standard pretty printing ops to a monad.
 sepM , fsepM , hsepM , vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
-sepM  xs = PP.sep  <$> sequence xs
-fsepM xs = PP.fsep <$> sequence xs
-hsepM xs = PP.hsep <$> sequence xs
-vcatM xs = PP.vcat <$> sequence xs
+sepM  xs = WL.sep <$> sequence xs
+fsepM xs = WL.fillSep <$> sequence xs
+hsepM xs = WL.hsep <$> sequence xs
+vcatM xs = WL.vsep <$> sequence xs
 parensM :: Functor m => m Doc -> m Doc
-parensM = fmap PP.parens
+parensM = fmap WL.parens
 infixl 6 <+>
 (<+>) :: (Monad m) => m Doc -> m Doc -> m Doc
-(<+>) = liftM2 (PP.<+>)
+(<+>) = liftM2 (WL.<+>)
 
 
 -- Would be better to keep around the original names from the
@@ -321,7 +321,7 @@ instance Precedence Neut where
 ----------------------------------------------------------------------
 
 instance Display String where
-  display = return . PP.text
+  display = return . WL.string
 
 instance Precedence String where
   level _ = atomicLevel
