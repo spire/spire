@@ -7,27 +7,29 @@ import Spire.Expression.Types
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader
-import Text.PrettyPrint as PP
+import qualified Text.PrettyPrint as PP
+import Text.PrettyPrint (Doc)
 
 ----------------------------------------------------------------------
 
 prettyPrint :: Display t => t -> String
-prettyPrint t = render $ runReader (display t) initialDisplayData
+prettyPrint t = PP.render $ runReader (display t) initialDisplayData
 
 -- Short hands.
 d :: Display t => t -> DisplayMonad Doc
 d = display
 
 -- Lift standard pretty printing ops to a monad.
---
--- Might be more legible below to lift '(<+>)' and use it infix
--- instead of 'sepM' and lists.
 sepM :: (Functor m , Monad m) => [m Doc] -> m Doc
 sepM xs = PP.sep <$> sequence xs
 vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
 vcatM xs = PP.vcat <$> sequence xs
 parensM :: Functor m => m Doc -> m Doc
 parensM = fmap PP.parens
+infixl 6 <+>
+(<+>) :: (Monad m) => m Doc -> m Doc -> m Doc
+(<+>) = liftM2 (PP.<+>)
+
 
 -- Would be better to keep around the original names from the
 -- 'NomBound's and reuse them here ...
@@ -318,7 +320,7 @@ instance Precedence Neut where
 ----------------------------------------------------------------------
 
 instance Display String where
-  display = return . text
+  display = return . PP.text
 
 instance Precedence String where
   level _ = atomicLevel
