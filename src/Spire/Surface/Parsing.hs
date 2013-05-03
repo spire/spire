@@ -157,19 +157,13 @@ parseIf = do
   return $ SIf b c1 c2
 
 -- casebool (x in e) e then e else e
-parseCaseBool = try $ do
+parseCaseBool = do
   parseKeyword "caseBool"
-  (l , pT) <- parseParens $ do
-    l <- parseIdent
-    parseKeyword "in"
-    pT <- parseSyntax
-    return (l , pT)
-  b <- parseSyntax
-  parseKeyword "then"
-  pt <- parseSyntax
-  parseKeyword "else"
-  pf <- parseSyntax
-  return $ SCaseBool (Bound (l , pT)) pt pf b
+  SLam m <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
+  b <- parseAtom
+  pt <- parseAtom
+  pf <- parseAtom
+  return $ SCaseBool m pt pf b
 
 parseProj1 = try $ do
   parseKeyword "proj1"
