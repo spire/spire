@@ -45,7 +45,8 @@ keywords = [
   "tt", "true", "false",
   "caseBool",
   "proj1", "proj2",
-  "Done", "Rec"
+  "Desc" , "Done", "Rec" ,
+  wildcard
   ]
 
 def = emptyDef {
@@ -65,7 +66,9 @@ type MParser a = ParsecT [Char] () Identity a
 tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer
 parseKeyword = reserved tokenizer
+-- Excludes keywords.
 parseIdent = identifier tokenizer
+parseWildOrIdent = (parseKeyword wildcard >> return wildcard) <|> parseIdent
 parseToken = symbol tokenizer
 parseSpaces = whiteSpace tokenizer
 parseStringLit = try $ stringLiteral tokenizer
@@ -94,26 +97,30 @@ parseSyntax = buildExpressionParser table parseChoice
 
 parseChoice :: MParser Syntax
 parseChoice = try $ choice [
-    parseParens parseSyntax
+    parseAtom
+  , parseIf
+  , parseCaseBool
+  , parseProj1
+  , parseProj2
+  , parseLam
+  ]
+
+parseAtom = choice
+  [ parseParens parseSyntax
+  , parseVar
+  , parseQuotes
+  , parseAnn
+
+  , parseTT
+  , parseTrue
+  , parseFalse
   , parseUnit
   , parseBool
   , parseString
   , parseDesc
   , parseType
-  , parseTT
-  , parseTrue
-  , parseFalse
-  , parseQuotes
   , parseDUnit
-  , parseDRec
-  , parseIf
-  , parseCaseBool
-  , parseProj1
-  , parseProj2
-  , parseVar
-  , parseLam
-  , parseAnn
-  ]
+  , parseDRec ]
 
 failIfStmt =
   -- definition type declaration or assignment is next
@@ -149,19 +156,14 @@ parseIf = do
   c2 <- parseSyntax
   return $ SIf b c1 c2
 
-parseCaseBool = try $ do
+-- casebool (x in e) e then e else e
+parseCaseBool = do
   parseKeyword "caseBool"
-  (l , pT) <- parseParens $ do
-    l <- parseIdent
-    parseKeyword "in"
-    pT <- parseSyntax
-    return (l , pT)
-  b <- parseSyntax
-  parseKeyword "then"
-  pt <- parseSyntax
-  parseKeyword "else"
-  pf <- parseSyntax
-  return $ SCaseBool (Bound (l , pT)) pt pf b
+  SLam m <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
+  b <- parseAtom
+  pt <- parseAtom
+  pf <- parseAtom
+  return $ SCaseBool m pt pf b
 
 parseProj1 = try $ do
   parseKeyword "proj1"
@@ -173,9 +175,11 @@ parseProj2 = try $ do
   ab <- parseSyntax
   return $ SProj2 ab
 
+-- \ x -> e
+-- \ _ -> e
 parseLam = try $ do
   parseOp "\\"
-  l <- parseIdent
+  l <- parseWildOrIdent
   parseOp "->"
   tm <- parseSyntax
   return $ SLam (Bound (l , tm))

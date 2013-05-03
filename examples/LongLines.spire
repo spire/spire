@@ -1,0 +1,10 @@
+-- Long lines for testing the prettiness of the printer.
+longType : Type
+longType = Bool -> (b:Bool) -> Unit * (u:Unit) * Unit -> Unit -> Bool ->
+           (if b then Unit else Unit -> Unit)
+
+longFunctionName : longType
+longFunctionName = \ _ -> \ b -> \ _ -> \ _ -> \ _ ->
+                   caseBool (\b -> if b then Unit else Unit -> Unit) b
+                            tt
+                            (\ u -> u)
