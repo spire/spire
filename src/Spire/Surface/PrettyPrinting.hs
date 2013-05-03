@@ -13,7 +13,15 @@ import Text.PrettyPrint.Leijen (Doc)
 ----------------------------------------------------------------------
 
 prettyPrint :: Display t => t -> String
-prettyPrint t = show $ runReader (display t) initialDisplayData
+prettyPrint t = render $ runReader (display t) initialDisplayData
+  where
+  render = show
+  {-
+  -- To adjust the printing parameters:
+  render x = WL.displayS (WL.renderPretty ribbon columns x) ""
+  columns = 80
+  ribbon = 0.3
+  -}
 
 -- Short hands.
 d :: Display t => t -> DisplayMonad Doc
@@ -24,13 +32,24 @@ sepM , fsepM , hsepM , vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
 sepM  xs = WL.sep <$> sequence xs
 fsepM xs = WL.fillSep <$> sequence xs
 hsepM xs = WL.hsep <$> sequence xs
-vcatM xs = WL.vsep <$> sequence xs
-parensM :: Functor m => m Doc -> m Doc
-parensM = fmap WL.parens
-infixl 6 <+>
-(<+>) :: (Monad m) => m Doc -> m Doc -> m Doc
-(<+>) = liftM2 (WL.<+>)
+vcatM xs = WL.vcat <$> sequence xs
 
+nestM , indentM :: Functor m => Int -> m Doc -> m Doc
+nestM n = fmap $ WL.nest n
+indentM n = fmap $ WL.indent n
+
+parensM , groupM , alignM :: Functor m => m Doc -> m Doc
+parensM = fmap WL.parens
+groupM = fmap WL.group
+alignM = fmap WL.align
+
+infixr 5 </> , <$$> , <$+$>
+infixr 6 <+>
+(<+>) , (<$$>) , (</>) :: Monad m => m Doc -> m Doc -> m Doc
+(<+>) = liftM2 (WL.<+>)
+(<$$>) = liftM2 (WL.<$$>)
+(<$+$>) = liftM2 (WL.<$>)
+(</>) = liftM2 (WL.</>)
 
 -- Would be better to keep around the original names from the
 -- 'NomBound's and reuse them here ...
@@ -50,7 +69,7 @@ instance Display Syntax where
     STT -> d "tt"
     STrue -> d "true"
     SFalse -> d "false"
-    SPair x y -> sepM [w x , d "," , d y]
+    SPair x y -> w x <+> d "," </> d y
     SLam (Bound (id , body)) -> fsepM [d "\\" <+> d id <+> d "->" , d body]
     SUnit -> d "Unit"
     SBool -> d "Bool"
@@ -65,16 +84,18 @@ instance Display Syntax where
     SDSg x y -> sepM [w x , d "#" , d y]
 
     SPi tp1 (Bound (id, tp2)) ->
-      sepM [binding s id tp1 <+> d "->" , d tp2]
+      fsepM [binding s id tp1 <+> d "->" , d tp2]
     SSg tp1 (Bound (id, tp2)) ->
-      sepM [binding s id tp1 <+> d "*", d tp2]
+      binding s id tp1 <+> d "*" <+> d tp2
     SVar id -> d id
     SQuotes str -> d . show $ str
     SStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
     SStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
-    SIf c t f -> sepM [d "if" <+> d c , d "then" <+> d t , d "else" <+> d f]
+    SIf c t f -> alignM . sepM $ [ d "if" <+> d c
+                                 , d "then" <+> d t
+                                 , d "else" <+> d f ]
     SCaseBool (Bound (id, m)) t f b ->
-      d "caseBool" <+> sepM
+      d "caseBool" <+> (alignM . sepM)
            [ parensM $ d "\\" <+> d id <+> d "->" <+> d m
            , w t , w f , w b]
     SProj1 xy -> d "proj1" <+> w xy
@@ -85,6 +106,14 @@ instance Display Syntax where
       d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
       d = wrap' s
       w = wrapNonAssoc s
+
+instance Display Statement where
+  display (SDef f e t) =
+    (groupM . nestM 2) (d f <+> d ":" <$+$> d t) <$$>
+    (groupM . nestM 2) (d f <+> d "=" <$+$> d e)
+
+instance Display Statements where
+  display defs =  WL.vcat . WL.punctuate WL.line <$> mapM d defs
 
 ----------------------------------------------------------------------
 

@@ -24,12 +24,8 @@ checkFromFile file = do
       putStrLn $ formatParseError error
 
     Right program -> do
-      putStrLn $ "Parsed program:"
-      forM_ program $ \(SDef l a aT) -> do
-        putStrLn ""
-        putStrLn $ l ++ " : " ++ prettyPrint aT
-        putStrLn $ l ++ " = " ++ prettyPrint a
-      putStrLn ""
+      putStrLn $ "Parsed program:\n"
+      putStrLn $ prettyPrint program
 
       case elabS program of
         Left error -> putStrLn error
