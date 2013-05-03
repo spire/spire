@@ -45,7 +45,8 @@ keywords = [
   "tt", "true", "false",
   "caseBool",
   "proj1", "proj2",
-  "Done", "Rec" , wildcard
+  "Desc" , "Done", "Rec" ,
+  wildcard
   ]
 
 def = emptyDef {
@@ -65,6 +66,7 @@ type MParser a = ParsecT [Char] () Identity a
 tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer
 parseKeyword = reserved tokenizer
+-- Excludes keywords.
 parseIdent = identifier tokenizer
 parseWildOrIdent = (parseKeyword wildcard >> return wildcard) <|> parseIdent
 parseToken = symbol tokenizer
