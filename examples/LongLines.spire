@@ -5,6 +5,6 @@ longType = Bool -> (b:Bool) -> Unit * (u:Unit) * Unit -> Unit -> Bool ->
 
 longFunctionName : longType
 longFunctionName = \ _ -> \ b -> \ _ -> \ _ -> \ _ ->
-                   caseBool (b in if b then Unit else Unit -> Unit) b
-                            then tt
-                            else (\ u -> u)
+                   caseBool (\b -> if b then Unit else Unit -> Unit) b
+                            tt
+                            (\ u -> u)
