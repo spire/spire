@@ -16,6 +16,7 @@ subV i x a@VFalse = a
 subV i x a@(VQuotes _) = a
 subV i x (VPi aT bT) = VPi (subV i x aT) (subExtend i x bT)
 subV i x (VSg aT bT) = VSg (subV i x aT) (subExtend i x bT)
+subV i x (VFix d) = VFix (subV i x d)
 subV i x (VPair aT bT a b) =
   VPair (subV i x aT) (subExtend i x bT) (subV i x a) (subV i x b)
 subV i x (VLam aT f) = VLam (subV i x aT) (subExtend i x f)
@@ -25,6 +26,7 @@ subV i x d@VDRec = d
 subV i x (VDSum d e) = VDSum (subV i x d) (subV i x e)
 subV i x (VDPi aT fD) = VDPi (subV i x aT) (subExtend i x fD)
 subV i x (VDSg aT fD) = VDSg (subV i x aT) (subExtend i x fD)
+subV i x (VIn d a) = VIn (subV i x d) (subV i x a)
 subV i x (Neut n) = subN i x n
 
 subN :: Var -> Val -> Neut -> Val
@@ -47,6 +49,7 @@ subN i x (NProj1 ab) = evalProj1 (subN i x ab)
 subN i x (NProj2 ab) = evalProj2 (subN i x ab)
 subN i x (NApp f a) =
   evalApp (subN i x f) (subV i x a)
+subN i x (NDInterp d e) = evalDInterp (subN i x d) (subV i x e)
 
 ----------------------------------------------------------------------
 
@@ -111,6 +114,19 @@ foldSub xs a = helper (reverse xs) a
   helper :: [Val] -> Val -> Val
   helper [] a = a
   helper (x : xs) a = helper xs (subV (length xs) x a)
+
+evalDInterp :: Val -> Val -> Val
+evalDInterp VDUnit x = VUnit
+evalDInterp VDRec x = x
+evalDInterp (VDSum d e) x =
+  vSum (evalDInterp d x) (evalDInterp e x)
+evalDInterp (VDPi aT (Bound (ident , fD))) x =
+  VPi aT (Bound (ident , evalDInterp fD x))
+evalDInterp (VDSg aT (Bound (ident , fD))) x =
+  VSg aT (Bound (ident , evalDInterp fD x))
+evalDInterp (Neut d) x = Neut $ NDInterp d x
+evalDInterp d x = error $
+  "Ill-typed evaluation of the meaning of DInterp"
 
 ----------------------------------------------------------------------
 

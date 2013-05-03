@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, RankNTypes #-}
 module Spire.Surface.PrettyPrinting (prettyPrint) where
 import Spire.Surface.Types
-import Spire.Surface.Parsing
 import Spire.Canonical.Types
 import Spire.Expression.Types
 
@@ -54,6 +53,7 @@ instance Display Syntax where
     SString -> d "String"
     SDesc -> d "Desc"
     SType -> d "Type"
+    SFix x -> sepM [d "Fix" , w x]
 
     SDUnit -> d "Done"
     SDRec -> d "Rec"
@@ -78,6 +78,8 @@ instance Display Syntax where
     SProj2 xy -> sepM [d "proj2" , w xy]
     SApp f x -> sepM [d f , w x]
     SAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+    SDInterp x y -> error "TODO"
+    SIn x -> sepM [d "<" , d x , d ">"]
     where
       d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
       d = wrap' s
@@ -89,6 +91,7 @@ instance Display Check where
   display c = case c of
     CPair x y -> sepM [w x , d "," , d y]
     CLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
+    CIn x -> sepM [d "<" , d x , d ">"]
     Infer i -> d i
     where
       d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
@@ -120,6 +123,8 @@ instance Display Infer where
     ISg tp1 (Bound (id, tp2)) ->
       sepM [binding i id tp1 , d "*", d tp2]
     IDefs defs -> vcatM . map d $ defs
+    IFix x -> sepM [d "Fix" , w x]
+    IDInterp x y -> error "TODO"
 
     IVar id -> d id
     IQuotes str -> d . show $ str
@@ -153,6 +158,7 @@ instance Display Val where
       sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "->" , d tp2]
     VSg tp1 tp2 ->
       sepM [parensM . sepM $ [var tp2 , d ":" , d tp1] , d "*", d tp2]
+    VFix x -> sepM [d "Fix" , w x]
     VTT -> d "tt"
     VTrue -> d "True"
     VFalse -> d "False"
@@ -164,6 +170,7 @@ instance Display Val where
       sepM [parensM . sepM $ [var y , d ":" , d x] , d "=>", d y]
     VDSg x y ->
       sepM [parensM . sepM $ [var y , d ":" , d x] , d "#", d y]
+    VIn _ x -> sepM [d "<" , d x , d ">"]
 
     VQuotes str -> d . show $ str
     -- ???: what's the right way to display type-annotated pairs?
@@ -198,6 +205,7 @@ instance Display Neut where
     NProj1 xy -> sepM [d "proj1" , w xy]
     NProj2 xy -> sepM [d "proj2" , w xy]
     NApp f x -> sepM [d f , w x]
+    NDInterp x y -> error "TODO"
     where
       d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
       d = wrap' n
@@ -239,6 +247,7 @@ instance Precedence Check where
   level c = case c of
     CPair x y                -> pairLevel
     CLam (Bound (id , body)) -> lamLevel
+    CIn x                    -> inLevel
     Infer i                  -> level i
   assoc c = case c of
     CPair x y                -> pairAssoc
@@ -386,6 +395,7 @@ atomicLevel    = -1
 appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
+inLevel        = 0
 strAppendLevel = 1
 strAppendAssoc = AssocRight
 strEqLevel     = 2

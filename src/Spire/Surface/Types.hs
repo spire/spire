@@ -17,11 +17,13 @@ data Syntax =
   | SUnit | SBool | SString | SDesc | SType
   | SPi Syntax (Bound Syntax)
   | SSg Syntax (Bound Syntax)
+  | SFix Syntax
 
   | SDUnit | SDRec
   | SDSum Syntax Syntax
   | SDPi Syntax (Bound Syntax)
   | SDSg Syntax (Bound Syntax)
+  | SIn Syntax
 
   | SVar Ident
   | SStrAppend Syntax Syntax
@@ -32,6 +34,7 @@ data Syntax =
   | SProj2 Syntax
   | SApp Syntax Syntax
   | SAnn Syntax Syntax
+  | SDInterp Syntax Syntax
  deriving ( Show , Read )
 
 ----------------------------------------------------------------------
