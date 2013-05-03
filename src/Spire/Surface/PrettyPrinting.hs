@@ -20,9 +20,10 @@ d :: Display t => t -> DisplayMonad Doc
 d = display
 
 -- Lift standard pretty printing ops to a monad.
-sepM :: (Functor m , Monad m) => [m Doc] -> m Doc
-sepM xs = PP.sep <$> sequence xs
-vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
+sepM , fsepM , hsepM , vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
+sepM  xs = PP.sep  <$> sequence xs
+fsepM xs = PP.fsep <$> sequence xs
+hsepM xs = PP.hsep <$> sequence xs
 vcatM xs = PP.vcat <$> sequence xs
 parensM :: Functor m => m Doc -> m Doc
 parensM = fmap PP.parens
@@ -40,7 +41,7 @@ var (Bound (id , _)) = do
 
 binding :: (Precedence t', Precedence t, Display t) => t' -> Ident -> t -> DisplayMonad Doc
 binding outside id tp | id == wildcard  = wrapNonAssoc outside tp
-binding outside id tp = parensM . sepM $ [d id , d ":" , d tp]
+binding outside id tp = parensM . hsepM $ [d id , d ":" , d tp]
 
 ----------------------------------------------------------------------
 
@@ -50,7 +51,7 @@ instance Display Syntax where
     STrue -> d "true"
     SFalse -> d "false"
     SPair x y -> sepM [w x , d "," , d y]
-    SLam (Bound (id , body)) -> sepM [d "\\" , d id , d "->" , d body]
+    SLam (Bound (id , body)) -> fsepM [d "\\" <+> d id <+> d "->" , d body]
     SUnit -> d "Unit"
     SBool -> d "Bool"
     SString -> d "String"
@@ -64,22 +65,22 @@ instance Display Syntax where
     SDSg x y -> sepM [w x , d "#" , d y]
 
     SPi tp1 (Bound (id, tp2)) ->
-      sepM [binding s id tp1 , d "->" , d tp2]
+      sepM [binding s id tp1 <+> d "->" , d tp2]
     SSg tp1 (Bound (id, tp2)) ->
-      sepM [binding s id tp1 , d "*", d tp2]
+      sepM [binding s id tp1 <+> d "*", d tp2]
     SVar id -> d id
     SQuotes str -> d . show $ str
     SStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
     SStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
-    SIf c t f -> sepM [d "if" , d c , d "then" , d t , d "else" , d f]
+    SIf c t f -> sepM [d "if" <+> d c , d "then" <+> d t , d "else" <+> d f]
     SCaseBool (Bound (id, m)) t f b ->
-      sepM [ d "caseBool"
-           , parensM . sepM $ [d "\\" , d id , d "->" , d m]
+      d "caseBool" <+> sepM
+           [ parensM $ d "\\" <+> d id <+> d "->" <+> d m
            , w t , w f , w b]
-    SProj1 xy -> sepM [d "proj1" , w xy]
-    SProj2 xy -> sepM [d "proj2" , w xy]
-    SApp f x -> sepM [d f , w x]
-    SAnn x tp -> parensM . sepM $ [d x , d ":" , d tp]
+    SProj1 xy -> d "proj1" <+> w xy
+    SProj2 xy -> d "proj2" <+> w xy
+    SApp f x -> sepM [d f , w x] -- ???: how to format chained application?
+    SAnn x tp -> parensM $ d x <+> d ":" <+> d tp
     where
       d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
       d = wrap' s

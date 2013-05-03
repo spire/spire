@@ -9,3 +9,10 @@ longFunctionName = \ _ -> \ b -> \ _ -> \ _ -> \ _ ->
                             tt
                             (\ u -> u)
                             b
+
+longIf : Unit
+longIf = if if if true then false else true
+            then false
+            else if false then true else true
+         then if true then if true then tt else tt else tt
+         else tt
