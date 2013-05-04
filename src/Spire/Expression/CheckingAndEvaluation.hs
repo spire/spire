@@ -16,6 +16,9 @@ check ctx (CPair a b) (VSg aT bT) = do
   a' <- check ctx a aT
   b' <- check ctx b (suB a' bT)
   return $ VPair aT bT a' b'
+check ctx (CIn a) (VFix d) = do
+  a' <- check ctx a (evalDInterp d (VFix d))
+  return $ VIn d a'
 check ctx (Infer a) bT = do
   (a' , aT) <- infer ctx a
   unless (aT == bT) $ throwError $
@@ -67,6 +70,9 @@ infer ctx (ISg aT bT) = do
   aT' <- check ctx aT VType
   bT' <- checkExtend aT' ctx bT VType
   return (VSg aT' bT' , VType)
+infer ctx (IFix d) = do
+  d' <- check ctx d VDesc
+  return (VFix d' , VType)
 infer ctx (IDefs as) = do
   as' <- checkDefs [] ctx as
   let as'' = map (\(_ , a , aT) -> (a , aT))  as'
@@ -94,6 +100,10 @@ infer ctx (ICaseBool pT pt pf b) = do
   pf' <- check ctx pf (suB VFalse pT')
   b'  <- check ctx b VBool
   return (evalCaseBool pT' pt' pf' b' , suB b' pT')
+infer ctx (IDInterp d e) = do
+  d' <- check ctx d VDesc
+  e' <- check ctx e VType
+  return (evalDInterp d' e' , VType)
 infer ctx (IProj1 ab) = do
   (ab' , abT) <- infer ctx ab
   case abT of

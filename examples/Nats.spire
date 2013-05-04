@@ -1,0 +1,18 @@
+
+NatD : Desc
+NatD = Done | Rec
+
+Nat : Type
+Nat = Fix NatD
+
+zero : Nat
+zero = < true , tt >
+
+suc : Nat -> Nat
+suc = \ n -> < false , n >
+
+one : Nat
+one = suc zero
+
+two : Nat
+two = suc one

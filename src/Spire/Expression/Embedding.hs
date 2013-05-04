@@ -22,12 +22,14 @@ embedI IProg = error "TODO Embedding programs is not supported yet."
 embedI IType = SType
 embedI (IPi c bc) = SPi (embedC c) (embedCB bc)
 embedI (ISg c bc) = SSg (embedC c) (embedCB bc)
+embedI (IFix c) = SFix (embedC c)
 
 embedI IDUnit = SDUnit
 embedI IDRec = SDRec
 embedI (IDSum c1 c2) = SDSum (embedC c1) (embedC c2)
 embedI (IDPi c bc) = SDPi (embedC c) (embedCB bc)
 embedI (IDSg c bc) = SDSg (embedC c) (embedCB bc)
+embedI (IDInterp _ _) = error "TODO Embedding the meaning function of descriptions is not yet supported."
 
 embedI (IDefs _) = error "TODO Embedding programs is not supported yet."
 embedI (IVar v) = SVar v
@@ -43,6 +45,7 @@ embedI (IAnn c1 c2) = SAnn (embedC c1) (embedC c2)
 embedC :: Check -> Syntax
 embedC (CPair c1 c2) = SPair (embedC c1) (embedC c2)
 embedC (CLam bc) = SLam (embedCB bc)
+embedC (CIn c) = SIn (embedC c)
 embedC (Infer i) = embedI i
 
 ----------------------------------------------------------------------

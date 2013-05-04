@@ -4,8 +4,9 @@ import Spire.Canonical.Types
 ----------------------------------------------------------------------
 
 data Check =
-    CPair Check Check
-  | CLam (Bound Check)
+    CLam (Bound Check)
+  | CPair Check Check
+  | CIn Check
   | Infer Infer
   deriving ( Show, Read )
 
@@ -16,6 +17,7 @@ data Infer =
   | IUnit | IBool | IString | IDesc | IProg | IType
   | IPi Check (Bound Check)
   | ISg Check (Bound Check)
+  | IFix Check
 
   | IDUnit | IDRec
   | IDSum Check Check
@@ -32,6 +34,7 @@ data Infer =
   | IProj2 Infer
   | IApp Infer Check
   | IAnn Check Check
+  | IDInterp Check Check
   deriving ( Show, Read )
 
 ----------------------------------------------------------------------

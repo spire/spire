@@ -4,7 +4,6 @@ import Spire.Canonical.Embedding
 import Spire.Canonical.Types
 import Spire.Expression.Embedding
 import Spire.Expression.Types
-import Spire.Surface.Parsing
 import Spire.Surface.Types
 
 import Control.Applicative ((<$>), (<*>))
@@ -114,9 +113,10 @@ dCaseBool o bnd t f bool =
       , ww o t , ww o f , ww o bool ]
 dProj1 o xy = d "proj1" <+> ww o xy
 dProj2 o xy = d "proj2" <+> ww o xy
+dFix o x = d "Fix" <+> ww o x
+dIn o x = sepM [ d "<" , w o x , d ">" ]
 dApp o f x = w o f </> ww o x
 dAnn o x tp = parensM $ d x <+> d ":" <+> d tp
-
 
 ----------------------------------------------------------------------
 
@@ -149,6 +149,8 @@ instance Display Syntax where
     SCaseBool bnd t f bool -> dCaseBool s bnd t f bool
     SProj1 xy -> dProj1 s xy
     SProj2 xy -> dProj2 s xy
+    SFix x -> dFix s x
+    SIn x -> dIn s x
     SApp f x -> dApp s f x
     SAnn x tp -> dAnn s x tp
 
@@ -184,6 +186,7 @@ instance Precedence Syntax where
     SLam (Bound (id , body))        -> lamLevel
     SPi tp1 (Bound (id, tp2))       -> piLevel
     SSg tp1 (Bound (id, tp2))       -> sgLevel
+    SFix d                          -> fixLevel
     SStrAppend s1 s2                -> strAppendLevel
     SStrEq s1 s2                    -> strEqLevel
     SIf c t f                       -> ifLevel
@@ -195,6 +198,7 @@ instance Precedence Syntax where
     SDSum x y                       -> dSumLevel
     SDPi x y                        -> dPiLevel
     SDSg x y                        -> dSgLevel
+    SIn x                           -> inLevel
     _                               -> atomicLevel
   assoc s = case s of
     SPi tp1 (Bound (id, tp2))       -> piAssoc
@@ -252,6 +256,7 @@ atomicLevel    = -1
 appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
+fixLevel       = 0
 strAppendLevel = 1
 strAppendAssoc = AssocRight
 strEqLevel     = 2
@@ -265,6 +270,7 @@ dPiLevel       = 5 + 1/3
 dSgLevel       = 5 + 1/3
 dSumLevel      = 5 + 2/3
 dSumAssoc      = AssocRight
+inLevel        = 6
 ifLevel        = 6
 caseBoolLevel  = 6
 lamLevel       = 7

@@ -1,5 +1,5 @@
 module Spire.Surface.Parsing
-  (parseProgram, parseTerm, wildcard, formatParseError)
+  (parseProgram, parseTerm, formatParseError)
 where
 import Spire.Surface.Types
 import Spire.Canonical.Types
@@ -36,16 +36,15 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-wildcard = "_"
 ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "==",
        "|", "#", "=>"]
 keywords = [
-  "in", "if", "then", "else",
+  "if", "then", "else",
   "Unit", "Bool", "String", "Type",
   "tt", "true", "false",
   "caseBool",
   "proj1", "proj2",
-  "Desc" , "Done", "Rec" ,
+  "Fix", "Desc" , "Done", "Rec" ,
   wildcard
   ]
 
@@ -74,6 +73,8 @@ parseSpaces = whiteSpace tokenizer
 parseStringLit = try $ stringLiteral tokenizer
 parseParens :: MParser a -> MParser a
 parseParens = try . parens tokenizer
+parseAngles :: MParser a -> MParser a
+parseAngles = try . angles tokenizer
 
 ----------------------------------------------------------------------
 
@@ -120,7 +121,10 @@ parseAtom = choice
   , parseDesc
   , parseType
   , parseDUnit
-  , parseDRec ]
+  , parseDRec
+  , parseFix
+  , parseIn
+  ]
 
 failIfStmt =
   -- definition type declaration or assignment is next
@@ -167,12 +171,12 @@ parseCaseBool = do
 
 parseProj1 = try $ do
   parseKeyword "proj1"
-  ab <- parseSyntax
+  ab <- parseAtom
   return $ SProj1 ab
 
 parseProj2 = try $ do
   parseKeyword "proj2"
-  ab <- parseSyntax
+  ab <- parseAtom
   return $ SProj2 ab
 
 -- \ x -> e
@@ -190,6 +194,15 @@ parseAnn = parseParens $ do
   parseOp ":"
   b <- parseSyntax
   return $ SAnn a b
+
+parseFix = try $ do
+  parseKeyword "Fix"
+  d <- parseAtom
+  return $ SFix d
+
+parseIn = parseAngles $ do
+  a <- parseSyntax
+  return $ SIn a
 
 ----------------------------------------------------------------------
 

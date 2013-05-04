@@ -25,6 +25,9 @@ elabC (SPair a b) = do
 elabC (SLam b) = do
   b' <- elabBC b
   return $ CLam b'
+elabC (SIn a) = do
+  a' <- elabC a
+  return $ CIn a'
 elabC a = do
   a' <- elabI a
   return $ Infer a'
@@ -66,6 +69,9 @@ elabI (SSg aT bT) = do
   aT' <- elabC aT
   bT' <- elabBC bT
   return $ ISg aT' bT'
+elabI (SFix d) = do
+  d' <- elabC d
+  return $ IFix d'
 elabI (SStrAppend a b) = do
   a' <- elabC a
   b' <- elabC b
@@ -101,6 +107,7 @@ elabI (SAnn a aT) = do
   return $ IAnn a' aT'
 elabI a@(SPair _ _) = failUnannotated a
 elabI a@(SLam _) = failUnannotated a
+elabI a@(SIn _) = failUnannotated a
 
 ----------------------------------------------------------------------
 

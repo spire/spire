@@ -7,6 +7,7 @@ data Val =
     VUnit | VBool | VString | VDesc | VProg | VType
   | VPi Type (Bound Type)
   | VSg Type (Bound Type)
+  | VFix Desc
 
   | VTT | VTrue | VFalse
   | VQuotes StrLit
@@ -14,9 +15,10 @@ data Val =
   | VLam Type (Bound Val)
 
   | VDUnit | VDRec
-  | VDSum Val Val
-  | VDPi Type (Bound Val)
-  | VDSg Type (Bound Val)
+  | VDSum Desc Desc
+  | VDPi Type (Bound Desc)
+  | VDSg Type (Bound Desc)
+  | VIn Desc Val
 
   | VDefs [VDef]
   | Neut Neut
@@ -33,11 +35,21 @@ data Neut =
   | NProj1 Neut
   | NProj2 Neut
   | NApp Neut Val
+  | NDInterp Neut Val
   deriving ( Eq, Show, Read )
 
 ----------------------------------------------------------------------
 
+vSum :: Type -> Type -> Type
+vSum aT bT = VSg VBool (Bound (internalId , Neut cT)) where
+  cT = NIf (NVar (NomVar (internalId , 0))) aT bT
+
+----------------------------------------------------------------------
+
 type Ident = String
+wildcard = "_"
+internalId = "_x"
+
 newtype Bound a = Bound (Ident , a)
   deriving ( Show, Read )
 
@@ -56,6 +68,7 @@ instance Eq NomVar where
 ----------------------------------------------------------------------
 
 type Type = Val
+type Desc = Val
 type VDef = (Val , Type)
 type Result a = Either String a
 type VCtx = [Type]

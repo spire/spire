@@ -1,0 +1,15 @@
+
+RgbD : Desc
+RgbD = Done | Done | Done
+
+Rgb : Type
+Rgb = Fix RgbD
+
+red : Rgb
+red = < true , tt >
+
+green : Rgb
+green = < false , true , tt >
+
+blue : Rgb
+blue = < false , false , tt >

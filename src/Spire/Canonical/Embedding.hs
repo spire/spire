@@ -24,10 +24,14 @@ embedV (VDSg aT fD) = IDSg (embedVC aT) (embedVBC fD)
 
 embedV (VPi aT bT) = IPi (embedVC aT) (embedVBC bT)
 embedV (VSg aT bT) = ISg (embedVC aT) (embedVBC bT)
+embedV (VFix d) = IFix (embedVC d)
 embedV (VLam aT b) = ILamAnn (embedVC aT) (embedVB b)
 embedV (VPair aT bT a b) = IAnn
   (CPair (embedVC a) (embedVC b))
   (Infer (ISg (embedVC aT) (embedVBC bT)))
+embedV (VIn d a) = IAnn
+  (CIn (embedVC a))
+  (Infer (IFix (embedVC d)))
 embedV (Neut n) = embedN n
 embedV (VDefs _) = error "TODO Embedding programs is not supported yet."
 
@@ -43,6 +47,7 @@ embedN (NCaseBool pT pt pf b) =
 embedN (NProj1 ab) = IProj1 (embedN ab)
 embedN (NProj2 ab) = IProj2 (embedN ab)
 embedN (NApp f a) = IApp (embedN f) (embedVC a)
+embedN (NDInterp d e) = IDInterp (embedNC d) (embedVC e)
 
 ----------------------------------------------------------------------
 
