@@ -126,7 +126,7 @@ evalDInterp (VDSg aT (Bound (ident , fD))) x =
   VSg aT (Bound (ident , evalDInterp fD x))
 evalDInterp (Neut d) x = Neut $ NDInterp d x
 evalDInterp d x = error $
-  "Ill-typed evaluation of the meaning of DInterp"
+  "Ill-typed evaluation of DInterp"
 
 ----------------------------------------------------------------------
 
