@@ -6,6 +6,15 @@ A dependently typed language that makes generic programming easy. Read the
 to get an idea of what the  final language will support, in terms of
 generic programming.
 
+Building
+--------
+
+Depends on the `wl-pprint` package:
+
+```
+cabal install wl-pprint
+```
+
 Type checking
 -------------
 
