@@ -23,9 +23,7 @@ prettyPrint t = render $ runReader (display t) initialDisplayData
   ribbon = 0.3
   -}
 
--- Short hands.
-d :: Display t => t -> DisplayMonad Doc
-d = display
+----------------------------------------------------------------------
 
 -- Lift standard pretty printing ops to a monad.
 sepM , fsepM , hsepM , vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
@@ -44,12 +42,17 @@ groupM = fmap WL.group
 alignM = fmap WL.align
 
 infixr 5 </> , <$$> , <$+$>
-infixr 6 <+>
-(<+>) , (<$$>) , (</>) :: Monad m => m Doc -> m Doc -> m Doc
+infixr 6 <> , <+>
+(<>) , (<+>) , (</>) , (<$$>) , (<$+$>) ::
+  Monad m => m Doc -> m Doc -> m Doc
+(<>) = liftM2 (WL.<>)
 (<+>) = liftM2 (WL.<+>)
+(</>) = liftM2 (WL.</>)
 (<$$>) = liftM2 (WL.<$$>)
 (<$+$>) = liftM2 (WL.<$>)
-(</>) = liftM2 (WL.</>)
+
+
+----------------------------------------------------------------------
 
 -- Would be better to keep around the original names from the
 -- 'NomBound's and reuse them here ...
@@ -58,54 +61,98 @@ var (Bound (id , _)) = do
   k <- asks numEnclosingBinders
   d $ id ++ show k
 
-binding :: (Precedence t', Precedence t, Display t) => t' -> Ident -> t -> DisplayMonad Doc
+binding :: (Precedence t', Precedence t, Display t) =>
+           t' -> Ident -> t -> DisplayMonad Doc
 binding outside id tp | id == wildcard  = wrapNonAssoc outside tp
 binding outside id tp = parensM . hsepM $ [d id , d ":" , d tp]
+
+----------------------------------------------------------------------
+-- Short hands.
+
+d :: Display t => t -> DisplayMonad Doc
+d = display
+w , ww :: (Precedence o , Precedence i, Display i) =>
+          o -> i -> DisplayMonad Doc
+w = wrap'         -- Mnemonic: (w)rapped display
+ww = wrapNonAssoc -- Mnemonic: (w)rapped (w)rapped display
+                  -- (i.e. more wrapped :P)
+
+----------------------------------------------------------------------
+-- Syntactic-category agnostic printers.
+
+-- Constructors with no arguments have printers with no arguments.
+dTT = d "tt"
+dTrue = d "true"
+dFalse = d "false"
+dUnit = d "Unit"
+dBool = d "Bool"
+dString = d "String"
+dDesc = d "Desc"
+dType = d "Type"
+dDUnit = d "Done"
+dDRec = d "Rec"
+
+-- Constructors with arguments pass *themselves* and their args to
+-- their printers.
+dDSum o x y = sepM [ ww o x , d "|" , w o y ]
+dDPi o x y = sepM [ ww o x , d "=>" , w o y ]
+dDSg o x y = sepM [ ww o x , d "#" , w o y ]
+dPair o x y = ww o x <+> d "," </> w o y
+dLam o (Bound (id , body)) =
+  fsepM [ d "\\" <+> w o id <+> d "->" , w o body ]
+dPi o tp1 (Bound (id, tp2)) =
+  fsepM [ binding o id tp1 <+> d "->" , w o tp2 ]
+dSg o tp1 (Bound (id, tp2)) =
+  binding o id tp1 <+> d "*" <+> d tp2
+dQuotes o str = d . show $ str
+dStrAppend o s1 s2 = sepM [ ww o s1 , d "++" , w o s2 ]
+dStrEq o s1 s2 = sepM [ w o s1 , d "==" , w o s2 ]
+dIf o c t f = alignM . sepM $ [ d "if" <+> w o c
+                              , d "then" <+> w o t
+                              , d "else" <+> w o f ]
+dCaseBool o bnd t f bool =
+  d "caseBool" <+> (alignM . sepM)
+      [ parensM $ dLam o bnd
+      , ww o t , ww o f , ww o bool ]
+dProj1 o xy = d "proj1" <+> ww o xy
+dProj2 o xy = d "proj2" <+> ww o xy
+dApp o f x = w o f </> ww o x
+dAnn o x tp = parensM $ d x <+> d ":" <+> d tp
+
 
 ----------------------------------------------------------------------
 
 instance Display Syntax where
   display s = case s of
-    STT -> d "tt"
-    STrue -> d "true"
-    SFalse -> d "false"
-    SPair x y -> w x <+> d "," </> d y
-    SLam (Bound (id , body)) -> fsepM [d "\\" <+> d id <+> d "->" , d body]
-    SUnit -> d "Unit"
-    SBool -> d "Bool"
-    SString -> d "String"
-    SDesc -> d "Desc"
-    SType -> d "Type"
+    STT -> dTT
+    STrue -> dTrue
+    SFalse -> dFalse
+    SPair x y -> dPair s x y
+    SLam b -> dLam s b
+    SUnit -> dUnit
+    SBool -> dBool
+    SString -> dString
+    SDesc -> dDesc
+    SType -> dType
 
-    SDUnit -> d "Done"
-    SDRec -> d "Rec"
-    SDSum x y -> sepM [w x , d "|" , d y]
-    SDPi x y -> sepM [w x , d "=>" , d y]
-    SDSg x y -> sepM [w x , d "#" , d y]
+    SDUnit -> dDUnit
+    SDRec -> dDRec
+    SDSum x y -> dDSum s x y
+    SDPi x y -> dDPi s x y
+    SDSg x y -> dDSg s x y
 
-    SPi tp1 (Bound (id, tp2)) ->
-      fsepM [binding s id tp1 <+> d "->" , d tp2]
-    SSg tp1 (Bound (id, tp2)) ->
-      binding s id tp1 <+> d "*" <+> d tp2
+    SPi tp1 b -> dPi s tp1 b
+    SSg tp1 b -> dSg s tp1 b
     SVar id -> d id
-    SQuotes str -> d . show $ str
-    SStrAppend s1 s2 -> sepM [w s1 , d "++" , d s2]
-    SStrEq s1 s2 -> sepM [d s1 , d "==" , d s2]
-    SIf c t f -> alignM . sepM $ [ d "if" <+> d c
-                                 , d "then" <+> d t
-                                 , d "else" <+> d f ]
-    SCaseBool (Bound (id, m)) t f b ->
-      d "caseBool" <+> (alignM . sepM)
-           [ parensM $ d "\\" <+> d id <+> d "->" <+> d m
-           , w t , w f , w b]
-    SProj1 xy -> d "proj1" <+> w xy
-    SProj2 xy -> d "proj2" <+> w xy
-    SApp f x -> sepM [d f , w x] -- ???: how to format chained application?
-    SAnn x tp -> parensM $ d x <+> d ":" <+> d tp
-    where
-      d , w :: (Precedence t, Display t) => t -> DisplayMonad Doc
-      d = wrap' s
-      w = wrapNonAssoc s
+    SQuotes str -> dQuotes s str
+    SStrAppend s1 s2 -> dStrAppend s s1 s2
+    SStrEq s1 s2 -> dStrEq s s1 s2
+    SIf c t f -> dIf s c t f
+    SCaseBool bnd t f bool -> dCaseBool s bnd t f bool
+    SProj1 xy -> dProj1 s xy
+    SProj2 xy -> dProj2 s xy
+    SApp f x -> dApp s f x
+    SAnn x tp -> dAnn s x tp
 
 instance Display Statement where
   display (SDef f e t) =
