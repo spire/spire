@@ -35,7 +35,4 @@ checkFromFile file = do
           Right program'' -> do
             putStrLn "Well-typed!"
             putStrLn $ "Evaluated program:\n"
-            forM_ program'' $ \(l , a , aT) -> do
-              putStrLn $ l ++ " : " ++ prettyPrint aT
-              putStrLn $ l ++ " = " ++ prettyPrint a
-              putStrLn ""
+            putStrLn $ prettyPrint program''

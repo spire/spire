@@ -52,7 +52,6 @@ infixr 6 <> , <+>
 (<$$>) = liftM2 (WL.<$$>)
 (<$+$>) = liftM2 (WL.<$>)
 
-
 ----------------------------------------------------------------------
 
 binding :: (Precedence t', Precedence t, Display t) =>
@@ -163,6 +162,9 @@ instance Display Statements where
   display defs =  WL.vcat . WL.punctuate WL.line <$> mapM d defs
 
 ----------------------------------------------------------------------
+
+instance Display Defs where
+  display = d . map embedD
 
 instance Display Check where
   display = d . embedC

@@ -56,4 +56,7 @@ embedCB (Bound (l , c)) = Bound (l , embedC c)
 embedIB :: Bound Infer -> Bound Syntax
 embedIB (Bound (l , i)) = Bound (l , embedI i)
 
+embedD :: Def -> Statement
+embedD (f , e , t) = SDef f (embedC e) (embedC t)
+
 ----------------------------------------------------------------------
