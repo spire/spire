@@ -90,10 +90,10 @@ dDRec = d "Rec"
 
 -- Constructors with arguments pass *themselves* and their args to
 -- their printers.
-dDSum o x y = sepM [ ww o x , d "|" , w o y ]
-dDPi o x y = sepM [ ww o x , d "=>" , w o y ]
-dDSg o x y = sepM [ ww o x , d "#" , w o y ]
-dPair o x y = ww o x <+> d "," </> w o y
+dDSum o x y = alignM $ ww o x <+> d "|" </> w o y
+dDPi o x y = fsepM [ ww o x <+> d "=>" , w o y ]
+dDSg o x y = ww o x <+> d "#" <+> w o y
+dPair o x y = ww o x <+> d "," <+> w o y
 dLam o (Bound (id , body)) =
   fsepM [ d "\\" <+> w o id <+> d "->" , w o body ]
 dPi o tp1 (Bound (id, tp2)) =
@@ -101,8 +101,8 @@ dPi o tp1 (Bound (id, tp2)) =
 dSg o tp1 (Bound (id, tp2)) =
   binding o id tp1 <+> d "*" <+> d tp2
 dQuotes o str = d . show $ str
-dStrAppend o s1 s2 = sepM [ ww o s1 , d "++" , w o s2 ]
-dStrEq o s1 s2 = sepM [ w o s1 , d "==" , w o s2 ]
+dStrAppend o s1 s2 = alignM $ ww o s1 <+> d "++" </> w o s2
+dStrEq o s1 s2 = w o s1 <+> d "==" <+> w o s2
 dIf o c t f = alignM . sepM $ [ d "if" <+> w o c
                               , d "then" <+> w o t
                               , d "else" <+> w o f ]
@@ -113,8 +113,8 @@ dCaseBool o bnd t f bool =
 dProj1 o xy = d "proj1" <+> ww o xy
 dProj2 o xy = d "proj2" <+> ww o xy
 dFix o x = d "Fix" <+> ww o x
-dIn o x = sepM [ d "<" , w o x , d ">" ]
-dApp o f x = w o f </> ww o x
+dIn o x = d "<" <+> d x <+> d ">"
+dApp o f x = alignM $ w o f </> ww o x
 dAnn o x tp = parensM $ d x <+> d ":" <+> d tp
 
 ----------------------------------------------------------------------
@@ -259,6 +259,7 @@ appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
 fixLevel       = 0
+inLevel        = 0
 strAppendLevel = 1
 strAppendAssoc = AssocRight
 strEqLevel     = 2
@@ -272,7 +273,6 @@ dPiLevel       = 5 + 1/3
 dSgLevel       = 5 + 1/3
 dSumLevel      = 5 + 2/3
 dSumAssoc      = AssocRight
-inLevel        = 6
 ifLevel        = 6
 caseBoolLevel  = 6
 lamLevel       = 7
