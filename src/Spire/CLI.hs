@@ -26,6 +26,7 @@ checkFromFile file = do
     Right program -> do
       putStrLn $ "Parsed program:\n"
       putStrLn $ prettyPrint program
+      putStrLn ""
 
       case elabS program of
         Left error -> putStrLn error
