@@ -1,0 +1,12 @@
+id0 : Unit -> Unit
+id0 = \ x -> x
+
+id1 : (Unit -> Unit) -> Unit -> Unit
+id1 = \ x -> x
+
+id2 : ((Unit -> Unit) -> Unit -> Unit)
+      -> (Unit -> Unit) -> Unit -> Unit
+id2 = \ x -> x
+
+nested : Unit
+nested = id2 id1 id0 tt
