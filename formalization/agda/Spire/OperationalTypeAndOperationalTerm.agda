@@ -37,10 +37,12 @@ postulate
 ----------------------------------------------------------------------
 
 data Value Γ where
+  {- Type formation -}
   `⊥ `⊤ `Bool `Type : ∀{ℓ} → Value Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Value Γ (`Type ℓ)) (B : Value (Γ , ⟦ A ⟧) (`Type ℓ)) → Value Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Value Γ (`Type ℓ) → Value Γ (`Type (suc ℓ))
 
+  {- Value introduction -}
   `tt : Value Γ `⊤
   `true `false : Value Γ `Bool
   _`,_ : ∀{A B} (a : Value Γ A) (b : Value Γ (subT B a)) → Value Γ (`Σ A B)
@@ -50,6 +52,7 @@ data Value Γ where
 ----------------------------------------------------------------------
 
 data Neutral Γ where
+  {- Value elimination -}
   `var : ∀{A} → Var Γ A → Neutral Γ A
   `if_`then_`else_ : ∀{C} (b : Neutral Γ `Bool) (c₁ c₂ : Value Γ C) → Neutral Γ C
   `proj₁ : ∀{A B} → Neutral Γ (`Σ A B) → Neutral Γ A
@@ -97,16 +100,19 @@ data Term (Γ : Context) : Type Γ → Set
 eval : ∀{Γ A} → Term Γ A → Value Γ A
 
 data Term Γ where
+  {- Type formation -}
   `⊥ `⊤ `Bool `Type : ∀{ℓ} → Term Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Term Γ (`Type ℓ)) (B : Term (Γ , ⟦ eval A ⟧) (`Type ℓ)) → Term Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Term Γ (`Type ℓ) → Term Γ (`Type (suc ℓ))
 
+  {- Value introduction -}
   `tt : Term Γ `⊤
   `true `false : Term Γ `Bool
   _`,_ : ∀{A B}
     (a : Term Γ A) (b : Term Γ (subT B (eval a)))
     → Term Γ (`Σ A B)
-
+  
+  {- Value elimination -}
   `var : ∀{A} → Var Γ A → Term Γ A
   `if_`then_`else_ : ∀{C}
     (b : Term Γ `Bool)
@@ -118,6 +124,7 @@ data Term Γ where
 
 ----------------------------------------------------------------------
 
+{- Type formation -}
 eval `⊥ = `⊥
 eval `⊤ = `⊤
 eval `Bool = `Bool
@@ -125,10 +132,14 @@ eval `Type = `Type
 eval (`Π A B) = `Π (eval A) (eval B)
 eval (`Σ A B) = `Σ (eval A) (eval B)
 eval `⟦ A ⟧ = `⟦ eval A ⟧
+
+{- Value introduction -}
 eval `tt = `tt
 eval `true = `true
 eval `false = `false
 eval (a `, b) = eval a `, eval b
+
+{- Value elimination -}
 eval (`var i) = `neut (`var i)
 eval (`if b `then c₁ `else c₂) = if eval b then eval c₁ else eval c₂
 eval (f `$ a) = eval f $ eval a

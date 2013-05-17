@@ -1,9 +1,3 @@
-open import Data.Empty
-open import Data.Unit
-open import Data.Bool
-open import Data.Nat
-open import Data.Product
-open import Function
 open import Spire.DenotationalType
 module Spire.DenotationalTypeAndOperationalTerm where
 
@@ -23,9 +17,9 @@ Environment ∅ = ⊤
 Environment (extend Γ ℓ A) = Σ (Environment Γ) (λ vs → ⟦ ℓ ∣ A vs ⟧)
 
 data Var :  (Γ : Context) (ℓ : ℕ) (A : ScopedType Γ ℓ) → Set where
- here : ∀{Γ ℓ A} → Var (extend Γ ℓ A) ℓ (A ∘ proj₁)
+ here : ∀{Γ ℓ A} → Var (extend Γ ℓ A) ℓ (λ vs → A (proj₁ vs))
  there : ∀{Γ ℓ A ℓ′} {B : ScopedType Γ ℓ′}
-   → Var Γ ℓ A → Var (extend Γ ℓ′ B) ℓ (A ∘ proj₁)
+   → Var Γ ℓ A → Var (extend Γ ℓ′ B) ℓ (λ vs → A (proj₁ vs))
 
 lookup : ∀{Γ ℓ A} → Var Γ ℓ A → (vs : Environment Γ) → ⟦ ℓ ∣ A vs ⟧
 lookup here (vs , v) = v
@@ -55,10 +49,6 @@ data Term Γ where
     → Term Γ (suc ℓ) (const `Type)
 
   {- Value introduction -}
-  `var : ∀{ℓ A} (a : Var Γ ℓ A) → Term Γ ℓ A
-  `lift : ∀{ℓ A}
-    (a : Term Γ ℓ A)
-    → Term Γ (suc ℓ) λ vs → `⟦ A vs ⟧
   `tt : ∀{ℓ} → Term Γ ℓ (const `⊤)
   `true `false : ∀{ℓ} → Term Γ ℓ (const `Bool)
   `zero : ∀{ℓ} → Term Γ ℓ (const `ℕ)
@@ -71,8 +61,12 @@ data Term Γ where
     (a : Term Γ ℓ A)
     (b : Term Γ ℓ λ vs → B vs (eval a vs))
     → Term Γ ℓ λ vs → `Σ (A vs) λ v → B vs v
+  `lift : ∀{ℓ A}
+    (a : Term Γ ℓ A)
+    → Term Γ (suc ℓ) λ vs → `⟦ A vs ⟧
 
   {- Value elimination -}
+  `var : ∀{ℓ A} (a : Var Γ ℓ A) → Term Γ ℓ A
   `lower : ∀{ℓ A}
     (a : Term Γ (suc ℓ) λ vs → `⟦ A vs ⟧)
     → Term Γ ℓ A
@@ -121,8 +115,6 @@ eval `Type vs = `Type
 eval `⟦ A ⟧ vs = `⟦ eval A vs ⟧
 
 {- Value introduction -}
-eval (`lift a) vs = eval a vs
-eval (`var i) vs = lookup i vs
 eval `tt vs = tt
 eval `true vs = true
 eval `false vs = false
@@ -130,6 +122,8 @@ eval `zero vs = zero
 eval (`suc n) vs = suc (eval n vs)
 eval (`λ f) vs = λ v → eval f (vs , v)
 eval (a `, b) vs = eval a vs , eval b vs
+eval (`lift a) vs = eval a vs
+eval (`var i) vs = lookup i vs
 
 {- Value elimination -}
 eval (`lower a) vs = eval a vs
@@ -144,7 +138,7 @@ eval (`caseℕ {ℓ} P pz ps n) vs =
     (eval pz vs)
     (λ n rec → eval ps ((vs , n) , rec))
     (eval n vs)
-eval (f `$ a) vs = eval f vs $ eval a vs
+eval (f `$ a) vs = (eval f vs) (eval a vs)
 eval (`proj₁ ab) vs = proj₁ (eval ab vs)
 eval (`proj₂ ab) vs = proj₂ (eval ab vs)
 

@@ -20,9 +20,6 @@ data Term where
     → Term (suc ℓ) `Type
 
   {- Value introduction -}
-  `lift : ∀{ℓ A}
-    (a : Term ℓ A)
-    → Term (suc ℓ) `⟦ A ⟧
   `tt : ∀{ℓ} → Term ℓ `⊤
   `true `false : ∀{ℓ} → Term ℓ `Bool
   `zero : ∀{ℓ} → Term ℓ `ℕ
@@ -34,6 +31,9 @@ data Term where
     (a : Term ℓ A)
     (b : Term ℓ (B (eval a)))
     → Term ℓ (`Σ A B)
+  `lift : ∀{ℓ A}
+    (a : Term ℓ A)
+    → Term (suc ℓ) `⟦ A ⟧
 
   {- Value elimination -}
   `lower : ∀{ℓ A}
@@ -77,7 +77,6 @@ eval (`Σ A B) = `Σ (eval A) (λ a → eval (B a))
 eval `⟦ A ⟧ = `⟦ eval A ⟧
 
 {- Value introduction -}
-eval (`lift a) = eval a
 eval `tt = tt
 eval `true = true
 eval `false = false
@@ -85,6 +84,7 @@ eval `zero = zero
 eval (`suc n) = suc (eval n)
 eval (`λ f) = λ a → eval (f a)
 eval (a `, b) = eval a , eval b
+eval (`lift a) = eval a
 
 {- Value elimination -}
 eval (`lower a) = eval a

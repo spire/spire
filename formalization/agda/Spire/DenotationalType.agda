@@ -22,6 +22,16 @@ open Σ public
 
 ----------------------------------------------------------------------
 
+const : {A B : Set} → A → B → A
+const a _ = a
+
+uncurry : {A : Set} {B : A → Set} {C : Σ A B → Set} →
+  ((a : A) → (b : B a) → C (a , b)) →
+  ((p : Σ A B) → C p)
+uncurry f (x , y) = f x y
+
+----------------------------------------------------------------------
+
 record Universe : Set₁ where
   field
     Codes : Set
