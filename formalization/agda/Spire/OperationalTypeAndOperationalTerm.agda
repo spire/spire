@@ -37,7 +37,7 @@ postulate
 ----------------------------------------------------------------------
 
 data Value Γ where
-  {- Type formation -}
+  {- Type introduction -}
   `⊥ `⊤ `Bool `Type : ∀{ℓ} → Value Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Value Γ (`Type ℓ)) (B : Value (Γ , ⟦ A ⟧) (`Type ℓ)) → Value Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Value Γ (`Type ℓ) → Value Γ (`Type (suc ℓ))
@@ -100,7 +100,7 @@ data Term (Γ : Context) : Type Γ → Set
 eval : ∀{Γ A} → Term Γ A → Value Γ A
 
 data Term Γ where
-  {- Type formation -}
+  {- Type introduction -}
   `⊥ `⊤ `Bool `Type : ∀{ℓ} → Term Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Term Γ (`Type ℓ)) (B : Term (Γ , ⟦ eval A ⟧) (`Type ℓ)) → Term Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Term Γ (`Type ℓ) → Term Γ (`Type (suc ℓ))
@@ -124,7 +124,7 @@ data Term Γ where
 
 ----------------------------------------------------------------------
 
-{- Type formation -}
+{- Type introduction -}
 eval `⊥ = `⊥
 eval `⊤ = `⊤
 eval `Bool = `Bool

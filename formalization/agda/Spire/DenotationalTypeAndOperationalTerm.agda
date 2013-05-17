@@ -36,7 +36,7 @@ eval : ∀{Γ ℓ A} → Term Γ ℓ A → (vs : Environment Γ) → ⟦ ℓ ∣
 ----------------------------------------------------------------------
 
 data Term Γ where
-  {- Type formation -}
+  {- Type introduction -}
   `⊥ `⊤ `Bool `ℕ `Type : ∀{ℓ}
     → Term Γ (suc ℓ) (const `Type)
   `Π `Σ : ∀{ℓ}
@@ -104,7 +104,7 @@ data Term Γ where
 
 ----------------------------------------------------------------------
 
-{- Type formation -}
+{- Type introduction -}
 eval `⊥ vs = `⊥
 eval `⊤ vs = `⊤
 eval `Bool vs = `Bool

@@ -28,7 +28,7 @@ const a _ = a
 uncurry : {A : Set} {B : A → Set} {C : Σ A B → Set} →
   ((a : A) → (b : B a) → C (a , b)) →
   ((p : Σ A B) → C p)
-uncurry f (x , y) = f x y
+uncurry f (a , b) = f a b
 
 ----------------------------------------------------------------------
 

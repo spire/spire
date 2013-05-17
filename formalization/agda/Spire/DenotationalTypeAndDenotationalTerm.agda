@@ -9,7 +9,7 @@ eval : ∀{ℓ} {A : Type ℓ} → Term ℓ A → ⟦ ℓ ∣ A ⟧
 ----------------------------------------------------------------------
 
 data Term where
-  {- Type formation -}
+  {- Type introduction -}
   `⊥ `⊤ `Bool `ℕ `Type : ∀{ℓ} → Term (suc ℓ) `Type
   `Π `Σ : ∀{ℓ}
     (A : Term (suc ℓ) `Type)
@@ -66,7 +66,7 @@ data Term where
 
 ----------------------------------------------------------------------
 
-{- Type formation -}
+{- Type introduction -}
 eval `⊥ = `⊥
 eval `⊤ = `⊤
 eval `Bool = `Bool
