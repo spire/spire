@@ -30,9 +30,13 @@ data Type Γ where
 ⟦_⟧ : ∀{Γ ℓ} → Value Γ (`Type ℓ) →  Type Γ
 
 postulate
-  Var : (Γ : Context) (A : Type Γ) → Set
+  wknT : ∀{Γ A} → Type Γ → Type (Γ , A)
   subT : ∀{Γ A} → Type (Γ , A) → Value Γ A → Type Γ
   subV : ∀{Γ A B} → Value (Γ , A) B → (x : Value Γ A) → Value Γ (subT B x)
+
+data Var : (Γ : Context) (A : Type Γ) → Set where
+  here : ∀{Γ A} → Var (Γ , A) (wknT A)
+  there : ∀{Γ A B} → Var Γ A → Var (Γ , B) (wknT A)
 
 ----------------------------------------------------------------------
 
