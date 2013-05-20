@@ -70,18 +70,18 @@ data Term Γ where
   `lower : ∀{ℓ A}
     (a : Term Γ (suc ℓ) λ vs → `⟦ A vs ⟧)
     → Term Γ ℓ A
-  `case⊥ : ∀{ℓ A}
+  `elim⊥ : ∀{ℓ A}
     (P : Term Γ ℓ (const `Type))
     (x : Term Γ ℓ (const `⊥))
     → Term Γ ℓ A
-  `caseBool : ∀{ℓ}
+  `elimBool : ∀{ℓ}
     (P : Term (extend Γ ℓ (const `Bool))
       (suc ℓ) (const `Type))
     (pt : Term Γ ℓ λ vs → eval P (vs , true))
     (pf : Term Γ ℓ λ vs → eval P (vs , false))
     (b : Term Γ ℓ (const `Bool))
     → Term Γ ℓ λ vs → eval P (vs , eval b vs)
-  `caseℕ : ∀{ℓ}
+  `elimℕ : ∀{ℓ}
     (P : Term (extend Γ ℓ (const `ℕ))
       (suc ℓ) (const `Type))
     (pz : Term Γ ℓ λ vs → eval P (vs , zero))
@@ -127,14 +127,14 @@ eval (`var i) vs = lookup i vs
 
 {- Value elimination -}
 eval (`lower a) vs = eval a vs
-eval (`case⊥ P x) vs = case⊥ (eval x vs)
-eval (`caseBool {ℓ} P pt pf b) vs =
-  caseBool (λ v → ⟦ ℓ ∣ eval P (vs , v) ⟧)
+eval (`elim⊥ P x) vs = elim⊥ (eval x vs)
+eval (`elimBool {ℓ} P pt pf b) vs =
+  elimBool (λ v → ⟦ ℓ ∣ eval P (vs , v) ⟧)
     (eval pt vs)
     (eval pf vs)
     (eval b vs)
-eval (`caseℕ {ℓ} P pz ps n) vs =
-  caseℕ (λ v → ⟦ ℓ ∣ eval P (vs , v) ⟧)
+eval (`elimℕ {ℓ} P pz ps n) vs =
+  elimℕ (λ v → ⟦ ℓ ∣ eval P (vs , v) ⟧)
     (eval pz vs)
     (λ n rec → eval ps ((vs , n) , rec))
     (eval n vs)
