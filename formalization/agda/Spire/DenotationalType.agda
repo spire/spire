@@ -22,7 +22,7 @@ open Σ public
 
 ----------------------------------------------------------------------
 
-const : {A B : Set} → A → B → A
+const : {A : Set₁} {B : Set} → A → B → A
 const a _ = a
 
 uncurry : {A : Set} {B : A → Set} {C : Σ A B → Set} →

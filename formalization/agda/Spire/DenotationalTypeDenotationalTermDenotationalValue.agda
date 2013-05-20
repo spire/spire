@@ -10,11 +10,11 @@ eval : {A : Set} → Term A → A
 
 data Term where
   {- Type introduction -}
-  `⊥ `⊤ `Bool `ℕ `Type : ∀{ℓ} → Term (Type (suc ℓ))
+  `⊥ `⊤ `Bool `ℕ `Type : ∀{ℓ} → Term (Type ℓ)
   `Π `Σ : ∀{ℓ}
-    (A : Term (Type (suc ℓ)))
-    (B : ⟦ suc ℓ ∣ eval A ⟧ → Term (Type (suc ℓ)))
-    → Term (Type (suc ℓ))
+    (A : Term (Type ℓ))
+    (B : ⟦ ℓ ∣ eval A ⟧ → Term (Type ℓ))
+    → Term (Type ℓ)
   `⟦_⟧ : ∀{ℓ}
     (A : Term (Type ℓ))
     → Term (Type (suc ℓ))

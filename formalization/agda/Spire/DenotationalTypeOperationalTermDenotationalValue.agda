@@ -3,104 +3,92 @@ module Spire.DenotationalTypeOperationalTermDenotationalValue where
 
 ----------------------------------------------------------------------
 
-data Context : Set
+data Context : Set₁
 Environment : Context → Set
 
-ScopedType : Context → ℕ → Set
-ScopedType Γ ℓ = Environment Γ → Type ℓ
+ScopedType : Context → Set₁
+ScopedType Γ = Environment Γ → Set
 
 data Context where
   ∅ : Context
-  extend : (Γ : Context) (ℓ : ℕ) (A : ScopedType Γ ℓ) → Context
+  _,_ : (Γ : Context) (A : ScopedType Γ) → Context
 
 Environment ∅ = ⊤
-Environment (extend Γ ℓ A) = Σ (Environment Γ) (λ vs → ⟦ ℓ ∣ A vs ⟧)
+Environment (Γ , A) = Σ (Environment Γ) A
 
-data Var :  (Γ : Context) (ℓ : ℕ) (A : ScopedType Γ ℓ) → Set where
- here : ∀{Γ ℓ A} → Var (extend Γ ℓ A) ℓ (λ vs → A (proj₁ vs))
- there : ∀{Γ ℓ A ℓ′} {B : ScopedType Γ ℓ′}
-   → Var Γ ℓ A → Var (extend Γ ℓ′ B) ℓ (λ vs → A (proj₁ vs))
+data Var :  (Γ : Context) (A : ScopedType Γ) → Set₁ where
+ here : ∀{Γ A} → Var (Γ , A) (λ vs → A (proj₁ vs))
+ there : ∀{Γ A} {B : ScopedType Γ}
+   → Var Γ A → Var (Γ , B) (λ vs → A (proj₁ vs))
 
-lookup : ∀{Γ ℓ A} → Var Γ ℓ A → (vs : Environment Γ) → ⟦ ℓ ∣ A vs ⟧
+lookup : ∀{Γ A} → Var Γ A → (vs : Environment Γ) → A vs
 lookup here (vs , v) = v
 lookup (there i) (vs , v) = lookup i vs
 
-ScopedType₂ : (Γ : Context) (ℓ : ℕ) → ScopedType Γ ℓ → Set
-ScopedType₂ Γ ℓ A = (vs : Environment Γ) → ⟦ ℓ ∣ A vs ⟧ → Type ℓ
+ScopedType₂ : (Γ : Context) → ScopedType Γ → Set₁
+ScopedType₂ Γ A = (vs : Environment Γ) → A vs → Set
 
 ----------------------------------------------------------------------
 
-data Term (Γ : Context) : (ℓ : ℕ) → ScopedType Γ ℓ → Set
-eval : ∀{Γ ℓ A} → Term Γ ℓ A → (vs : Environment Γ) → ⟦ ℓ ∣ A vs ⟧
+data Term (Γ : Context) : ScopedType Γ → Set₁
+eval : ∀{Γ A} → Term Γ A → (vs : Environment Γ) → A vs
 
-----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
 
 data Term Γ where
   {- Type introduction -}
   `⊥ `⊤ `Bool `ℕ `Type : ∀{ℓ}
-    → Term Γ (suc ℓ) (const `Type)
+    → Term Γ (const (Type ℓ))
   `Π `Σ : ∀{ℓ}
-    (A : Term Γ (suc ℓ) (const `Type))
-    (B : Term (extend Γ ℓ (eval A))
-      (suc ℓ) (const `Type))
-    → Term Γ (suc ℓ) (const `Type)
+    (A : Term Γ (const (Type ℓ)))
+    (B : Term (Γ , λ vs → ⟦ ℓ ∣ eval A vs ⟧) (const (Type ℓ)))
+    → Term Γ (λ _ → Type ℓ)
   `⟦_⟧ : ∀{ℓ}
-    (A : Term Γ ℓ (const `Type))
-    → Term Γ (suc ℓ) (const `Type)
+    (A : Term Γ (const (Type ℓ)))
+    → Term Γ (const (Type (suc ℓ)))
 
   {- Value introduction -}
-  `tt : ∀{ℓ} → Term Γ ℓ (const `⊤)
-  `true `false : ∀{ℓ} → Term Γ ℓ (const `Bool)
-  `zero : ∀{ℓ} → Term Γ ℓ (const `ℕ)
-  `suc : ∀{ℓ} → Term Γ ℓ (const `ℕ)
-    → Term Γ ℓ (const `ℕ)
-  `λ : ∀{ℓ A} {B : ScopedType₂ Γ ℓ A}
-    (f : Term (extend Γ ℓ A) ℓ (uncurry B))
-    → Term Γ ℓ λ vs → `Π (A vs) λ v → (B vs v)
-  _`,_ : ∀{ℓ A} {B : ScopedType₂ Γ ℓ A}
-    (a : Term Γ ℓ A)
-    (b : Term Γ ℓ λ vs → B vs (eval a vs))
-    → Term Γ ℓ λ vs → `Σ (A vs) λ v → B vs v
-  `lift : ∀{ℓ A}
-    (a : Term Γ ℓ A)
-    → Term Γ (suc ℓ) λ vs → `⟦ A vs ⟧
+  `tt : Term Γ (const ⊤)
+  `true `false : Term Γ (const Bool)
+  `zero : Term Γ (const ℕ)
+  `suc : Term Γ (const ℕ) → Term Γ (const ℕ)
+  `λ : ∀{A} {B : ScopedType₂ Γ A}
+    (f : Term (Γ , A) (λ vs → B (proj₁ vs) (proj₂ vs)))
+    → Term Γ (λ vs → (v : A vs) → (B vs v))
+  _`,_ : ∀{A} {B : ScopedType₂ Γ A}
+    (a : Term Γ A)
+    (b : Term Γ (λ vs → B vs (eval a vs)))
+    → Term Γ (λ vs → Σ (A vs) (λ v → B vs v))
 
   {- Value elimination -}
-  `var : ∀{ℓ A} (a : Var Γ ℓ A) → Term Γ ℓ A
-  `lower : ∀{ℓ A}
-    (a : Term Γ (suc ℓ) λ vs → `⟦ A vs ⟧)
-    → Term Γ ℓ A
-  `elim⊥ : ∀{ℓ A}
-    (P : Term Γ ℓ (const `Type))
-    (x : Term Γ ℓ (const `⊥))
-    → Term Γ ℓ A
+  `var : ∀{A} (a : Var Γ A) → Term Γ A
+  `elim⊥ : ∀{A ℓ}
+    (P : Term Γ (const (Type ℓ)))
+    (x : Term Γ (const ⊥))
+    → Term Γ A
   `elimBool : ∀{ℓ}
-    (P : Term (extend Γ ℓ (const `Bool))
-      (suc ℓ) (const `Type))
-    (pt : Term Γ ℓ λ vs → eval P (vs , true))
-    (pf : Term Γ ℓ λ vs → eval P (vs , false))
-    (b : Term Γ ℓ (const `Bool))
-    → Term Γ ℓ λ vs → eval P (vs , eval b vs)
+    (P : Term (Γ , const Bool) (const (Type ℓ)))
+    (pt : Term Γ (λ vs → ⟦ ℓ ∣ eval P (vs , true) ⟧))
+    (pf : Term Γ (λ vs → ⟦ ℓ ∣ eval P (vs , false) ⟧))
+    (b : Term Γ (const Bool))
+    → Term Γ (λ vs → ⟦ ℓ ∣ eval P (vs , eval b vs) ⟧)
   `elimℕ : ∀{ℓ}
-    (P : Term (extend Γ ℓ (const `ℕ))
-      (suc ℓ) (const `Type))
-    (pz : Term Γ ℓ λ vs → eval P (vs , zero))
-    (ps : Term (extend (extend Γ ℓ (const `ℕ)) ℓ
-            (λ { (vs , n) → eval P (vs , n) })
-            ) ℓ
-            (λ { ((vs , n) , p) → eval P (vs , suc n) }))
-    (n : Term Γ ℓ (const `ℕ))
-    → Term Γ ℓ λ vs → eval P (vs , eval n vs)
-  _`$_ : ∀{ℓ A} {B : ScopedType₂ Γ ℓ A}
-    (f : Term Γ ℓ (λ vs → `Π (A vs) (B vs)))
-    (a : Term Γ ℓ A)
-    → Term Γ ℓ λ vs → B vs (eval a vs)
-  `proj₁ : ∀{ℓ A} {B : ScopedType₂ Γ ℓ A}
-    (ab : Term Γ ℓ (λ vs → `Σ (A vs) (B vs)))
-    → Term Γ ℓ A
-  `proj₂ : ∀{ℓ A} {B : ScopedType₂ Γ ℓ A}
-    (ab : Term Γ ℓ (λ vs → `Σ (A vs) (B vs)))
-    → Term Γ ℓ λ vs → B vs (proj₁ (eval ab vs))
+    (P : Term (Γ , (const ℕ)) (const (Type ℓ)))
+    (pz : Term Γ (λ vs → ⟦ ℓ ∣ eval P (vs , zero) ⟧))
+    (ps : Term ((Γ , const ℕ) , (λ { (vs , n)  → ⟦ ℓ ∣ eval P (vs , n) ⟧ }))
+            (λ { ((vs , n) , p) → ⟦ ℓ ∣ eval P (vs , suc n) ⟧ }))
+    (n : Term Γ (const ℕ))
+    → Term Γ (λ vs → ⟦ ℓ ∣ eval P (vs , eval n vs) ⟧)
+  _`$_ : ∀{A} {B : ScopedType₂ Γ A}
+    (f : Term Γ (λ vs → (v : A vs) → (B vs v)))
+    (a : Term Γ A)
+    → Term Γ (λ vs → B vs (eval a vs))
+  `proj₁ : ∀{A} {B : ScopedType₂ Γ A}
+    (ab : Term Γ (λ vs → Σ (A vs) (B vs)))
+    → Term Γ A
+  `proj₂ : ∀{A} {B : ScopedType₂ Γ A}
+    (ab : Term Γ (λ vs → Σ (A vs) (B vs)))
+    → Term Γ (λ vs → B vs (proj₁ (eval ab vs)))
 
 ----------------------------------------------------------------------
 
@@ -109,9 +97,9 @@ eval `⊥ vs = `⊥
 eval `⊤ vs = `⊤
 eval `Bool vs = `Bool
 eval `ℕ vs = `ℕ
+eval `Type vs = `Type
 eval (`Π A B) vs = `Π (eval A vs) λ v → eval B (vs , v)
 eval (`Σ A B) vs = `Σ (eval A vs) λ v → eval B (vs , v)
-eval `Type vs = `Type
 eval `⟦ A ⟧ vs = `⟦ eval A vs ⟧
 
 {- Value introduction -}
@@ -122,11 +110,9 @@ eval `zero vs = zero
 eval (`suc n) vs = suc (eval n vs)
 eval (`λ f) vs = λ v → eval f (vs , v)
 eval (a `, b) vs = eval a vs , eval b vs
-eval (`lift a) vs = eval a vs
-eval (`var i) vs = lookup i vs
 
 {- Value elimination -}
-eval (`lower a) vs = eval a vs
+eval (`var i) vs = lookup i vs
 eval (`elim⊥ P x) vs = elim⊥ (eval x vs)
 eval (`elimBool {ℓ} P pt pf b) vs =
   elimBool (λ v → ⟦ ℓ ∣ eval P (vs , v) ⟧)
