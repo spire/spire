@@ -1,0 +1,3 @@
+
+okay : Bool -> Bool * Unit
+okay = \ b -> ((\ x -> ((b , tt) : Bool * Unit)) : Unit -> Bool * Unit) tt

@@ -1,0 +1,104 @@
+metavar ident, x ::=                    {{ com variable }} {{ tex \mathit{[[ident]]} }}
+
+grammar
+  l {{ tex \ell }} :: l_ ::= {{ com universe levels }}
+    | zero               ::   :: zero         {{ com zero }} {{ tex \text{zero} }}
+    | suc l              ::   :: suc          {{ com successor }} {{ tex \text{suc } [[l]] }}
+    | ( l )              :: S :: paren
+
+  A {{ tex \hat{[[A]]} }}, B {{ tex \hat{[[B]]} }} :: A_ ::= {{ com types }}                
+    | Unit             ::   :: Unit          {{ com unit }}                {{ tex \hat{\top} }}
+    | Type l           ::   :: Type          {{ com types }}               {{ tex \hat{T}\text{ype} ^{[[l]]} }}
+    | ( x : A ) -> B   ::   :: Pi            {{ com dependent functions }} {{ tex \hat{\Pi} ( [[x]] : [[A]] ) . [[B]] }}
+    | Sg ( x : A ) . B ::   :: Sg            {{ com dependent pairs }}     {{ tex \hat{\Sigma} ( [[x]] : [[A]] ) . [[B]] }}
+    | El qA            ::   :: El            {{ com interpret type code }} {{ tex \hat{E}\text{l } [[qA]] }}
+    | ( A )            :: S :: paren
+
+  a, b, ab, f, qA {{ tex [[A]] }}, qB {{ tex [[B]] }} :: a_ ::= {{ com terms }}
+    | `Unit l                ::   :: qUnit {{ com unit code }}                {{ tex \top ^{[[l]]} }}
+    | `Type l                ::   :: qType {{ com types code }}               {{ tex \text{Type} ^{[[l]]} }}
+    | `Pi l ( x : qA ) . qB  ::   :: qPi   {{ com dependent functions code }} {{ tex \Pi ^{[[l]]} ( [[x]] : [[qA]] ) . [[qB]] }}
+    | `Sg l ( x : qA ) . qB  ::   :: qSg  {{ com dependent pairs code }}    {{ tex \Sigma ^{[[l]]} ( [[x]] : [[qA]] ) . [[qB]] }}
+    | `El l qA               ::   :: qEl   {{ com lift type code }} {{ tex \text{El} ^{[[l]]} \, [[qA]] }}
+    | tt                     ::   :: tt   {{ com trivial }} {{ tex \text{tt} }}
+    | \ ( x : A ) . b        ::   :: lam  {{ com function }}                 {{ tex \lambda ( [[x]] : [[A]] ) . [[b]] }}
+    | ( a , b : B )          ::   :: pair {{ com pair }}                     {{ tex ( [[a]] , [[b]] ) _{[[B]]}  }}
+    | ( a )                  :: S :: paren
+
+  G {{ tex \Gamma }} :: G_ ::=
+    | empty              ::   :: em {{com empty context }} {{ tex \cdot }}
+    | G , x : A          ::   :: ext {{com context extension }}
+
+defns 
+Js :: '' ::= 
+
+defn
+x notin G :: :: notinG :: notin_ {{ tex [[x]] \notin [[G]] }} {{com variable is not in context }} by
+
+defn
+G ctx :: :: Gwf :: ctx_ {{com context is well-formed }} by
+
+---------- :: empty
+empty ctx
+
+G ctx
+x notin G
+G |- A type
+------------- :: extend
+G , x : A ctx
+
+defn
+G |- A type :: :: Awf :: type_ {{ tex [[G]] \vdash [[A]] \,\, \textbf{type} }} {{com type is well-formed }} by
+
+G ctx
+-------------- :: unit
+G |- Unit type
+
+G ctx
+---------------- :: type
+G |- Type l type
+
+G |- A type
+G , x : A |- B type
+----------------------- :: pi
+G |- (x : A) -> B type
+
+G |- A type
+G , x : A |- B type
+----------------------- :: sg
+G |- Sg (x : A). B type
+
+G |- qA : Type l
+----------------------- :: el
+G |- El qA type
+
+
+defn
+G |- a : A :: :: acolonA :: term_ {{ tex [[G]] \vdash [[a]] : [[A]] }} {{com term has type }} by
+
+G ctx
+--------------- :: tt
+G |- tt : Unit
+
+G ctx
+--------------------- :: unit_code
+G |- `Unit l : Type l
+
+G ctx
+--------------------- :: type_code
+G |- `Type l : Type l
+
+G |- qA : Type l
+G , x : El qA |- qB : Type l
+-------------------------------- :: pi_code
+G |- `Pi l (x : qA). qB : Type l
+
+G |- qA : Type l
+G , x : El qA |- qB : Type l
+-------------------------------- :: sg_code
+G |- `Sg l (x : qA). qB : Type l
+
+G |- qA : Type l
+-------------------------------- :: el_code
+G |- `El (suc l) qA : Type (suc l)
+
