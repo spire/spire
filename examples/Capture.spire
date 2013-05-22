@@ -1,0 +1,13 @@
+-- Examples where variable capture could happen.
+-- ----------------------------------------------------------------
+
+-- Two copies of the same function, up to alpha. Capture is only
+-- possible in the second copy.
+
+-- \ x -> \ z -> x0
+good : Unit -> Unit -> Unit
+good = \ x -> (\ y -> \ z -> y : Unit -> Unit -> Unit) x
+
+-- \ x -> \ x -> x0
+bad : Unit -> Unit -> Unit
+bad = \ x -> (\ y -> \ x -> y : Unit -> Unit -> Unit) x
