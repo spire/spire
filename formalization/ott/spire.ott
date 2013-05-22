@@ -33,10 +33,10 @@ defns
 Js :: '' ::= 
 
 defn
-x notin G :: :: notinG :: notin_ {{ tex [[x]] \notin [[G]] }} {{com variable not in context }} by
+x notin G :: :: notinG :: notin_ {{ tex [[x]] \notin [[G]] }} {{com variable is not in context }} by
 
 defn
-G ctx :: :: Gwf :: ctx_ {{com context well-formed }} by
+G ctx :: :: Gwf :: ctx_ {{com context is well-formed }} by
 
 ---------- :: empty
 empty ctx
@@ -48,7 +48,7 @@ G |- A type
 G , x : A ctx
 
 defn
-G |- A type :: :: Awf :: type_ {{ tex [[G]] \vdash [[A]] \,\, \textbf{type} }} {{com type well-formed }} by
+G |- A type :: :: Awf :: type_ {{ tex [[G]] \vdash [[A]] \,\, \textbf{type} }} {{com type is well-formed }} by
 
 G ctx
 -------------- :: unit
