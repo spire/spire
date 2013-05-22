@@ -1,23 +1,87 @@
-metavar var, x ::=                    {{ com variables }} {{ tex \mathit{[[var]]} }}
+metavar ident, x ::=                    {{ com variable }} {{ tex \mathit{[[ident]]} }}
 
 grammar
   l {{ tex \ell }} :: l_ ::= {{ com universe levels }}
-    | z               ::   :: zero         {{ com zero }}
-    | s l             ::   :: suc          {{ com successor }}
+    | zero               ::   :: zero         {{ com zero }} {{ tex \text{zero} }}
+    | suc l              ::   :: suc          {{ com successor }} {{ tex \text{suc } [[l]] }}
 
   A {{ tex \hat{[[A]]} }}, B {{ tex \hat{[[B]]} }} :: A_ ::= {{ com types }}                
     | Unit             ::   :: Unit          {{ com unit }}                {{ tex \hat{\top} }}
     | Type l           ::   :: Type          {{ com types }}               {{ tex \hat{T}\text{ype} ^[[l]] }}
     | Pi ( x : A ) . B ::   :: Pi            {{ com dependent functions }} {{ tex \hat{\Pi} ( [[x]] : [[A]] ) . [[B]] }}
     | Sg ( x : A ) . B ::   :: Sg            {{ com dependent pairs }}     {{ tex \hat{\Sigma} ( [[x]] : [[A]] ) . [[B]] }}
-    | El cA            ::   :: El            {{ com interpret type code }} {{ tex \hat{E}\text{l} \, [[cA]] }}
+    | El cA            ::   :: El            {{ com interpret type code }} {{ tex \hat{E}\text{l } [[cA]] }}
 
   a, b, ab, f, cA {{ tex [[A]] }}, cB {{ tex [[B]] }} :: a_ ::= {{ com terms }}
     | cUnit l                ::   :: cUnit {{ com unit code }}                {{ tex \top ^[[l]] }}
     | cType l                ::   :: cType {{ com types code }}               {{ tex \text{Type} ^[[l]] }}
     | cPi l ( x : cA ) . cB  ::   :: cPi   {{ com dependent functions code }} {{ tex \Pi ^[[l]] ( [[x]] : [[cA]] ) . [[cB]] }}
     | cSg l ( x : cA ) . cB  ::   :: cSg  {{ com dependent pairs code }}    {{ tex \Sigma ^[[l]] ( [[x]] : [[cA]] ) . [[cB]] }}
-    | cEl l cA               ::   :: El   {{ com lift type code }} {{ tex \text{El} ^[[l]] \, [[cA]] }}
-    | tt                     ::   :: tt   {{ com trivial }}
+    | cEl l cA               ::   :: cEl   {{ com lift type code }} {{ tex \text{El} ^[[l]] \, [[cA]] }}
+    | tt                     ::   :: tt   {{ com trivial }} {{ tex \text{tt} }}
     | \ ( x : A ) . b        ::   :: lam  {{ com function }}                 {{ tex \lambda ( [[x]] : [[A]] ) . [[b]] }}
     | ( a , b : B )          ::   :: pair {{ com pair }}                     {{ tex ( [[a]] , [[b]] ) _{[[B]]}  }}
+
+  G {{ tex \Gamma }} :: G_ ::=
+    | empty              ::   :: em {{com empty context }} {{ tex \cdot }}
+    | G , x : A          ::   :: ext {{com context extension }}
+
+defns 
+Js :: '' ::= 
+
+defn
+x notin G :: :: notinG :: notin_ {{ tex [[x]] \notin [[G]] }} {{com standard definition }} by
+
+defn
+G ctx :: :: Gwf :: ctx_ by
+
+---------- :: empty
+empty ctx
+
+G ctx
+x notin G
+G |- A type
+------------- :: extend
+G , x : A ctx
+
+defn
+G |- A type :: :: Awf :: type_ {{ tex [[G]] \vdash [[A]] \,\, \textbf{type} }} by
+
+G ctx
+-------------- :: unit
+G |- Unit type
+
+G ctx
+---------------- :: type
+G |- Type l type
+
+G |- A type
+G , x : A |- B type
+----------------------- :: pi
+G |- Pi (x : A). B type
+
+G |- A type
+G , x : A |- B type
+----------------------- :: sg
+G |- Sg (x : A). B type
+
+G |- cA : Type l
+----------------------- :: el
+G |- El cA type
+
+
+defn
+G |- a : A :: :: acolonA :: term_ {{ tex [[G]] \vdash [[a]] : [[A]] }} by
+
+G ctx
+--------------- :: tt
+G |- tt : Unit
+
+G ctx
+--------------- :: unit
+G |- cUnit l : Type l
+
+G ctx
+--------------- :: type
+G |- cType l : Type l
+

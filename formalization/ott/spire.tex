@@ -33,13 +33,13 @@
 \newcommand{\ottafterlastrule}{\\}
 \newcommand{\ottmetavars}{
 \ottmetavartabular{
- $ \mathit{var} ,\, \mathit{x} $ & \ottcom{variables} \\
+ $ \mathit{ident} ,\, \mathit{x} $ & \ottcom{variable} \\
 }}
 
 \newcommand{\ottl}{
 \ottrulehead{\ell}{::=}{\ottcom{universe levels}}\ottprodnewline
-\ottfirstprodline{|}{\ottkw{z}}{}{}{}{\ottcom{zero}}\ottprodnewline
-\ottprodline{|}{\ottkw{s} \, \ell}{}{}{}{\ottcom{successor}}}
+\ottfirstprodline{|}{ \text{zero} }{}{}{}{\ottcom{zero}}\ottprodnewline
+\ottprodline{|}{ \text{suc }  \ell }{}{}{}{\ottcom{successor}}}
 
 \newcommand{\ottA}{
 \ottrulehead{\hat{A}  ,\ \hat{B}}{::=}{\ottcom{types}}\ottprodnewline
@@ -47,7 +47,7 @@
 \ottprodline{|}{ \hat{T}\text{ype} ^ \ell }{}{}{}{\ottcom{types}}\ottprodnewline
 \ottprodline{|}{ \hat{\Pi} (  \mathit{x}  :  \hat{A}  ) .  \hat{B} }{}{}{}{\ottcom{dependent functions}}\ottprodnewline
 \ottprodline{|}{ \hat{\Sigma} (  \mathit{x}  :  \hat{A}  ) .  \hat{B} }{}{}{}{\ottcom{dependent pairs}}\ottprodnewline
-\ottprodline{|}{ \hat{E}\text{l} \,  A }{}{}{}{\ottcom{interpret type code}}}
+\ottprodline{|}{ \hat{E}\text{l }  A }{}{}{}{\ottcom{interpret type code}}}
 
 \newcommand{\otta}{
 \ottrulehead{\ottnt{a}  ,\ \ottnt{b}  ,\ \ottnt{ab}  ,\ \ottnt{f}  ,\ A  ,\ B}{::=}{\ottcom{terms}}\ottprodnewline
@@ -56,35 +56,164 @@
 \ottprodline{|}{ \Pi ^ \ell  (  \mathit{x}  :  A  ) .  B }{}{}{}{\ottcom{dependent functions code}}\ottprodnewline
 \ottprodline{|}{ \Sigma ^ \ell  (  \mathit{x}  :  A  ) .  B }{}{}{}{\ottcom{dependent pairs code}}\ottprodnewline
 \ottprodline{|}{ \text{El} ^ \ell  \,  A }{}{}{}{\ottcom{lift type code}}\ottprodnewline
-\ottprodline{|}{\ottkw{tt}}{}{}{}{\ottcom{trivial}}\ottprodnewline
+\ottprodline{|}{ \text{tt} }{}{}{}{\ottcom{trivial}}\ottprodnewline
 \ottprodline{|}{ \lambda (  \mathit{x}  :  \hat{A}  ) .  \ottnt{b} }{}{}{}{\ottcom{function}}\ottprodnewline
 \ottprodline{|}{ (  \ottnt{a}  ,  \ottnt{b}  ) _{ \hat{B} } }{}{}{}{\ottcom{pair}}}
+
+\newcommand{\ottG}{
+\ottrulehead{\Gamma}{::=}{}\ottprodnewline
+\ottfirstprodline{|}{ \cdot }{}{}{}{\ottcom{empty context}}\ottprodnewline
+\ottprodline{|}{\Gamma  \ottsym{,}  \mathit{x}  \ottsym{:}  \hat{A}}{}{}{}{\ottcom{context extension}}}
 
 \newcommand{\ottformula}{
 \ottrulehead{\ottnt{formula}}{::=}{}\ottprodnewline
 \ottfirstprodline{|}{\ottnt{judgement}}{}{}{}{}}
 
+\newcommand{\ottJs}{
+\ottrulehead{\ottnt{Js}}{::=}{}\ottprodnewline
+\ottfirstprodline{|}{ \mathit{x}  \notin  \Gamma }{}{}{}{\ottcom{standard definition}}\ottprodnewline
+\ottprodline{|}{\Gamma \, \ottkw{ctx}}{}{}{}{}\ottprodnewline
+\ottprodline{|}{ \Gamma  \vdash  \hat{A}  \,\, \textbf{type} }{}{}{}{}\ottprodnewline
+\ottprodline{|}{ \Gamma  \vdash  \ottnt{a}  :  \hat{A} }{}{}{}{}}
+
 \newcommand{\ottjudgement}{
-\ottrulehead{\ottnt{judgement}}{::=}{}}
+\ottrulehead{\ottnt{judgement}}{::=}{}\ottprodnewline
+\ottfirstprodline{|}{\ottnt{Js}}{}{}{}{}}
 
 \newcommand{\ottuserXXsyntax}{
 \ottrulehead{\ottnt{user\_syntax}}{::=}{}\ottprodnewline
-\ottfirstprodline{|}{\mathit{var}}{}{}{}{}\ottprodnewline
+\ottfirstprodline{|}{\mathit{ident}}{}{}{}{}\ottprodnewline
 \ottprodline{|}{\ell}{}{}{}{}\ottprodnewline
 \ottprodline{|}{\hat{A}}{}{}{}{}\ottprodnewline
-\ottprodline{|}{\ottnt{a}}{}{}{}{}}
+\ottprodline{|}{\ottnt{a}}{}{}{}{}\ottprodnewline
+\ottprodline{|}{\Gamma}{}{}{}{}}
 
 \newcommand{\ottgrammar}{\ottgrammartabular{
 \ottl\ottinterrule
 \ottA\ottinterrule
 \otta\ottinterrule
+\ottG\ottinterrule
 \ottformula\ottinterrule
+\ottJs\ottinterrule
 \ottjudgement\ottinterrule
 \ottuserXXsyntax\ottafterlastrule
 }}
 
 % defnss
+% defns Js
+%% defn notinG
+
+\newcommand{\ottdefnnotinG}[1]{\begin{ottdefnblock}[#1]{$ \mathit{x}  \notin  \Gamma $}{\ottcom{standard definition}}
+\end{ottdefnblock}}
+
+%% defn Gwf
+\newcommand{\ottdrulectxXXempty}[1]{\ottdrule[#1]{%
+}{
+ \cdot  \, \ottkw{ctx}}{%
+{\ottdrulename{ctx\_empty}}{}%
+}}
+
+
+\newcommand{\ottdrulectxXXextend}[1]{\ottdrule[#1]{%
+\ottpremise{\Gamma \, \ottkw{ctx}}%
+\ottpremise{ \mathit{x}  \notin  \Gamma }%
+\ottpremise{ \Gamma  \vdash  \hat{A}  \,\, \textbf{type} }%
+}{
+\Gamma  \ottsym{,}  \mathit{x}  \ottsym{:}  \hat{A} \, \ottkw{ctx}}{%
+{\ottdrulename{ctx\_extend}}{}%
+}}
+
+\newcommand{\ottdefnGwf}[1]{\begin{ottdefnblock}[#1]{$\Gamma \, \ottkw{ctx}$}{}
+\ottusedrule{\ottdrulectxXXempty{}}
+\ottusedrule{\ottdrulectxXXextend{}}
+\end{ottdefnblock}}
+
+%% defn Awf
+\newcommand{\ottdruletypeXXunit}[1]{\ottdrule[#1]{%
+\ottpremise{\Gamma \, \ottkw{ctx}}%
+}{
+ \Gamma  \vdash   \hat{\top}   \,\, \textbf{type} }{%
+{\ottdrulename{type\_unit}}{}%
+}}
+
+
+\newcommand{\ottdruletypeXXtype}[1]{\ottdrule[#1]{%
+\ottpremise{\Gamma \, \ottkw{ctx}}%
+}{
+ \Gamma  \vdash   \hat{T}\text{ype} ^ \ell   \,\, \textbf{type} }{%
+{\ottdrulename{type\_type}}{}%
+}}
+
+
+\newcommand{\ottdruletypeXXpi}[1]{\ottdrule[#1]{%
+\ottpremise{ \Gamma  \vdash  \hat{A}  \,\, \textbf{type} }%
+\ottpremise{ \Gamma  \ottsym{,}  \mathit{x}  \ottsym{:}  \hat{A}  \vdash  \hat{B}  \,\, \textbf{type} }%
+}{
+ \Gamma  \vdash   \hat{\Pi} (  \mathit{x}  :  \hat{A}  ) .  \hat{B}   \,\, \textbf{type} }{%
+{\ottdrulename{type\_pi}}{}%
+}}
+
+
+\newcommand{\ottdruletypeXXsg}[1]{\ottdrule[#1]{%
+\ottpremise{ \Gamma  \vdash  \hat{A}  \,\, \textbf{type} }%
+\ottpremise{ \Gamma  \ottsym{,}  \mathit{x}  \ottsym{:}  \hat{A}  \vdash  \hat{B}  \,\, \textbf{type} }%
+}{
+ \Gamma  \vdash   \hat{\Sigma} (  \mathit{x}  :  \hat{A}  ) .  \hat{B}   \,\, \textbf{type} }{%
+{\ottdrulename{type\_sg}}{}%
+}}
+
+
+\newcommand{\ottdruletypeXXel}[1]{\ottdrule[#1]{%
+\ottpremise{ \Gamma  \vdash  A  :   \hat{T}\text{ype} ^ \ell  }%
+}{
+ \Gamma  \vdash   \hat{E}\text{l }  A   \,\, \textbf{type} }{%
+{\ottdrulename{type\_el}}{}%
+}}
+
+\newcommand{\ottdefnAwf}[1]{\begin{ottdefnblock}[#1]{$ \Gamma  \vdash  \hat{A}  \,\, \textbf{type} $}{}
+\ottusedrule{\ottdruletypeXXunit{}}
+\ottusedrule{\ottdruletypeXXtype{}}
+\ottusedrule{\ottdruletypeXXpi{}}
+\ottusedrule{\ottdruletypeXXsg{}}
+\ottusedrule{\ottdruletypeXXel{}}
+\end{ottdefnblock}}
+
+%% defn acolonA
+\newcommand{\ottdruletermXXtt}[1]{\ottdrule[#1]{%
+\ottpremise{\Gamma \, \ottkw{ctx}}%
+}{
+ \Gamma  \vdash   \text{tt}   :   \hat{\top}  }{%
+{\ottdrulename{term\_tt}}{}%
+}}
+
+
+\newcommand{\ottdruletermXXunit}[1]{\ottdrule[#1]{%
+\ottpremise{\Gamma \, \ottkw{ctx}}%
+}{
+ \Gamma  \vdash   \top ^ \ell   :   \hat{T}\text{ype} ^ \ell  }{%
+{\ottdrulename{term\_unit}}{}%
+}}
+
+
+\newcommand{\ottdruletermXXtype}[1]{\ottdrule[#1]{%
+\ottpremise{\Gamma \, \ottkw{ctx}}%
+}{
+ \Gamma  \vdash   \text{Type} ^ \ell   :   \hat{T}\text{ype} ^ \ell  }{%
+{\ottdrulename{term\_type}}{}%
+}}
+
+\newcommand{\ottdefnacolonA}[1]{\begin{ottdefnblock}[#1]{$ \Gamma  \vdash  \ottnt{a}  :  \hat{A} $}{}
+\ottusedrule{\ottdruletermXXtt{}}
+\ottusedrule{\ottdruletermXXunit{}}
+\ottusedrule{\ottdruletermXXtype{}}
+\end{ottdefnblock}}
+
+
+\newcommand{\ottdefnsJs}{
+\ottdefnnotinG{}\ottdefnGwf{}\ottdefnAwf{}\ottdefnacolonA{}}
+
 \newcommand{\ottdefnss}{
+\ottdefnsJs
 }
 
 \newcommand{\ottall}{\ottmetavars\\[0pt]
@@ -95,5 +224,7 @@
 \ottall
 
 \begin{verbatim}
+Definition rules:        10 good    0 bad
+Definition rule clauses: 23 good    0 bad
 \end{verbatim}
 \end{document}
