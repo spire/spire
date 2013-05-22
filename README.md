@@ -9,10 +9,10 @@ generic programming.
 Building
 --------
 
-Depends on the `wl-pprint` package:
+Depends on the `wl-pprint`, `parsec`, and `mtl` packages:
 
 ```
-cabal install wl-pprint
+cabal install wl-pprint parsec mtl
 ```
 
 Type checking
