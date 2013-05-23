@@ -1,13 +1,27 @@
 -- Examples where variable capture could happen.
 -- ----------------------------------------------------------------
 
--- Two copies of the same function, up to alpha. Capture is only
--- possible in the second copy.
+-- Correct result: \ x -> \ z -> x1
+--
+-- DeBruijn problem: substituting under a lambda needs weakening.
+--
+-- Incorrect result:  \ x -> \ z -> x0
+bad1 : Unit -> Unit -> Unit
+bad1 = \ x -> (\ y -> \ z -> y : Unit -> Unit -> Unit) x
 
--- \ x -> \ z -> x0
-good : Unit -> Unit -> Unit
-good = \ x -> (\ y -> \ z -> y : Unit -> Unit -> Unit) x
+-- Correct result: \ x -> \ x' -> x1
+--
+-- Name problem: inner 'x' captures outer 'x' (and weakening).
+--
+-- Incorrect result: \ x -> \ x -> x1
+bad2 : Unit -> Unit -> Unit
+bad2 = \ x -> (\ y -> \ x -> y : Unit -> Unit -> Unit) x
 
--- \ x -> \ x -> x0
-bad : Unit -> Unit -> Unit
-bad = \ x -> (\ y -> \ x -> y : Unit -> Unit -> Unit) x
+-- Correct result: \ x -> \ x -> x1
+--
+-- DeBruijn problem: index of bound 'x' needs to be decremented when
+-- 'tt' is substituted.
+--
+-- Incorrect result: \ x -> \ z -> x0
+bad3 : Unit -> Unit -> Unit
+bad3 = \ x -> (\ y -> \ z -> x : Unit -> Unit -> Unit) tt
