@@ -1,6 +1,7 @@
 module Spire.Surface.Elaborating where
 import Spire.Surface.Types
 import Spire.Surface.Parsing
+import Spire.Surface.PrettyPrinting
 import Spire.Expression.Types
 import Spire.Canonical.Types
 import Control.Monad.Error
@@ -119,6 +120,6 @@ elabBC (Bound (l , a)) = do
 failUnannotated :: Syntax -> Result Infer
 failUnannotated a = throwError $
   "Failed to infer the type of this term, please annotate it:\n" ++
-  show a
+  prettyPrintError a
 
 ----------------------------------------------------------------------

@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, RankNTypes #-}
-module Spire.Surface.PrettyPrinting (prettyPrint) where
+module Spire.Surface.PrettyPrinting (prettyPrint , prettyPrintError) where
 import Spire.Canonical.Embedding
 import Spire.Canonical.Types
 import Spire.Expression.Embedding
@@ -24,14 +24,19 @@ prettyPrint t = render $ runReader (display t) initialDisplayData
   ribbon = 0.3
   -}
 
+prettyPrintError :: (Show t , Display t) => t -> String
+prettyPrintError a  = prettyPrint a ++ "\t(" ++ show a ++ ")"
+
 ----------------------------------------------------------------------
 
 -- Lift standard pretty printing ops to a monad.
-sepM , fsepM , hsepM , vcatM :: (Functor m , Monad m) => [m Doc] -> m Doc
+sepM , fsepM , hsepM , vcatM , listM :: (Functor m , Monad m) =>
+                                        [m Doc] -> m Doc
 sepM  xs = WL.sep <$> sequence xs
 fsepM xs = WL.fillSep <$> sequence xs
 hsepM xs = WL.hsep <$> sequence xs
 vcatM xs = WL.vcat <$> sequence xs
+listM xs = WL.list <$> sequence xs
 
 nestM , indentM :: Functor m => Int -> m Doc -> m Doc
 nestM n = fmap $ WL.nest n
@@ -171,6 +176,10 @@ instance Display Check where
 
 instance Display Infer where
   display = d . embedI
+
+instance Display Ctx where
+  display ctx = listM [ parensM $ d x <+> d "," <+> d t
+                      | (x , t) <- ctx ]
 
 ----------------------------------------------------------------------
 

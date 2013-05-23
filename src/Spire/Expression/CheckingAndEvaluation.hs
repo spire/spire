@@ -3,6 +3,7 @@ import Spire.Canonical.Types
 import Spire.Canonical.Embedding
 import Spire.Canonical.HereditarySubstitution
 import Spire.Expression.Types
+import Spire.Surface.PrettyPrinting
 import Control.Monad.Error
 import Data.List
 
@@ -23,10 +24,10 @@ check ctx (Infer a) bT = do
   (a' , aT) <- infer ctx a
   unless (aT == bT) $ throwError $
     "Ill-typed!\n" ++
-    "Expected type:\n" ++ show bT ++
-    "\n\nInferred type:\n" ++ show aT ++
-    "\n\nContext:\n" ++ show ctx ++
-    "\n\nUnevaluated value:\n" ++ show a
+    "Expected type:\n" ++ prettyPrintError bT ++
+    "\n\nInferred type:\n" ++ prettyPrintError aT ++
+    "\n\nContext:\n" ++ prettyPrintError ctx ++
+    "\n\nUnevaluated value:\n" ++ prettyPrintError a
   return $ a'
 check ctx a aT = throwError "Ill-typed!"
 
@@ -91,8 +92,8 @@ infer ctx (IIf b c1 c2) = do
   (c2' , cT2) <- infer ctx c2
   unless (cT1 == cT2) $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
-    "First branch:\n" ++ show cT1 ++
-    "\nSecond branch:\n" ++ show cT2
+    "First branch:\n" ++ prettyPrintError cT1 ++
+    "\nSecond branch:\n" ++ prettyPrintError cT2
   return (evalIf b' c1' c2' , cT1)
 infer ctx (ICaseBool pT pt pf b) = do
   pT' <- checkExtend VBool ctx pT VType
@@ -110,16 +111,16 @@ infer ctx (IProj1 ab) = do
     VSg aT bT -> return (evalProj1 ab' , aT)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
-      "Projected value:\n" ++ show ab ++
-      "\nProjected type:\n" ++ show abT
+      "Projected value:\n" ++ prettyPrintError ab ++
+      "\nProjected type:\n" ++ prettyPrintError abT
 infer ctx (IProj2 ab) = do
   (ab' , abT) <- infer ctx ab
   case abT of
     VSg aT bT -> return (evalProj2 ab' , suB (evalProj1 ab') bT)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
-      "Projected value:\n" ++ show ab ++
-      "\nProjected type:\n" ++ show abT
+      "Projected value:\n" ++ prettyPrintError ab ++
+      "\nProjected type:\n" ++ prettyPrintError abT
 infer ctx (IApp f a) = do
   (f' , fT) <- infer ctx f
   case fT of
@@ -128,8 +129,8 @@ infer ctx (IApp f a) = do
       return (evalApp f' a' , suB a' bT)
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++
-      "Applied value:\n"  ++ show f ++
-      "\nApplied type:\n"  ++ show fT
+      "Applied value:\n"  ++ prettyPrintError f ++
+      "\nApplied type:\n"  ++ prettyPrintError fT
 infer ctx (IVar l) =
   case findIndex (\(l' , _) -> l == l') ctx of
     Nothing -> throwError $
