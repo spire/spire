@@ -15,7 +15,7 @@ check ctx (CLam b) (VPi aT bT) = do
   return $ VLam aT b'
 check ctx (CPair a b) (VSg aT bT) = do
   a' <- check ctx a aT
-  b' <- check ctx b (suB a' bT)
+  b' <- check ctx b (sub a' bT)
   return $ VPair aT bT a' b'
 check ctx (CIn a) (VFix d) = do
   a' <- check ctx a (evalDInterp d (VFix d))
@@ -97,10 +97,10 @@ infer ctx (IIf b c1 c2) = do
   return (evalIf b' c1' c2' , cT1)
 infer ctx (ICaseBool pT pt pf b) = do
   pT' <- checkExtend VBool ctx pT VType
-  pt' <- check ctx pt (suB VTrue pT')
-  pf' <- check ctx pf (suB VFalse pT')
+  pt' <- check ctx pt (sub VTrue pT')
+  pf' <- check ctx pf (sub VFalse pT')
   b'  <- check ctx b VBool
-  return (evalCaseBool pT' pt' pf' b' , suB b' pT')
+  return (evalCaseBool pT' pt' pf' b' , sub b' pT')
 infer ctx (IDInterp d e) = do
   d' <- check ctx d VDesc
   e' <- check ctx e VType
@@ -116,7 +116,7 @@ infer ctx (IProj1 ab) = do
 infer ctx (IProj2 ab) = do
   (ab' , abT) <- infer ctx ab
   case abT of
-    VSg aT bT -> return (evalProj2 ab' , suB (evalProj1 ab') bT)
+    VSg aT bT -> return (evalProj2 ab' , sub (evalProj1 ab') bT)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
       "Projected value:\n" ++ prettyPrintError ab ++
@@ -126,7 +126,7 @@ infer ctx (IApp f a) = do
   case fT of
     VPi aT bT -> do
       a' <- check ctx a aT
-      return (evalApp f' a' , suB a' bT)
+      return (evalApp f' a' , sub a' bT)
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++
       "Applied value:\n"  ++ prettyPrintError f ++

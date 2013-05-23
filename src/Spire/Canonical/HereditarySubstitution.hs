@@ -1,4 +1,8 @@
-module Spire.Canonical.HereditarySubstitution where
+module Spire.Canonical.HereditarySubstitution
+  ( sub , foldSub
+  , evalStrAppend , evalStrEq , evalIf , evalCaseBool
+  , evalProj1 , evalProj2 , evalApp , evalDInterp )
+where
 import Spire.Canonical.Types
 
 ----------------------------------------------------------------------
@@ -53,12 +57,6 @@ subN i x (NDInterp d e) = evalDInterp (subN i x d) (subV i x e)
 
 ----------------------------------------------------------------------
 
-sub :: Val -> Val -> Val
-sub = subV 0
-
-subs :: Val -> [VDef] -> [VDef]
-subs = subVs 0
-
 subVs :: Var -> Val -> [VDef] -> [VDef]
 subVs i x [] = []
 subVs i x ((a , aT) : as) = (subV i x a , subV i x aT) : subVs (succ i) x as
@@ -101,19 +99,12 @@ evalProj2 (Neut ab) = Neut $ NProj1 ab
 evalProj2 _ = error "Ill-typed evaluation of Proj2"
 
 evalApp :: Val -> Val -> Val
-evalApp (VLam aT f) a = suB a f
+evalApp (VLam aT f) a = sub a f
 evalApp (Neut f) a = Neut $ NApp f a
 evalApp f a = error $
   "Ill-typed evaluation of App\n" ++
   "Function:\n" ++ show f ++ "\n" ++
   "Argument:\n" ++ show a
-
-foldSub :: [Val] -> Val -> Val
-foldSub xs a = helper (reverse xs) a
-  where
-  helper :: [Val] -> Val -> Val
-  helper [] a = a
-  helper (x : xs) a = helper xs (subV (length xs) x a)
 
 evalDInterp :: Val -> Val -> Val
 evalDInterp VDUnit x = VUnit
@@ -130,8 +121,21 @@ evalDInterp d x = error $
 
 ----------------------------------------------------------------------
 
-suB :: Val -> Bound Val -> Val
-suB x (Bound (_ , a)) = sub x a
+-- Substitute concrete values for variables in the context.
+--
+-- The values 'xs' are in context order.
+foldSub :: [Val] -> Val -> Val
+foldSub xs a = helper (reverse xs) a
+  where
+  helper :: [Val] -> Val -> Val
+  helper [] a = a
+  helper (x : xs) a = helper xs (subV (length xs) x a)
+
+-- If G |- A and G,A |- B then G |- B.
+sub :: Val -> Bound Val -> Val
+sub x (Bound (_ , a)) = subV 0 x a
+
+----------------------------------------------------------------------
 
 subExtend :: Var -> Val -> Bound Val -> Bound Val
 subExtend i x (Bound (l , a)) = Bound (l , subV (succ i) x a)
