@@ -47,7 +47,7 @@ embedV' is (Neut n) = embedN' is n
 embedV' is (VDefs _) = error "TODO Embedding' Is programs is not supported yet."
 
 embedN' :: [Ident] -> Neut -> Infer
-embedN' is (NVar (NomVar (l , _))) = IVar l -- XXX
+embedN' is (NVar (NomVar (_ , k))) = IVar (is !! k)
 embedN' is (NStrAppendL s1 s2) = IStrAppend (embedNC' is s1) (embedVC' is s2)
 embedN' is (NStrAppendR s1 s2) = IStrAppend (embedVC' is s1) (embedNC' is s2)
 embedN' is (NStrEqL s1 s2) = IStrEq (embedNC' is s1) (embedVC' is s2)
@@ -68,10 +68,14 @@ inferToCheck (ILamAnn _ (Bound (l , a'))) = CLam $ Bound (l , Infer a')
 inferToCheck a' = Infer a'
 
 embedVB' :: [Ident] -> Bound Val -> Bound Infer
-embedVB' is (Bound (l , a)) = Bound (l , embedV' is a)
+embedVB' is (Bound (l , a)) = Bound (l' , embedV' is' a)
+  where
+  (l' , is') = extendIdents l is
 
 embedNB' :: [Ident] -> Bound Neut -> Bound Infer
-embedNB' is (Bound (l , a)) = Bound (l , embedN' is a)
+embedNB' is (Bound (l , a)) = Bound (l' , embedN' is' a)
+  where
+  (l' , is') = extendIdents l is
 
 embedVC' :: [Ident] -> Val -> Check
 embedVC' is =  inferToCheck . embedV' is
@@ -80,9 +84,20 @@ embedNC' :: [Ident] -> Neut -> Check
 embedNC' is = inferToCheck . embedN' is
 
 embedVBC' :: [Ident] -> Bound Val -> Bound Check
-embedVBC' is (Bound (l , a)) = Bound (l , embedVC' is a)
+embedVBC' is (Bound (l , a)) = Bound (l' , embedVC' is' a)
+  where
+  (l' , is') = extendIdents l is
 
 embedNBC' :: [Ident] -> Bound Neut -> Bound Check
-embedNBC' is (Bound (l , a)) = Bound (l , embedNC' is a)
+embedNBC' is (Bound (l , a)) = Bound (l' , embedNC' is' a)
+  where
+  (l' , is') = extendIdents l is
+
+-- Add 'l' to 'is', freshening by appending primes if necessary.
+extendIdents :: Ident -> [Ident] -> (Ident , [Ident])
+extendIdents l is = if l `elem` is &&
+                       l /= "_" -- Don't freshen wild card.
+                    then extendIdents (l ++ "'") is
+                    else (l , l:is)
 
 ----------------------------------------------------------------------
