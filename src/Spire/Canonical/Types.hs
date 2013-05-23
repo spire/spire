@@ -1,5 +1,7 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Spire.Canonical.Types where
 import Control.Monad.Error
+import Data.Generics
 
 ----------------------------------------------------------------------
 
@@ -22,7 +24,7 @@ data Val =
 
   | VDefs [VDef]
   | Neut Neut
-  deriving ( Eq, Show, Read )
+  deriving ( Eq, Show, Read, Data, Typeable )
 
 data Neut =
     NVar NomVar
@@ -36,7 +38,7 @@ data Neut =
   | NProj2 Neut
   | NApp Neut Val
   | NDInterp Neut Val
-  deriving ( Eq, Show, Read )
+  deriving ( Eq, Show, Read, Data, Typeable )
 
 ----------------------------------------------------------------------
 
@@ -51,7 +53,7 @@ wildcard = "_"
 internalId = "_x"
 
 newtype Bound a = Bound (Ident , a)
-  deriving ( Show, Read )
+  deriving ( Show, Read, Data, Typeable )
 
 instance Eq a => Eq (Bound a) where
   Bound (_ , x) == Bound (_ , y) = x == y
@@ -60,7 +62,7 @@ instance Eq a => Eq (Bound a) where
 
 type Var = Int
 newtype NomVar = NomVar (Ident , Var)
-  deriving ( Show, Read )
+  deriving ( Show, Read, Data, Typeable )
 
 instance Eq NomVar where
   NomVar (_ , i) == NomVar (_ , j) = i == j
