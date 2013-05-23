@@ -115,7 +115,7 @@ dProj2 o xy = d "proj2" <+> ww o xy
 dFix o x = d "Fix" <+> ww o x
 dIn o x = d "<" <+> d x <+> d ">"
 dApp o f x = alignM $ w o f </> ww o x
-dAnn o x tp = parensM $ d x <+> d ":" <+> d tp
+dAnn o x tp = parensM . alignM . sepM $ [ d x , d ":" <+> d tp ]
 
 ----------------------------------------------------------------------
 
@@ -255,6 +255,7 @@ class Precedence t where
 --
 -- Compare with table in used in Spire.Surface.Parsing.
 atomicLevel    = -1
+annLevel       = atomicLevel
 appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
@@ -276,7 +277,6 @@ dSumAssoc      = AssocRight
 ifLevel        = 6
 caseBoolLevel  = 6
 lamLevel       = 7
-annLevel       = 8
 defsLevel      = 9
 defLevel       = 10
 
