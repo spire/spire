@@ -41,9 +41,18 @@ subV i x (VIn d a) = VIn (subV i x d) (subV i x a)
 subV i x (Neut n) = subN i x n
 
 subN :: Var -> Val -> Neut -> Val
-subN i x (NVar (NomVar (l , j))) | i == j = x
-subN i x (NVar (NomVar (l , j))) | i < j = Neut (NVar (NomVar (l , (j - succ i))))
-subN i x (NVar j) = Neut (NVar j)
+subN i x nv@(NVar (NomVar (l , j)))
+  | i == j = x
+  -- This assumes that we only substitute by eliminating a binder (and
+  -- hence unbinding the current variable 0).  Bad things could happen
+  -- in general, e.g. , if we were doing an alpha renaming
+  -- substitution of '\ x -> x z' to '\ y -> y z':
+  --
+  --   Lam [("y",0)/#0] (App ("x",0) ("z",1))
+  --
+  -- we would *not* want to decrement '("z", 1) to ("z" , 0)' ...
+  | i < j = Neut (NVar (NomVar (l , pred j)))
+  | otherwise = Neut nv
 subN i x (NStrAppendL s1 s2) =
   evalStrAppend (subN i x s1) (subV i x s2)
 subN i x (NStrAppendR s1 s2) =
