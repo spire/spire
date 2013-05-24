@@ -1,0 +1,19 @@
+-- Test 'foldSub': all the variables have different types, so any
+-- mixup in substitution should result in a type error.
+--
+-- Recall that pairing (,) and product (*) are right associative.
+
+x1 : Bool
+x1 = true
+
+x2 : Unit
+x2 = tt
+
+x3 : Unit * Bool
+x3 = x2 , x1
+
+x4 : (Unit * Bool) * Unit * Bool
+x4 = x3 , x2 , x1
+
+x5 : ((Unit * Bool) * Unit * Bool) * (Unit * Bool) * Unit * Bool
+x5 = x4 , x3 , x2 , x1
