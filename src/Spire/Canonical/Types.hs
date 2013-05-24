@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Spire.Canonical.Types where
-import Control.Monad.Error
 import Data.Generics
 
 ----------------------------------------------------------------------

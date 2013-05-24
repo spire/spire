@@ -1,9 +1,16 @@
+{-# LANGUAGE Rank2Types #-}
 module Spire.Canonical.HereditarySubstitution
   ( sub , foldSub
   , evalStrAppend , evalStrEq , evalIf , evalCaseBool
   , evalProj1 , evalProj2 , evalApp , evalDInterp )
 where
+import Control.Monad.Reader
+import Data.Generics
 import Spire.Canonical.Types
+
+import Debug.Trace
+-- trace' x y = trace x y
+trace' x y = y
 
 ----------------------------------------------------------------------
 
@@ -137,7 +144,79 @@ sub x (Bound (_ , a)) = subV 0 x a
 
 ----------------------------------------------------------------------
 
+-- A more efficient version would instead weaken only once, at the
+-- 'NVar' leaves, by the number of binders were traversed on the way
+-- to the leaf.
 subExtend :: Var -> Val -> Bound Val -> Bound Val
-subExtend i x (Bound (l , a)) = Bound (l , subV (succ i) x a)
+subExtend i x (Bound (l , a)) = Bound (l , subV (succ i) (weakenVal0 x) a)
+
+----------------------------------------------------------------------
+type WeakenMonad = Reader Int
+
+weakenNomVarM :: NomVar -> WeakenMonad NomVar
+weakenNomVarM (NomVar (id , k)) = do
+  isFree <- asks (<= k)
+  trace' ("XXX weakenNomVarM XXX: " ++ show id) $
+    return $ NomVar (id , if isFree then succ k else k)
+
+-- XXX: I get type errors with this more generic signature:
+{-
+weakenBoundM :: (Data a , Typeable a) => Bound a -> WeakenMonad (Bound a)
+-}
+-- and similar when I try to make 'isBound' below work for 'Bound a'.
+-- Looking at 'Spire.Canonical.Types' I see that only 'Bound Val'
+-- occurs, but I would like to cover all 'Bound a', just to be safe.
+-- How can I do this, without enumerating all ground values of 'a'?
+--
+-- XXX: how to write this in a simpler way, where here we just do
+-- 'local (+1)', but not call 'weakenM' recursively?
+weakenBoundM :: Bound Val -> WeakenMonad (Bound Val)
+weakenBoundM (Bound (id , a)) = do
+  wa <- local (+1) $ weakenM a
+  trace' ("XXX weakenBoundM XXX: " ++ show a) $
+    return (Bound (id , wa))
+
+weakenM :: GenericM WeakenMonad
+weakenM = everyWhereUntilM q t
+  where
+  isBound :: Bound Val -> Bool
+  isBound = const True
+  q :: GenericQ Bool
+  q = mkQ False isBound
+  t :: GenericM WeakenMonad
+  t = mkM weakenBoundM `extM` weakenNomVarM
+
+everyWhereUntilM :: Monad m => GenericQ Bool -> GenericM m -> GenericM m
+everyWhereUntilM q t x =
+  if q x
+  then t x
+  else t =<< gmapM (everyWhereUntilM q t) x
+
+-- Weaken free variables, assuming we start under 'n' binders.
+--
+-- E.g., before going under more binders, all variables with value
+-- greater than 'n' are considered free, and after going under 'k'
+-- binders, all variables with values greater than 'n + k' are
+-- considered free.
+weakenVal :: Int -> Val -> Val
+weakenVal n v = runReader (weakenM v) n
+
+-- Weaken free variables, assuming we start under no binders.
+weakenVal0 :: Val -> Val
+weakenVal0 = weakenVal 0
+
+-- Weakening tests
+{-
+
+weakenVal0 (Neut (NVar (NomVar ("x", 0))))
+== (Neut (NVar (NomVar ("x", 1))))
+
+weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
+== (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
+
+weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
+== VLam VUnit (Bound ("x",Neut (NVar (NomVar ("x",2)))))
+
+-}
 
 ----------------------------------------------------------------------
