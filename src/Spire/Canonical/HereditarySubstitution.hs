@@ -141,11 +141,7 @@ evalDInterp d x = error $
 --
 -- The values 'xs' are in context order.
 foldSub :: [Val] -> Val -> Val
-foldSub xs a = helper (reverse xs) a
-  where
-  helper :: [Val] -> Val -> Val
-  helper [] a = a
-  helper (x : xs) a = helper xs (subV (length xs) x a)
+foldSub xs a = foldl (\ a x -> subV 0 x a) a xs
 
 -- If G |- A and G,A |- B then G |- B.
 sub :: Val -> Bound Val -> Val
