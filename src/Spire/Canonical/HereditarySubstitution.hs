@@ -193,12 +193,11 @@ weakenVal0 = weakenVal 0
 ----------------------------------------------------------------------
 -- Monadic computations with monadic transformations.
 
+newtype MM m x = MM { unMM :: m x -> m x }
 mkMM :: (Typeable a , Typeable b) => (m a -> m a) -> m b -> m b
-mkMM t mb = case gcast mb of
-              Just ma -> case gcast (t ma) of
-                           Just ma' -> ma'
-                           Nothing -> error "The sky is falling!"
-              Nothing -> mb
+mkMM t = maybe id unMM (gcast (MM t))
+      -- Same as:
+      -- unMM ((MM id) `ext0` (MM t))
 
 -- Apply a 'GenericM' everywhere, transforming the results with a
 -- 'GenericMM'.
