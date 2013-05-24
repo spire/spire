@@ -164,51 +164,49 @@ weakenNomVarM (NomVar (id , k)) = do
   trace' ("XXX weakenNomVarM XXX: " ++ show id) $
     return $ NomVar (id , if isFree then succ k else k)
 
+weakenM :: GenericM WeakenMonad
+weakenM = everywhereMM (mkMM incMM) (mkM weakenNomVarM)
+  where
 -- XXX: I get type errors with this more generic signature:
 {-
-weakenBoundM :: (Data a , Typeable a) => Bound a -> WeakenMonad (Bound a)
+  incMM :: Typeable a => WeakenMonad (Bound a) -> WeakenMonad (Bound a)
 -}
--- and similar when I try to make 'isBound' below work for 'Bound a'.
 -- Looking at 'Spire.Canonical.Types' I see that only 'Bound Val'
 -- occurs, but I would like to cover all 'Bound a', just to be safe.
 -- How can I do this, without enumerating all ground values of 'a'?
---
--- XXX: how to write this in a simpler way, where here we just do
--- 'local (+1)', but not call 'weakenM' recursively?
-weakenBoundM :: Bound Val -> WeakenMonad (Bound Val)
-weakenBoundM (Bound (id , a)) = do
-  wa <- local (+1) $ weakenM a
-  trace' ("XXX weakenBoundM XXX: " ++ show a) $
-    return (Bound (id , wa))
-
-weakenM :: GenericM WeakenMonad
-weakenM = everyWhereUntilM q t
-  where
-  isBound :: Bound Val -> Bool
-  isBound = const True
-  q :: GenericQ Bool
-  q = mkQ False isBound
-  t :: GenericM WeakenMonad
-  t = mkM weakenBoundM `extM` weakenNomVarM
-
-everyWhereUntilM :: Monad m => GenericQ Bool -> GenericM m -> GenericM m
-everyWhereUntilM q t x =
-  if q x
-  then t x
-  else t =<< gmapM (everyWhereUntilM q t) x
+  incMM :: WeakenMonad (Bound Val) -> WeakenMonad (Bound Val)
+  incMM = local (+1)
 
 -- Weaken free variables, assuming we start under 'n' binders.
 --
--- E.g., before going under more binders, all variables with value
--- greater than 'n' are considered free, and after going under 'k'
--- binders, all variables with values greater than 'n + k' are
--- considered free.
+-- E.g., before going under any (more) binders, all variables with value
+-- greater-or-equal to 'n' are considered free, and after going under
+-- 'k' binders, all variables with values greater-or-equal to 'n + k'
+-- are considered free.
 weakenVal :: Int -> Val -> Val
 weakenVal n v = runReader (weakenM v) n
 
 -- Weaken free variables, assuming we start under no binders.
 weakenVal0 :: Val -> Val
 weakenVal0 = weakenVal 0
+
+----------------------------------------------------------------------
+-- Monadic computations with monadic transformations.
+
+mkMM :: (Typeable a , Typeable b) => (m a -> m a) -> m b -> m b
+mkMM t mb = case gcast mb of
+              Just ma -> case gcast (t ma) of
+                           Just ma' -> ma'
+                           Nothing -> error "The sky is falling!"
+              Nothing -> mb
+
+-- Apply a 'GenericM' everywhere, transforming the results with a
+-- 'GenericMM'.
+type GenericMM m = Data a => m a -> m a
+everywhereMM :: Monad m => GenericMM m -> GenericM m -> GenericM m
+everywhereMM mm m x = mm (m =<< gmapM (everywhereMM mm m) x)
+
+----------------------------------------------------------------------
 
 -- Weakening tests
 {-
