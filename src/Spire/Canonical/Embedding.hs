@@ -47,7 +47,16 @@ embedV' is (Neut n) = embedN' is n
 embedV' is (VDefs _) = error "TODO Embedding' Is programs is not supported yet."
 
 embedN' :: [Ident] -> Neut -> Infer
-embedN' is (NVar (NomVar (_ , k))) = IVar (is !! k)
+embedN' is (NVar n@(NomVar (_ , k))) =
+  if k >= length is
+  -- XXX: this is more evidence that 'embed*' should be in a monad:
+  -- then we could raise monadic errors, and thread the binders using
+  -- a reader (in other words: once you give up and go into a monad,
+  -- it's easier to do other monadic things).
+  then error $
+         "Internal error: DeBruijn variable unbound in 'embedN':\n" ++
+         "var = " ++ show n ++ ", binders = " ++ show is
+  else IVar (is !! k)
 embedN' is (NStrAppendL s1 s2) = IStrAppend (embedNC' is s1) (embedVC' is s2)
 embedN' is (NStrAppendR s1 s2) = IStrAppend (embedVC' is s1) (embedNC' is s2)
 embedN' is (NStrEqL s1 s2) = IStrEq (embedNC' is s1) (embedVC' is s2)

@@ -132,6 +132,9 @@ infer ctx (IApp f a) = do
       "Applied value:\n"  ++ prettyPrintError f ++
       "\nApplied type:\n"  ++ prettyPrintError fT
 infer ctx (IVar l) =
+  -- XXX: this error check is dubious: the variable is looked up by
+  -- name here, and by numeric index below.  These need not agree in
+  -- the face of DeBruijn bugs ...
   case findIndex (\(l' , _) -> l == l') ctx of
     Nothing -> throwError $
       "Variable not in context!\n" ++
