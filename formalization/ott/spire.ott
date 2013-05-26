@@ -9,10 +9,11 @@ grammar
   A {{ tex \hat{[[A]]} }}, B {{ tex \hat{[[B]]} }} :: A_ ::= {{ com types }}                
     | Unit             ::   :: Unit          {{ com unit }}                {{ tex \hat{\top} }}
     | Type l           ::   :: Type          {{ com types }}               {{ tex \hat{T}\text{ype} ^{[[l]]} }}
-    | ( x : A ) -> B   ::   :: Pi            {{ com dependent functions }} {{ tex \hat{\Pi} ( [[x]] : [[A]] ) . [[B]] }}
+    | Pi ( x : A ) . B   ::   :: Pi            {{ com dependent functions }} {{ tex \hat{\Pi} ( [[x]] : [[A]] ) . [[B]] }}
     | Sg ( x : A ) . B ::   :: Sg            {{ com dependent pairs }}     {{ tex \hat{\Sigma} ( [[x]] : [[A]] ) . [[B]] }}
     | El qA            ::   :: El            {{ com interpret type code }} {{ tex \hat{E}\text{l } [[qA]] }}
     | ( A )            :: S :: paren
+    | B [ a / x ]      :: M :: sub
 
   a, b, ab, f, qA {{ tex [[A]] }}, qB {{ tex [[B]] }} :: a_ ::= {{ com terms }}
     | `Unit l                ::   :: qUnit {{ com unit code }}                {{ tex \top ^{[[l]]} }}
@@ -61,7 +62,7 @@ G |- Type l type
 G |- A type
 G , x : A |- B type
 ----------------------- :: pi
-G |- (x : A) -> B type
+G |- Pi (x : A). B type
 
 G |- A type
 G , x : A |- B type
@@ -79,6 +80,16 @@ G |- a : A :: :: acolonA :: term_ {{ tex [[G]] \vdash [[a]] : [[A]] }} {{com ter
 G ctx
 --------------- :: tt
 G |- tt : Unit
+
+G |- a : A
+G , x : A |- B type
+G |- b : B [ a / x ]
+-------------------------------- :: pair
+G |- (a , b : B) : Sg (x : A). B
+
+G , x : A |- b : B
+--------------------------------- :: function
+G |- \ (x : A). b : Pi (x : A). B
 
 G ctx
 --------------------- :: unit_code

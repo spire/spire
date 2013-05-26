@@ -10,7 +10,7 @@ eval : {A : Set} → Term A → A
 
 data Term where
   {- Type introduction -}
-  `⊥ `⊤ `Bool `ℕ `Type : ∀{ℓ} → Term (Type ℓ)
+  `⊥ `⊤ `Bool `ℕ `Desc `Type : ∀{ℓ} → Term (Type ℓ)
   `Π `Σ : ∀{ℓ}
     (A : Term (Type ℓ))
     (B : ⟦ ℓ ∣ eval A ⟧ → Term (Type ℓ))
@@ -18,6 +18,16 @@ data Term where
   `⟦_⟧ : ∀{ℓ}
     (A : Term (Type ℓ))
     → Term (Type (suc ℓ))
+  `μ : ∀{ℓ}
+    (D : Term (Desc ℓ))
+    → Term (Type ℓ)
+
+  {- Desc introduction -}
+  `⊤ᵈ `Xᵈ : ∀{ℓ} → Term (Desc ℓ)
+  `Πᵈ `Σᵈ : ∀{ℓ}
+    (A : Term (Type ℓ))
+    (B : ⟦ ℓ ∣ eval A ⟧ → Term (Desc (suc ℓ)))
+    → Term (Desc (suc ℓ))
 
   {- Value introduction -}
   `tt : Term ⊤
@@ -31,23 +41,26 @@ data Term where
     (a : Term A)
     (b : Term (B (eval a)))
     → Term (Σ A B)
+  `con : ∀{ℓ D}
+    (x : Term (⟦ ℓ ∣ D ⟧ᵈ (μ D)))
+    → Term (μ D)
 
   {- Value elimination -}
   `elim⊥ : ∀{A}
     → Term ⊥
     → Term A
   `elimBool : ∀{ℓ}
-    (P : Bool → Term (Type (suc ℓ)))
-    (pt : Term ⟦ suc ℓ ∣ eval (P true) ⟧)
-    (pf : Term ⟦ suc ℓ ∣ eval (P false) ⟧)
+    (P : Bool → Term (Type ℓ))
+    (pt : Term ⟦ ℓ ∣ eval (P true) ⟧)
+    (pf : Term ⟦ ℓ ∣ eval (P false) ⟧)
     (b : Term Bool)
-    → Term ⟦ suc ℓ ∣ eval (P (eval b)) ⟧
+    → Term ⟦ ℓ ∣ eval (P (eval b)) ⟧
   `elimℕ : ∀{ℓ}
-    (P : ℕ → Term (Type (suc ℓ)))
-    (pz : Term ⟦ suc ℓ ∣ eval (P zero) ⟧)
-    (ps : (n : ℕ) → ⟦ suc ℓ ∣ eval (P n) ⟧ → Term ⟦ suc ℓ ∣ eval (P (suc n)) ⟧)
+    (P : ℕ → Term (Type ℓ))
+    (pz : Term ⟦ ℓ ∣ eval (P zero) ⟧)
+    (ps : (n : ℕ) → ⟦ ℓ ∣ eval (P n) ⟧ → Term ⟦ ℓ ∣ eval (P (suc n)) ⟧)
     (n : Term ℕ)
-    → Term ⟦ suc ℓ ∣ eval (P (eval n)) ⟧
+    → Term ⟦ ℓ ∣ eval (P (eval n)) ⟧
   `proj₁ : ∀{A B}
     (ab : Term (Σ A B))
     → Term A
@@ -66,10 +79,18 @@ eval `⊥ = `⊥
 eval `⊤ = `⊤
 eval `Bool = `Bool
 eval `ℕ = `ℕ
+eval `Desc = `Desc
 eval `Type = `Type
 eval (`Π A B) = `Π (eval A) (λ a → eval (B a))
 eval (`Σ A B) = `Σ (eval A) (λ a → eval (B a))
+eval (`μ D) = `μ (eval D)
 eval `⟦ A ⟧ = `⟦ eval A ⟧
+
+{- Desc introduction -}
+eval `⊤ᵈ = `⊤
+eval `Xᵈ = `X
+eval (`Πᵈ A D) = `Π (eval A) (λ a → eval (D a))
+eval (`Σᵈ A D) = `Σ (eval A) (λ a → eval (D a))
 
 {- Value introduction -}
 eval `tt = tt
@@ -79,14 +100,15 @@ eval `zero = zero
 eval (`suc n) = suc (eval n)
 eval (`λ f) = λ a → eval (f a)
 eval (a `, b) = eval a , eval b
+eval (`con x) = con (eval x)
 
 {- Value elimination -}
 eval (`elim⊥ bot) = elim⊥ (eval bot)
 eval (`elimBool {ℓ = ℓ} P pt pf b) =
-  elimBool (λ b → ⟦ suc ℓ ∣ eval (P b) ⟧)
+  elimBool (λ b → ⟦ ℓ ∣ eval (P b) ⟧)
     (eval pt) (eval pf) (eval b)
 eval (`elimℕ {ℓ = ℓ} P pz ps n) =
-  elimℕ (λ n → ⟦ suc ℓ ∣ eval (P n) ⟧)
+  elimℕ (λ n → ⟦ ℓ ∣ eval (P n) ⟧)
     (eval pz) (λ n pn → eval (ps n pn)) (eval n)
 eval (`proj₁ ab) = proj₁ (eval ab)
 eval (`proj₂ ab) = proj₂ (eval ab)
