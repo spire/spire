@@ -59,6 +59,7 @@ data Neutral Γ where
   {- Value elimination -}
   `var : ∀{A} → Var Γ A → Neutral Γ A
   `if_`then_`else_ : ∀{C} (b : Neutral Γ `Bool) (c₁ c₂ : Value Γ C) → Neutral Γ C
+  `elim⊥ : ∀{A} → Neutral Γ `⊥ → Neutral Γ A
   `elimBool : ∀{ℓ} (P : Value (Γ , `Bool) (`Type ℓ))
     (pt : Value Γ (subT ⟦ P ⟧ `true))
     (pf : Value Γ (subT ⟦ P ⟧ `false))
@@ -78,6 +79,11 @@ data Neutral Γ where
 ⟦ `Type {suc ℓ} ⟧ = `Type ℓ
 ⟦ `⟦ A ⟧ ⟧ = ⟦ A ⟧
 ⟦ `neut A ⟧ = `⟦ A ⟧
+
+----------------------------------------------------------------------
+
+elim⊥ : ∀{Γ A} → Value Γ `⊥ → Value Γ A
+elim⊥ (`neut bot) = `neut (`elim⊥ bot)
 
 ----------------------------------------------------------------------
 
@@ -128,6 +134,9 @@ data Term Γ where
   _`,_ : ∀{A B}
     (a : Term Γ A) (b : Term Γ (subT B (eval a)))
     → Term Γ (`Σ A B)
+  `λ : ∀{A B}
+    (b : Term (Γ , A) B)
+    → Term Γ (`Π A B)
   
   {- Value elimination -}
   `var : ∀{A} → Var Γ A → Term Γ A
@@ -138,6 +147,7 @@ data Term Γ where
   _`$_ : ∀{A B} (f : Term Γ (`Π A B)) (a : Term Γ A) → Term Γ (subT B (eval a))
   `proj₁ : ∀{A B} → Term Γ (`Σ A B) → Term Γ A
   `proj₂ : ∀{A B} (ab : Term Γ (`Σ A B)) → Term Γ (subT B (proj₁ (eval ab)))
+  `elim⊥ : ∀{A} → Term Γ `⊥ → Term Γ A
   `elimBool : ∀{ℓ} (P : Term (Γ , `Bool) (`Type ℓ))
     (pt : Term Γ (subT ⟦ eval P ⟧ `true))
     (pf : Term Γ (subT ⟦ eval P ⟧ `false))
@@ -160,6 +170,7 @@ eval `tt = `tt
 eval `true = `true
 eval `false = `false
 eval (a `, b) = eval a `, eval b
+eval (`λ b) = `λ (eval b)
 
 {- Value elimination -}
 eval (`var i) = `neut (`var i)
@@ -167,6 +178,7 @@ eval (`if b `then c₁ `else c₂) = if eval b then eval c₁ else eval c₂
 eval (f `$ a) = eval f $ eval a
 eval (`proj₁ ab) = proj₁ (eval ab)
 eval (`proj₂ ab) = proj₂ (eval ab)
+eval (`elim⊥ bot) = elim⊥ (eval bot)
 eval (`elimBool P pt pf b) = elimBool (eval P) (eval pt) (eval pf) (eval b)
 
 ----------------------------------------------------------------------
