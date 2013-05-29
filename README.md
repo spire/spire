@@ -9,10 +9,16 @@ generic programming.
 Building
 --------
 
-Depends on the `wl-pprint`, `parsec`, and `mtl` packages:
+Cabal install dependencies:
 
 ```
-cabal install wl-pprint parsec mtl
+make deps
+```
+
+Build `./spire` executable:
+
+```
+make
 ```
 
 Type checking

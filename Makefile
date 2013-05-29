@@ -1,5 +1,9 @@
 all: spire
 
+.PHONY: deps
+deps:
+	cabal install wl-pprint parsec mtl syb
+
 tmp:
 	mkdir tmp
 
