@@ -16,3 +16,4 @@ Default
 *.blg
 spire
 formalization/ott/*.tex
+tmp
