@@ -1,4 +1,4 @@
-module Spire.DenotationalType where
+module Spire.Type where
 
 ----------------------------------------------------------------------
 

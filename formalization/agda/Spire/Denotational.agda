@@ -1,5 +1,5 @@
-open import Spire.DenotationalType
-module Spire.DenotationalTypeDenotationalTermDenotationalValue where
+open import Spire.Type
+module Spire.Denotational where
 
 ----------------------------------------------------------------------
 

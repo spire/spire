@@ -1,4 +1,4 @@
-module Spire.OperationalTypeOperationalTermOperationalValue where
+module Spire.Operational where
 
 ----------------------------------------------------------------------
 
