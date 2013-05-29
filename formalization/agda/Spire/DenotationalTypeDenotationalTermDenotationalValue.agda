@@ -22,6 +22,31 @@ data Term where
     (D : Term (Desc ℓ))
     → Term (Type ℓ)
 
+  {- Type elimination -}
+  `elimType : ∀{ℓ}
+    (P : (n : ℕ) → Type n → Term (Type ℓ))
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `⊥) ⟧)
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `⊤) ⟧)
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `Bool) ⟧)
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `ℕ) ⟧)
+    → ((n : ℕ) (A : Type n) (B : ⟦ n ∣ A ⟧ → Type n)
+       (rec₁ : ⟦ ℓ ∣ eval (P n A) ⟧)
+       (rec₂ : (a : ⟦ n ∣ A ⟧) → ⟦ ℓ ∣ eval (P n (B a)) ⟧)
+       → Term ⟦ ℓ ∣ eval (P n (`Π A B)) ⟧)
+    → ((n : ℕ) (A : Type n) (B : ⟦ n ∣ A ⟧ → Type n)
+       (rec₁ : ⟦ ℓ ∣ eval (P n A) ⟧)
+       (rec₂ : (a : ⟦ n ∣ A ⟧) → ⟦ ℓ ∣ eval (P n (B a)) ⟧)
+       → Term ⟦ ℓ ∣ eval (P n (`Σ A B)) ⟧)
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `Desc) ⟧)
+    → ((n : ℕ) (D : Desc n) → Term ⟦ ℓ ∣ eval (P n (`μ D)) ⟧)
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `Type) ⟧)
+    → ((n : ℕ) (A : Type n)
+        (rec : ⟦ ℓ ∣ eval (P n A) ⟧)
+        → Term ⟦ ℓ ∣ eval (P (suc n) `⟦ A ⟧) ⟧)
+    → (n : Term ℕ)
+    (A : Term (Type (eval n)))
+    → Term ⟦ ℓ ∣ eval (P (eval n) (eval A)) ⟧
+
   {- Desc introduction -}
   `⊤ᵈ `Xᵈ : ∀{ℓ} → Term (Desc ℓ)
   `Πᵈ `Σᵈ : ∀{ℓ}
@@ -85,6 +110,19 @@ eval (`Π A B) = `Π (eval A) (λ a → eval (B a))
 eval (`Σ A B) = `Σ (eval A) (λ a → eval (B a))
 eval (`μ D) = `μ (eval D)
 eval `⟦ A ⟧ = `⟦ eval A ⟧
+
+{- Type elimination -}
+eval (`elimType {ℓ = ℓ} P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧ n A) =
+  elimType (λ n A → ⟦ ℓ ∣ eval (P n A) ⟧)
+    (λ n → eval (p⊥ n)) (λ n → eval (p⊤ n)) (λ n → eval (pBool n)) (λ n → eval (pℕ n))
+    (λ n A B rec₁ rec₂ → eval (pΠ n A B rec₁ rec₂))
+    (λ n A B rec₁ rec₂ → eval (pΣ n A B rec₁ rec₂))
+    (λ n → eval (pDesc n))
+    (λ n D → eval (pμ n D))
+    (λ n → eval (pType n))
+    (λ n A rec → eval (p⟦A⟧ n A rec))
+    (eval n)
+    (eval A)
 
 {- Desc introduction -}
 eval `⊤ᵈ = `⊤
