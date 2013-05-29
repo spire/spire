@@ -59,6 +59,10 @@ data Neutral Γ where
   {- Value elimination -}
   `var : ∀{A} → Var Γ A → Neutral Γ A
   `if_`then_`else_ : ∀{C} (b : Neutral Γ `Bool) (c₁ c₂ : Value Γ C) → Neutral Γ C
+  `elimBool : ∀{ℓ} (P : Value (Γ , `Bool) (`Type ℓ))
+    (pt : Value Γ (subT ⟦ P ⟧ `true))
+    (pf : Value Γ (subT ⟦ P ⟧ `false))
+    (b : Neutral Γ `Bool) → Neutral Γ (subT ⟦ P ⟧ (`neut b))
   `proj₁ : ∀{A B} → Neutral Γ (`Σ A B) → Neutral Γ A
   `proj₂ : ∀{A B} (ab : Neutral Γ (`Σ A B)) → Neutral Γ (subT B (`neut (`proj₁ ab)))
   _`$_ : ∀{A B} (f : Neutral Γ (`Π A B)) (a : Value Γ A) → Neutral Γ (subT B a)
@@ -81,6 +85,15 @@ if_then_else_ : ∀{Γ C} (b : Value Γ `Bool) (c₁ c₂ : Value Γ C) → Valu
 if `true then c₁ else c₂ = c₁
 if `false then c₁ else c₂ = c₂
 if `neut b then c₁ else c₂ = `neut (`if b `then c₁ `else c₂)
+
+elimBool : ∀{Γ ℓ} (P : Value (Γ , `Bool) (`Type ℓ))
+  (pt : Value Γ (subT ⟦ P ⟧ `true))
+  (pf : Value Γ (subT ⟦ P ⟧ `false))
+  (b : Value Γ `Bool)
+  → Value Γ (subT ⟦ P ⟧ b)
+elimBool P pt pf `true = pt
+elimBool P pt pf `false = pf
+elimBool P pt pf (`neut b) = `neut (`elimBool P pt pf b)
 
 ----------------------------------------------------------------------
 
@@ -125,6 +138,11 @@ data Term Γ where
   _`$_ : ∀{A B} (f : Term Γ (`Π A B)) (a : Term Γ A) → Term Γ (subT B (eval a))
   `proj₁ : ∀{A B} → Term Γ (`Σ A B) → Term Γ A
   `proj₂ : ∀{A B} (ab : Term Γ (`Σ A B)) → Term Γ (subT B (proj₁ (eval ab)))
+  `elimBool : ∀{ℓ} (P : Term (Γ , `Bool) (`Type ℓ))
+    (pt : Term Γ (subT ⟦ eval P ⟧ `true))
+    (pf : Term Γ (subT ⟦ eval P ⟧ `false))
+    (b : Term Γ `Bool)
+    → Term Γ (subT ⟦ eval P ⟧ (eval b))
 
 ----------------------------------------------------------------------
 
@@ -149,6 +167,7 @@ eval (`if b `then c₁ `else c₂) = if eval b then eval c₁ else eval c₂
 eval (f `$ a) = eval f $ eval a
 eval (`proj₁ ab) = proj₁ (eval ab)
 eval (`proj₂ ab) = proj₂ (eval ab)
+eval (`elimBool P pt pf b) = elimBool (eval P) (eval pt) (eval pf) (eval b)
 
 ----------------------------------------------------------------------
 
