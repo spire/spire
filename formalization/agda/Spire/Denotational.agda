@@ -18,6 +18,10 @@ data Term where
   `⟦_⟧ : ∀{ℓ}
     (A : Term (Type ℓ))
     → Term (Type (suc ℓ))
+  `⟦_⟧ᵈ : ∀{ℓ}
+    (D : Term (Desc ℓ))
+    (X : Term (Type ℓ))
+    → Term (Type ℓ)
   `μ : ∀{ℓ}
     (D : Term (Desc ℓ))
     → Term (Type ℓ)
@@ -38,6 +42,9 @@ data Term where
        (rec₂ : (a : ⟦ n ∣ A ⟧) → ⟦ ℓ ∣ eval (P n (B a)) ⟧)
        → Term ⟦ ℓ ∣ eval (P n (`Σ A B)) ⟧)
     → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `Desc) ⟧)
+    → ((n : ℕ) (D : Desc n) (X : Type n)
+       (rec : ⟦ ℓ ∣ eval (P n X) ⟧)
+       → Term ⟦ ℓ ∣ eval (P n (`⟦ D ⟧ᵈ X)) ⟧)
     → ((n : ℕ) (D : Desc n) → Term ⟦ ℓ ∣ eval (P n (`μ D)) ⟧)
     → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `Type) ⟧)
     → ((n : ℕ) (A : Type n)
@@ -109,15 +116,17 @@ eval `Type = `Type
 eval (`Π A B) = `Π (eval A) (λ a → eval (B a))
 eval (`Σ A B) = `Σ (eval A) (λ a → eval (B a))
 eval (`μ D) = `μ (eval D)
+eval (`⟦ D ⟧ᵈ X) = `⟦ eval D ⟧ᵈ (eval X)
 eval `⟦ A ⟧ = `⟦ eval A ⟧
 
 {- Type elimination -}
-eval (`elimType {ℓ = ℓ} P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧ n A) =
+eval (`elimType {ℓ = ℓ} P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧ n A) =
   elimType (λ n A → ⟦ ℓ ∣ eval (P n A) ⟧)
     (λ n → eval (p⊥ n)) (λ n → eval (p⊤ n)) (λ n → eval (pBool n)) (λ n → eval (pℕ n))
     (λ n A B rec₁ rec₂ → eval (pΠ n A B rec₁ rec₂))
     (λ n A B rec₁ rec₂ → eval (pΣ n A B rec₁ rec₂))
     (λ n → eval (pDesc n))
+    (λ n D X rec → eval (p⟦D⟧ᵈ n D X rec))
     (λ n D → eval (pμ n D))
     (λ n → eval (pType n))
     (λ n A rec → eval (p⟦A⟧ n A rec))

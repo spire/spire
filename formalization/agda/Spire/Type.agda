@@ -93,6 +93,7 @@ data TypeForm U where
     (B : ⟦ U / A ⟧ → TypeForm U)
     → TypeForm U
   `⟦_⟧ : Universe.Codes U → TypeForm U
+  `⟦_⟧ᵈ : DescForm U → TypeForm U → TypeForm U
   `μ : DescForm U → TypeForm U
 
 ⟦ U / `⊥ ⟧ = ⊥
@@ -104,6 +105,7 @@ data TypeForm U where
 ⟦ U / `Type ⟧ = Universe.Codes U
 ⟦ U / `⟦ A ⟧ ⟧ = Universe.Meaning U A
 ⟦ U / `Desc ⟧ = DescForm U
+⟦ U / `⟦ D ⟧ᵈ X ⟧ = ⟦ U / D ⟧ᵈ ⟦ U / X ⟧
 ⟦ U / `μ D ⟧ = μ D
 
 ----------------------------------------------------------------------
@@ -145,38 +147,43 @@ elimType : (P : (ℓ : ℕ) → Type ℓ → Set)
     (rec₂ : (a : ⟦ ℓ ∣ A ⟧) → P ℓ (B a))
     → P ℓ (`Σ A B))
   → ((ℓ : ℕ) → P ℓ `Desc)
+  → ((ℓ : ℕ) (D : Desc ℓ) (X : Type ℓ) (rec : P ℓ X) → P ℓ (`⟦ D ⟧ᵈ X))
   → ((ℓ : ℕ) (D : Desc ℓ) → P ℓ (`μ D))
   → ((ℓ : ℕ) → P ℓ `Type)
   → ((ℓ : ℕ) (A : Type ℓ) (rec : P ℓ A) → P (suc ℓ) `⟦ A ⟧)
   → (ℓ : ℕ) (A : Type ℓ) → P ℓ A
 
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ `⊥ = p⊥ ℓ
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ `⊤ = p⊤ ℓ
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ `Bool = pBool ℓ
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ `ℕ = pℕ ℓ
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ (`Π A B) =
-  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧ ℓ
+  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧ ℓ
   in pΠ ℓ A B (f A) (λ a → f (B a))
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ (`Σ A B) =
-  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧ ℓ
+  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧ ℓ
   in pΣ ℓ A B (f A) (λ a → f (B a))
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ `Type = pType ℓ
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ `Desc = pDesc ℓ
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
+  ℓ (`⟦ D ⟧ᵈ X) =
+  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧ ℓ
+  in p⟦D⟧ᵈ ℓ D X (f X)
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   ℓ (`μ D) = pμ ℓ D
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   zero `⟦ () ⟧
-elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧
+elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧
   (suc ℓ) `⟦ A ⟧ =
-  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc pμ pType p⟦A⟧ ℓ
+  let f = elimType P p⊥ p⊤ pBool pℕ pΠ pΣ pDesc p⟦D⟧ᵈ pμ pType p⟦A⟧ ℓ
   in p⟦A⟧ ℓ A (f A)
 
 ----------------------------------------------------------------------
