@@ -80,6 +80,7 @@ data Neutral Γ where
   `proj₁ : ∀{A B} → Neutral Γ (`Σ A B) → Neutral Γ A
   `proj₂ : ∀{A B} (ab : Neutral Γ (`Σ A B)) → Neutral Γ (subT B (`neut (`proj₁ ab)))
   _`$_ : ∀{A B} (f : Neutral Γ (`Π A B)) (a : Value Γ A) → Neutral Γ (subT B a)
+  `des : ∀{ℓ} {D : Value Γ (`Desc ℓ)} → Neutral Γ (`μ D) → Neutral Γ (⟦ D ⟧ᵈ (`μ D))
 
 ----------------------------------------------------------------------
 
@@ -137,6 +138,12 @@ proj₂ (`neut ab) = `neut (`proj₂ ab)
 
 ----------------------------------------------------------------------
 
+des : ∀{Γ ℓ} {D : Value Γ (`Desc ℓ)} → Value Γ (`μ D) → Value Γ (⟦ D ⟧ᵈ (`μ D))
+des (`con x) = x
+des (`neut x) = `neut (`des x)
+
+----------------------------------------------------------------------
+
 _$_ : ∀{Γ A B} → Value Γ (`Π A B) → (a : Value Γ A) → Value Γ (subT B a)
 `λ b $ a = subV b a
 `neut f $ a = `neut (f `$ a)
@@ -187,6 +194,7 @@ data Term Γ where
     (pf : Term Γ (subT ⟦ eval P ⟧ `false))
     (b : Term Γ `Bool)
     → Term Γ (subT ⟦ eval P ⟧ (eval b))
+  `des : ∀{ℓ} {D : Value Γ (`Desc ℓ)} → Term Γ (`μ D) → Term Γ (⟦ D ⟧ᵈ (`μ D))
 
 ----------------------------------------------------------------------
 
@@ -223,6 +231,7 @@ eval (`proj₁ ab) = proj₁ (eval ab)
 eval (`proj₂ ab) = proj₂ (eval ab)
 eval (`elim⊥ bot) = elim⊥ (eval bot)
 eval (`elimBool P pt pf b) = elimBool (eval P) (eval pt) (eval pf) (eval b)
+eval (`des x) = des (eval x)
 
 ----------------------------------------------------------------------
 
