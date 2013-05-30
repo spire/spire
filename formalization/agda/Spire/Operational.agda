@@ -21,7 +21,7 @@ data Context where
 
 data Type Γ where
   `⊥ `⊤ `Bool : Type Γ
-  `Type : (ℓ : Level) → Type Γ
+  `Desc `Type : (ℓ : Level) → Type Γ
   `Π `Σ : (A : Type Γ) (B : Type (Γ , A)) → Type Γ
   `⟦_⟧ : ∀{ℓ} → Neutral Γ (`Type ℓ) → Type Γ
 
@@ -42,9 +42,16 @@ data Var : (Γ : Context) (A : Type Γ) → Set where
 
 data Value Γ where
   {- Type introduction -}
-  `⊥ `⊤ `Bool `Type : ∀{ℓ} → Value Γ (`Type ℓ)
+  `⊥ `⊤ `Bool `Desc `Type : ∀{ℓ} → Value Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Value Γ (`Type ℓ)) (B : Value (Γ , ⟦ A ⟧) (`Type ℓ)) → Value Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Value Γ (`Type ℓ) → Value Γ (`Type (suc ℓ))
+
+  {- Desc introduction -}
+  `⊤ᵈ `Xᵈ : ∀{ℓ} → Value Γ (`Desc ℓ)
+  `Πᵈ `Σᵈ : ∀{ℓ}
+    (A : Value Γ (`Type ℓ))
+    (B : Value (Γ , ⟦ A ⟧) (`Desc (suc ℓ)))
+    → Value Γ (`Desc (suc ℓ))
 
   {- Value introduction -}
   `tt : Value Γ `⊤
@@ -78,6 +85,7 @@ data Neutral Γ where
 ⟦ `Type {zero} ⟧ = `⊥
 ⟦ `Type {suc ℓ} ⟧ = `Type ℓ
 ⟦ `⟦ A ⟧ ⟧ = ⟦ A ⟧
+⟦ `Desc {ℓ} ⟧ = `Desc ℓ
 ⟦ `neut A ⟧ = `⟦ A ⟧
 
 ----------------------------------------------------------------------
@@ -128,6 +136,13 @@ data Term Γ where
   `Π `Σ : ∀{ℓ} (A : Term Γ (`Type ℓ)) (B : Term (Γ , ⟦ eval A ⟧) (`Type ℓ)) → Term Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Term Γ (`Type ℓ) → Term Γ (`Type (suc ℓ))
 
+  {- Desc introduction -}
+  `⊤ᵈ `Xᵈ : ∀{ℓ} → Term Γ (`Desc ℓ)
+  `Πᵈ `Σᵈ : ∀{ℓ}
+    (A : Term Γ (`Type ℓ))
+    (D : Term (Γ , ⟦ eval A ⟧) (`Desc (suc ℓ)))
+    → Term Γ (`Desc (suc ℓ))
+
   {- Value introduction -}
   `tt : Term Γ `⊤
   `true `false : Term Γ `Bool
@@ -164,6 +179,12 @@ eval `Type = `Type
 eval (`Π A B) = `Π (eval A) (eval B)
 eval (`Σ A B) = `Σ (eval A) (eval B)
 eval `⟦ A ⟧ = `⟦ eval A ⟧
+
+{- Desc introduction -}
+eval `⊤ᵈ = `⊤ᵈ
+eval `Xᵈ = `Xᵈ
+eval (`Πᵈ A D) = `Πᵈ (eval A) (eval D)
+eval (`Σᵈ A D) = `Σᵈ (eval A) (eval D)
 
 {- Value introduction -}
 eval `tt = `tt
