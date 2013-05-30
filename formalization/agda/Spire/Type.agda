@@ -133,6 +133,32 @@ infix 0 ⟦_∣_⟧
 
 ----------------------------------------------------------------------
 
+elimDesc : (P : (ℓ : ℕ) → Desc ℓ → Set)
+  → ((ℓ : ℕ) → P ℓ `⊤)
+  → ((ℓ : ℕ) → P ℓ `X)
+  → ((ℓ : ℕ) (A : Type ℓ) (D : ⟦ ℓ ∣ A ⟧ → Desc (suc ℓ))
+    (rec : (a : ⟦ ℓ ∣ A ⟧) → P (suc ℓ) (D a))
+    → P (suc ℓ) (`Π A D))
+  → ((ℓ : ℕ) (A : Type ℓ) (D : ⟦ ℓ ∣ A ⟧ → Desc (suc ℓ))
+    (rec : (a : ⟦ ℓ ∣ A ⟧) → P (suc ℓ) (D a))
+    → P (suc ℓ) (`Σ A D))
+  → (ℓ : ℕ) (D : Desc ℓ) → P ℓ D
+elimDesc P p⊤ pX pΠ pΣ ℓ `⊤ = p⊤ ℓ
+elimDesc P p⊤ pX pΠ pΣ ℓ `X = pX ℓ
+elimDesc P p⊤ pX pΠ pΣ zero (`Π () D)
+elimDesc P p⊤ pX pΠ pΣ (suc ℓ) (`Π A D) =
+  let f = elimDesc P p⊤ pX pΠ pΣ (suc ℓ)
+  in pΠ ℓ A D (λ a → f (D a))
+elimDesc P p⊤ pX pΠ pΣ zero (`Σ () D)
+elimDesc P p⊤ pX pΠ pΣ (suc ℓ) (`Σ A D) =
+  let f = elimDesc P p⊤ pX pΠ pΣ (suc ℓ)
+  in pΣ ℓ A D (λ a → f (D a))
+
+des : ∀{ℓ} {D : Desc ℓ} → μ D → ⟦ ℓ ∣ D ⟧ᵈ (μ D)
+des (con x) = x
+
+----------------------------------------------------------------------
+
 elimType : (P : (ℓ : ℕ) → Type ℓ → Set)
   → ((ℓ : ℕ) → P ℓ `⊥)
   → ((ℓ : ℕ) → P ℓ `⊤)

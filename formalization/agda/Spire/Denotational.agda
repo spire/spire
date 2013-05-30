@@ -61,6 +61,21 @@ data Term where
     (B : ⟦ ℓ ∣ eval A ⟧ → Term (Desc (suc ℓ)))
     → Term (Desc (suc ℓ))
 
+  {- Desc elimination -}
+  `elimDesc : ∀{ℓ}
+    (P : (n : ℕ) → Desc n → Term (Type ℓ))
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `⊤) ⟧)
+    → ((n : ℕ) → Term ⟦ ℓ ∣ eval (P n `X) ⟧)
+    → ((n : ℕ) (A : Type n) (D : ⟦ n ∣ A ⟧ → Desc (suc n))
+       (rec : (a : ⟦ n ∣ A ⟧) → ⟦ ℓ ∣ eval (P (suc n) (D a)) ⟧)
+       → Term ⟦ ℓ ∣ eval (P (suc n) (`Π A D)) ⟧)
+    → ((n : ℕ) (A : Type n) (D : ⟦ n ∣ A ⟧ → Desc (suc n))
+       (rec : (a : ⟦ n ∣ A ⟧) → ⟦ ℓ ∣ eval (P (suc n) (D a)) ⟧)
+       → Term ⟦ ℓ ∣ eval (P (suc n) (`Σ A D)) ⟧)
+    → (n : Term ℕ)
+    (D : Term (Desc (eval n)))
+    → Term ⟦ ℓ ∣ eval (P (eval n) (eval D)) ⟧
+
   {- Value introduction -}
   `tt : Term ⊤
   `true `false : Term Bool
@@ -103,6 +118,9 @@ data Term where
     (f : Term ((a : A) → B a))
     (a : Term A)
     → Term (B (eval a))
+  `des : ∀{ℓ} {D : Desc ℓ}
+    → (Term (μ D))
+    → Term (⟦ ℓ ∣ D ⟧ᵈ (μ D))
 
 ----------------------------------------------------------------------
 
@@ -139,6 +157,15 @@ eval `Xᵈ = `X
 eval (`Πᵈ A D) = `Π (eval A) (λ a → eval (D a))
 eval (`Σᵈ A D) = `Σ (eval A) (λ a → eval (D a))
 
+{- Desc elimination -}
+eval (`elimDesc {ℓ = ℓ} P p⊤ pX pΠ pΣ n D) =
+  elimDesc (λ n D → ⟦ ℓ ∣ eval (P n D) ⟧)
+    (λ n → eval (p⊤ n)) (λ n → eval (pX n))
+    (λ n A D rec → eval (pΠ n A D rec))
+    (λ n A D rec → eval (pΣ n A D rec))
+    (eval n)
+    (eval D)
+
 {- Value introduction -}
 eval `tt = tt
 eval `true = true
@@ -160,5 +187,6 @@ eval (`elimℕ {ℓ = ℓ} P pz ps n) =
 eval (`proj₁ ab) = proj₁ (eval ab)
 eval (`proj₂ ab) = proj₂ (eval ab)
 eval (f `$ a) = (eval f) (eval a)
+eval (`des {ℓ = ℓ} x) = des {ℓ = ℓ} (eval x)
 
 ----------------------------------------------------------------------
