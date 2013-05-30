@@ -23,11 +23,14 @@ data Type Γ where
   `⊥ `⊤ `Bool : Type Γ
   `Desc `Type : (ℓ : Level) → Type Γ
   `Π `Σ : (A : Type Γ) (B : Type (Γ , A)) → Type Γ
+  `μ : ∀{ℓ} → Value Γ (`Desc ℓ) → Type Γ
   `⟦_⟧ : ∀{ℓ} → Neutral Γ (`Type ℓ) → Type Γ
+  `⟦_⟧ᵈ : ∀{ℓ} → Neutral Γ (`Desc ℓ) → Type Γ → Type Γ
 
 ----------------------------------------------------------------------
 
 ⟦_⟧ : ∀{Γ ℓ} → Value Γ (`Type ℓ) →  Type Γ
+⟦_⟧ᵈ : ∀{Γ ℓ} → Value Γ (`Desc ℓ) → Type Γ →  Type Γ
 
 postulate
   wknT : ∀{Γ A} → Type Γ → Type (Γ , A)
@@ -44,7 +47,9 @@ data Value Γ where
   {- Type introduction -}
   `⊥ `⊤ `Bool `Desc `Type : ∀{ℓ} → Value Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Value Γ (`Type ℓ)) (B : Value (Γ , ⟦ A ⟧) (`Type ℓ)) → Value Γ (`Type ℓ)
+  `μ : ∀{ℓ} → Value Γ (`Desc ℓ) → Value Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Value Γ (`Type ℓ) → Value Γ (`Type (suc ℓ))
+  `⟦_⟧ᵈ : ∀{ℓ} → Value Γ (`Desc ℓ) → Value Γ (`Type ℓ) → Value Γ (`Type ℓ)
 
   {- Desc introduction -}
   `⊤ᵈ `Xᵈ : ∀{ℓ} → Value Γ (`Desc ℓ)
@@ -58,6 +63,7 @@ data Value Γ where
   `true `false : Value Γ `Bool
   _`,_ : ∀{A B} (a : Value Γ A) (b : Value Γ (subT B a)) → Value Γ (`Σ A B)
   `λ : ∀{A B} → Value (Γ , A) B → Value Γ (`Π A B)
+  `con : ∀{ℓ} {D : Value Γ (`Desc ℓ)} → Value Γ (⟦ D ⟧ᵈ (`μ D)) → Value Γ (`μ D)
   `neut : ∀{A} → Neutral Γ A → Value Γ A
 
 ----------------------------------------------------------------------
@@ -82,11 +88,21 @@ data Neutral Γ where
 ⟦ `⊥ ⟧ = `⊥
 ⟦ `⊤ ⟧ = `⊤
 ⟦ `Bool ⟧ = `Bool
+⟦ `μ D ⟧ = `μ D
 ⟦ `Type {zero} ⟧ = `⊥
 ⟦ `Type {suc ℓ} ⟧ = `Type ℓ
 ⟦ `⟦ A ⟧ ⟧ = ⟦ A ⟧
 ⟦ `Desc {ℓ} ⟧ = `Desc ℓ
+⟦ `⟦ D ⟧ᵈ X ⟧ = ⟦ D ⟧ᵈ ⟦ X ⟧
 ⟦ `neut A ⟧ = `⟦ A ⟧
+
+----------------------------------------------------------------------
+
+⟦ `⊤ᵈ ⟧ᵈ X = `⊤
+⟦ `Xᵈ ⟧ᵈ X = X
+⟦ `Πᵈ A D ⟧ᵈ X = `Π ⟦ A ⟧ (⟦ D ⟧ᵈ (wknT X))
+⟦ `Σᵈ A D ⟧ᵈ X = `Σ ⟦ A ⟧ (⟦ D ⟧ᵈ (wknT X))
+⟦ `neut D ⟧ᵈ X = `⟦ D ⟧ᵈ X
 
 ----------------------------------------------------------------------
 
@@ -134,7 +150,9 @@ data Term Γ where
   {- Type introduction -}
   `⊥ `⊤ `Bool `Type : ∀{ℓ} → Term Γ (`Type ℓ)
   `Π `Σ : ∀{ℓ} (A : Term Γ (`Type ℓ)) (B : Term (Γ , ⟦ eval A ⟧) (`Type ℓ)) → Term Γ (`Type ℓ)
+  `μ : ∀{ℓ} → Term Γ (`Desc ℓ) → Term Γ (`Type ℓ)
   `⟦_⟧ : ∀{ℓ} → Term Γ (`Type ℓ) → Term Γ (`Type (suc ℓ))
+  `⟦_⟧ᵈ : ∀{ℓ} → Term Γ (`Desc ℓ) → Term Γ (`Type ℓ) → Term Γ (`Type ℓ)
 
   {- Desc introduction -}
   `⊤ᵈ `Xᵈ : ∀{ℓ} → Term Γ (`Desc ℓ)
@@ -152,6 +170,7 @@ data Term Γ where
   `λ : ∀{A B}
     (b : Term (Γ , A) B)
     → Term Γ (`Π A B)
+  `con : ∀{ℓ} {D : Value Γ (`Desc ℓ)} → Term Γ (⟦ D ⟧ᵈ (`μ D)) → Term Γ (`μ D)
   
   {- Value elimination -}
   `var : ∀{A} → Var Γ A → Term Γ A
@@ -178,7 +197,9 @@ eval `Bool = `Bool
 eval `Type = `Type
 eval (`Π A B) = `Π (eval A) (eval B)
 eval (`Σ A B) = `Σ (eval A) (eval B)
+eval (`μ D) = `μ (eval D)
 eval `⟦ A ⟧ = `⟦ eval A ⟧
+eval (`⟦ D ⟧ᵈ X) = `⟦ eval D ⟧ᵈ (eval X)
 
 {- Desc introduction -}
 eval `⊤ᵈ = `⊤ᵈ
@@ -192,6 +213,7 @@ eval `true = `true
 eval `false = `false
 eval (a `, b) = eval a `, eval b
 eval (`λ b) = `λ (eval b)
+eval (`con x) = `con (eval x)
 
 {- Value elimination -}
 eval (`var i) = `neut (`var i)
