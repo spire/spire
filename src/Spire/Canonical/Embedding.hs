@@ -1,9 +1,12 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module Spire.Canonical.Embedding (embedV , embedN , embedVC) where
 import Spire.Expression.Types
+import Spire.Canonical.HereditarySubstitution
 import Spire.Canonical.Types
 import Control.Applicative
 import Control.Monad.Error
 import Control.Monad.Reader
+import Data.Generics
 
 ----------------------------------------------------------------------
 
@@ -16,12 +19,14 @@ embedN = run embedN'
 embedVC :: Val -> Either String Check
 embedVC = run embedVC'
 
-run :: (a -> EmbedM b) -> a -> Either String b
-run f x = runReader (runErrorT $ f x) []
+run :: Data a => (a -> EmbedM b) -> a -> Either String b
+run f x = runReader (runErrorT $ f x) $
+            EmbedR { bound = [] , free = freeVarsDB0 x }
 
 ----------------------------------------------------------------------
 
-type EmbedM a = ErrorT String (Reader [Ident]) a
+data EmbedR = EmbedR { bound :: [Ident] , free :: [NomVar] }
+type EmbedM = ErrorT String (Reader EmbedR)
 
 embedV' :: Val -> EmbedM Infer
 embedV' VUnit = return IUnit
@@ -56,17 +61,11 @@ embedV' (VDefs _) = throwError
   "TODO Embedding' Is programs is not supported yet."
 
 embedN' :: Neut -> EmbedM Infer
-embedN' (NVar n@(NomVar (_ , k))) = do
-  is <- ask
+embedN' (NVar n@(NomVar (l , k))) = do
+  is <- asks bound
   if k >= length is
-  -- XXX: this is more evidence that 'embed*' should be in a monad:
-  -- then we could raise monadic errors, and thread the binders using
-  -- a reader (in other words: once you give up and go into a monad,
-  -- it's easier to do other monadic things).
-  then throwError $
-         "Internal error: DeBruijn variable unbound in 'embedN':\n" ++
-         "var = " ++ show n ++ ", binders = " ++ show is
-  else return $ IVar (is !! k)
+  then return $ IVar l         -- Free.
+  else return $ IVar (is !! k) -- Bound.
 embedN' (NStrAppendL s1 s2) = IStrAppend <$> embedNC' s1 <*> embedVC' s2
 embedN' (NStrAppendR s1 s2) = IStrAppend <$> embedVC' s1 <*> embedNC' s2
 embedN' (NStrEqL s1 s2) = IStrEq <$> embedNC' s1 <*> embedVC' s2
@@ -107,15 +106,17 @@ embedNBC' = liftEmbedBound embedNC'
 -- Lift an embedder for 'a's to an embedder for bound 'a's.
 liftEmbedBound :: (a -> EmbedM b) -> Bound a -> EmbedM (Bound b)
 liftEmbedBound embed (Bound (l , a)) = do
-  (l' , is') <- asks $ extendIdents l
-  a' <- local (const is') $ embed a
+  EmbedR { bound , free } <- ask
+  let freeNames     = [ l | NomVar (l , _) <- free ]
+      (l' , bound') = extendIdents l bound freeNames
+  a' <- local (\r -> r { bound = bound' }) $ embed a
   return $ Bound (l' , a')
 
 -- Add 'l' to 'is', freshening by appending primes if necessary.
-extendIdents :: Ident -> [Ident] -> (Ident , [Ident])
-extendIdents l is = if l `elem` is &&
+extendIdents :: Ident -> [Ident] -> [Ident] -> (Ident , [Ident])
+extendIdents l bound free = if l `elem` bound ++ free &&
                        l /= "_" -- Don't freshen wild card.
-                    then extendIdents (l ++ "'") is
-                    else (l , l:is)
+                    then extendIdents (l ++ "'") bound free
+                    else (l , l:bound)
 
 ----------------------------------------------------------------------
