@@ -184,10 +184,14 @@ instance Display Ctx where
 ----------------------------------------------------------------------
 
 instance Display Val where
-  display = d . embedI . embedV
+  display v = case embedV v of
+    Left error -> d (show v) <+> parensM (d error)
+    Right i    -> d . embedI $ i
 
 instance Display Neut where
-  display = d . embedI . embedN
+  display n = case embedN n of
+    Left error -> d (show n) <+> parensM (d error)
+    Right i    -> d . embedI $ i
 
 ----------------------------------------------------------------------
 
