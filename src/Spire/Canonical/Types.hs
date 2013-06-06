@@ -71,7 +71,7 @@ instance Eq NomVar where
 type Type = Val
 type Desc = Val
 type VDef = (Val , Type)
-type Result a = Either String a
+type Result = Either String
 type VCtx = [Type]
 type StrLit = String
 
