@@ -183,15 +183,14 @@ instance Display Ctx where
 
 ----------------------------------------------------------------------
 
+-- The 'prettyPrintError' shows both versions, so use that if you need
+-- to debug the raw term.
+
 instance Display Val where
-  display v = case embedV v of
-    Left error -> d (show v) <+> parensM (d error)
-    Right i    -> d . embedI $ i
+  display = either d (d . embedI) . embedV
 
 instance Display Neut where
-  display n = case embedN n of
-    Left error -> d (show n) <+> parensM (d error)
-    Right i    -> d . embedI $ i
+  display = either d (d . embedI) . embedN
 
 ----------------------------------------------------------------------
 
