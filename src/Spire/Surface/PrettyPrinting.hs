@@ -183,14 +183,11 @@ instance Display Ctx where
 
 ----------------------------------------------------------------------
 
--- The 'prettyPrintError' shows both versions, so use that if you need
--- to debug the raw term.
-
 instance Display Val where
-  display = either d (d . embedI) . embedV
+  display = d . embedI . embedV
 
 instance Display Neut where
-  display = either d (d . embedI) . embedN
+  display = d . embedI . embedN
 
 ----------------------------------------------------------------------
 

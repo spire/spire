@@ -1,11 +1,9 @@
-{-# LANGUAGE TupleSections #-}
 module Spire.Expression.CheckingAndEvaluation where
 import Spire.Canonical.Types
 import Spire.Canonical.Embedding
 import Spire.Canonical.HereditarySubstitution
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinting
-import Control.Applicative
 import Control.Monad.Error
 import Data.List
 
@@ -175,13 +173,12 @@ checkDefs xs ctx ((l , a , aT) : as) = do
 checkDefsStable :: [Def] -> Result [Def]
 checkDefsStable as = do
   as' <- checkDefs [] [] as
-  bs <- embedDefs as'
+  let bs = embedDefs as'
   bs' <- checkDefs [] [] bs
   unless (as' == bs') $ throwError $
     "Embedding is unstable!"
   return bs
   where
-  embedDefs = mapM $ \(l , a , aT) ->
-    (l , , ) <$> embedVC a <*> embedVC aT
+  embedDefs = map (\(l , a , aT) -> (l , embedVC a , embedVC aT))
 
 ----------------------------------------------------------------------
