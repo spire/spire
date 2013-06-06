@@ -25,7 +25,7 @@ prettyPrint t = render $ runReader (display t) initialDisplayData
   -}
 
 prettyPrintError :: (Show t , Display t) => t -> String
-prettyPrintError a  = prettyPrint a ++ "\t(" ++ show a ++ ")"
+prettyPrintError a  = prettyPrint a ++ "    (RAW: " ++ show a ++ ")"
 
 ----------------------------------------------------------------------
 
