@@ -10,17 +10,19 @@ import Data.Generics
 
 ----------------------------------------------------------------------
 
-embedV :: Val -> Either String Infer
+embedV :: Val -> Infer
 embedV = run embedV'
 
-embedN :: Neut -> Either String Infer
+embedN :: Neut -> Infer
 embedN = run embedN'
 
-embedVC :: Val -> Either String Check
+embedVC :: Val -> Check
 embedVC = run embedVC'
 
-run :: Data a => (a -> EmbedM b) -> a -> Either String b
-run f x = runReader (runErrorT $ f x) $
+run :: Data a => (a -> EmbedM b) -> a -> b
+-- Promote 'Left' errors to exceptions.
+run f x = either error id .
+          runReader (runErrorT $ f x) $
             EmbedR { bound = [] , free = freeVarsDB0 x }
 
 ----------------------------------------------------------------------
