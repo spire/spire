@@ -1,4 +1,4 @@
-module Spire.Expression.CheckingAndEvaluation where
+module Spire.Expression.CheckingAndEvaluation (checkDefsStable) where
 import Spire.Canonical.Types
 import Spire.Canonical.Embedding
 import Spire.Canonical.HereditarySubstitution
