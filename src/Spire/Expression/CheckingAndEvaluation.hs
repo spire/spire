@@ -4,17 +4,35 @@ import Spire.Canonical.Embedding
 import Spire.Canonical.HereditarySubstitution
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinting
+import Control.Exception.Base
 import Control.Monad.Error
 import Control.Monad.Reader
 import Data.List
 
-----------------------------------------------------------------------
+-- import Debug.Trace
+-- traceShow' = flip traceShow
 
-data CheckR = CheckR { ctx :: Ctx }
+----------------------------------------------------------------------
+-- Type checking monad.
+--
+-- It might be more honest to merge the environment with the context,
+-- e.g.
+--
+--   CheckR { ctx :: [(Ident , Maybe Val , Type)] }
+--
+-- to enforce in types that all values in the environment have an
+-- associated identifier and type.  Instead, I just "enforced" this in
+-- the interface 'extendEnv'. But this choice might be related to the
+-- complexity of the 'IVar' case of 'infer'.
+
+data CheckR = CheckR { ctx :: Ctx , env :: [Val] }
 type CheckM = ReaderT CheckR Result
 
 extendCtx :: Ident -> Type -> CheckM a -> CheckM a
 extendCtx l tp = local (\r -> r { ctx = (l , tp) : ctx r })
+
+extendEnv :: Ident -> Val -> Type -> CheckM a -> CheckM a
+extendEnv l a aT = extendCtx l aT . local (\r -> r { env = a : env r })
 
 run :: CheckM a -> CheckR -> Result a
 run = runReaderT
@@ -88,7 +106,7 @@ infer (IFix d) = do
   d' <- check d VDesc
   return (VFix d' , VType)
 infer (IDefs as) = do
-  as' <- checkDefs [] as
+  as' <- checkDefs as
   let as'' = map (\(_ , a , aT) -> (a , aT))  as'
   return (VDefs as'' , VProg)
 infer (IStrAppend s1 s2) = do
@@ -146,16 +164,26 @@ infer (IApp f a) = do
       "\nApplied type:\n"  ++ prettyPrintError fT
 infer (IVar l) = do
   ctx <- asks ctx
-  -- XXX: this error check is dubious: the variable is looked up by
-  -- name here, and by numeric index below.  These need not agree in
-  -- the face of DeBruijn bugs ...
   case findIndex (\(l' , _) -> l == l') ctx of
     Nothing -> throwError $
       "Variable not in context!\n" ++
       "Referenced variable:\n" ++ l ++
-      "\nCurrent context:\n" ++ show (map fst ctx)
-    Just i ->
-      return (Neut (NVar (NomVar (l , i))) , snd (ctx !! i))
+      "\nCurrent context:\n" ++ prettyPrintError ctx
+    Just i -> do
+      env <- asks env
+      let numEnclosingBinders = length ctx - length env
+          isFree              = i >= numEnclosingBinders
+          a = if isFree
+                       -- The env corresponds to a suffix of the
+                       -- context, so we need to adjust the index.
+              then let v = env !! (i - numEnclosingBinders)
+                   -- I am assuming that all values in the env will be
+                   -- closed, but here's a sanity check.
+                   in assert (freeVarsDB0 v == []) v
+              else Neut (NVar (NomVar (l , i)))
+          aT = snd (ctx !! i)
+      return (a , aT)
+      -- `traceShow'` (prettyPrint ctx, map prettyPrint env, prettyPrint l)
 infer (IAnn a aT) = do
   aT' <- check aT VType
   a'  <- check a aT'
@@ -176,21 +204,22 @@ inferExtend aT (Bound (l , b)) = do
   (b' , bT) <- extendCtx l aT $ infer b
   return (Bound (l , b') , Bound (l , bT))
 
-checkDefs :: [Val] -> [Def] -> CheckM [(Ident , Val , Type)]
-checkDefs x [] = return []
-checkDefs xs ((l , a , aT) : as) = do
-  aT' <- return . foldSub xs =<< check aT VType
-  a' <- return . foldSub xs =<< check a aT'
-  as' <- extendCtx l aT' $ checkDefs (a' : xs) as
+checkDefs :: [Def] -> CheckM [(Ident , Val , Type)]
+checkDefs [] = return []
+checkDefs ((l , a , aT) : as) = do
+  aT' <- check aT VType
+  a' <- check a aT'
+  as' <- extendEnv l a' aT' $ checkDefs as
   return ((l , a' , aT') : as')
 
 checkDefsStable :: [Def] -> Result [Def]
-checkDefsStable as = run (checkDefsStableM as) (CheckR { ctx = [] })
+checkDefsStable as =
+  run (checkDefsStableM as) (CheckR { ctx = [] , env = [] })
   where
   checkDefsStableM as = do
-    as' <- checkDefs [] as
+    as' <- checkDefs as
     let bs = embedDefs as'
-    bs' <- checkDefs [] bs
+    bs' <- checkDefs bs
     unless (as' == bs') $ throwError $
       "Embedding is unstable!"
     return bs
