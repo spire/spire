@@ -14,25 +14,17 @@ import Data.List
 
 ----------------------------------------------------------------------
 -- Type checking monad.
---
--- It might be more honest to merge the environment with the context,
--- e.g.
---
---   CheckR { ctx :: [(Ident , Maybe Val , Type)] }
---
--- to enforce in types that all values in the environment have an
--- associated identifier and type.  Instead, I just "enforced" this in
--- the interface 'extendEnv'. But this choice might be related to the
--- complexity of the 'IVar' case of 'infer'.
 
-data CheckR = CheckR { ctx :: Ctx , env :: [Val] }
+data CheckR = CheckR { envCtx :: EnvCtx }
 type CheckM = ReaderT CheckR Result
 
 extendCtx :: Ident -> Type -> CheckM a -> CheckM a
-extendCtx l tp = local (\r -> r { ctx = (l , tp) : ctx r })
+extendCtx l tp =
+  local (\r -> r { envCtx = ((l , tp) , Nothing) : envCtx r })
 
 extendEnv :: Ident -> Val -> Type -> CheckM a -> CheckM a
-extendEnv l a aT = extendCtx l aT . local (\r -> r { env = a : env r })
+extendEnv l a aT =
+  local (\r -> r { envCtx = ((l , aT) , Just a) : envCtx r })
 
 run :: CheckM a -> CheckR -> Result a
 run = runReaderT
@@ -51,13 +43,13 @@ check (CIn a) (VFix d) = do
   a' <- check a (evalDInterp d (VFix d))
   return $ VIn d a'
 check (Infer a) bT = do
-  ctx <- asks ctx
+  envCtx <- asks envCtx
   (a' , aT) <- infer a
   unless (aT == bT) $ throwError $
     "Ill-typed!\n" ++
     "Expected type:\n" ++ prettyPrintError bT ++
     "\n\nInferred type:\n" ++ prettyPrintError aT ++
-    "\n\nContext:\n" ++ prettyPrintError ctx ++
+    "\n\nContext:\n" ++ prettyPrintError envCtx ++
     "\n\nUnevaluated value:\n" ++ prettyPrintError a
   return $ a'
 check a aT = throwError "Ill-typed!"
@@ -163,25 +155,19 @@ infer (IApp f a) = do
       "Applied value:\n"  ++ prettyPrintError f ++
       "\nApplied type:\n"  ++ prettyPrintError fT
 infer (IVar l) = do
-  ctx <- asks ctx
-  case findIndex (\(l' , _) -> l == l') ctx of
+  envCtx <- asks envCtx
+  case findIndex (\((l' , _) , _) -> l == l') envCtx of
     Nothing -> throwError $
       "Variable not in context!\n" ++
       "Referenced variable:\n" ++ l ++
-      "\nCurrent context:\n" ++ prettyPrintError ctx
+      "\nCurrent context:\n" ++ prettyPrintError envCtx
     Just i -> do
-      env <- asks env
-      let numEnclosingBinders = length ctx - length env
-          isFree              = i >= numEnclosingBinders
-          a = if isFree
-                       -- The env corresponds to a suffix of the
-                       -- context, so we need to adjust the index.
-              then let v = env !! (i - numEnclosingBinders)
-                   -- I am assuming that all values in the env will be
-                   -- closed, but here's a sanity check.
-                   in assert (freeVarsDB0 v == []) v
-              else Neut (NVar (NomVar (l , i)))
-          aT = snd (ctx !! i)
+      let ((_ , aT ) , ma) = envCtx !! i
+          noVal = Neut (NVar (NomVar (l , i)))
+          -- I am assuming that all values in the env will be closed,
+          -- but here's a sanity check.
+          val v = assert (freeVarsDB0 v == []) v
+          a = maybe noVal val ma
       return (a , aT)
       -- `traceShow'` (prettyPrint ctx, map prettyPrint env, prettyPrint l)
 infer (IAnn a aT) = do
@@ -214,7 +200,7 @@ checkDefs ((l , a , aT) : as) = do
 
 checkDefsStable :: [Def] -> Result [Def]
 checkDefsStable as =
-  run (checkDefsStableM as) (CheckR { ctx = [] , env = [] })
+  run (checkDefsStableM as) (CheckR { envCtx = [] })
   where
   checkDefsStableM as = do
     as' <- checkDefs as

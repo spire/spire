@@ -177,9 +177,15 @@ instance Display Check where
 instance Display Infer where
   display = d . embedI
 
-instance Display Ctx where
-  display ctx = listM [ parensM $ d x <+> d "," <+> d t
-                      | (x , t) <- ctx ]
+instance Display EnvCtx where
+  display envCtx = listM [ maybe ctx env mv x t
+                         | ((x , t) , mv) <- envCtx ]
+    where
+    -- env v x t = parensM $ d x <+> d "= ..." <+> d ":" <+> d t
+    -- ctx   x t = parensM $ d x <+>               d ":" <+> d t
+    ctx   x t = dAnn undefined x t
+    env v x t = parensM . alignM . sepM $
+                  [ d x , d ":" <+> d t , d "=" <+> d v ]
 
 ----------------------------------------------------------------------
 
