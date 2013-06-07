@@ -9,9 +9,6 @@ import Control.Monad.Error
 import Control.Monad.Reader
 import Data.List
 
--- import Debug.Trace
--- traceShow' = flip traceShow
-
 ----------------------------------------------------------------------
 -- Type checking monad.
 
@@ -169,7 +166,6 @@ infer (IVar l) = do
           val v = assert (freeVarsDB0 v == []) v
           a = maybe noVal val ma
       return (a , aT)
-      -- `traceShow'` (prettyPrint ctx, map prettyPrint env, prettyPrint l)
 infer (IAnn a aT) = do
   aT' <- check aT VType
   a'  <- check a aT'
