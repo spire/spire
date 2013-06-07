@@ -39,7 +39,12 @@ data Infer =
 
 ----------------------------------------------------------------------
 
-type Ctx = [(Ident , Type)]
+-- This is really a combination of context and environment:
+--
+--   'map fst :: EnvCtx -> [(Ident , Type)]'
+--
+-- recovers a traditional context.
+type EnvCtx = [((Ident , Type) , Maybe Val)]
 type Def = (Ident , Check , Check)
 type Defs = [Def]
 

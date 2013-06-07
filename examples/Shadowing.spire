@@ -1,0 +1,11 @@
+-- This example shows that we implement ML style shadowing (makes
+-- sense, since we don't have recursion yet ...)
+
+f : Bool
+f = true
+
+f : Bool * Bool
+f = f , f
+
+g : Bool
+g = g
