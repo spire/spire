@@ -236,9 +236,10 @@ weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
 type FreeVarsDBMonad = ReaderT Int (Writer [NomVar])
 
 freeVarsDBNomVarM :: NomVar -> FreeVarsDBMonad NomVar
-freeVarsDBNomVarM n@(NomVar (id , k)) = do
-  isFree <- asks (<= k)
-  when isFree $ tell [n]
+freeVarsDBNomVarM (NomVar (id , k)) = do
+  binders <- ask
+  let isFree = binders <= k
+  when isFree $ tell [NomVar (id , k - binders)]
   return undefined -- Don't care about the results here (hack).
 
 freeVarsDBM :: GenericM FreeVarsDBMonad
