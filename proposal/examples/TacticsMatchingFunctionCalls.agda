@@ -352,6 +352,11 @@ simp-step-plus0-Fin (`Fin₂ (`suc a₁ `+ a₂) , fin i) =
   `Fin₂ (`suc (a₁ `+ a₂)) , fin i
 simp-step-plus0-Fin x = x
 
+simp-step-n-plus0-Fin : ℕ → Tactic
+simp-step-n-plus0-Fin zero x = x
+simp-step-n-plus0-Fin (suc n) x =
+  simp-step-n-plus0-Fin n (simp-step-plus0-Fin x)
+
 ----------------------------------------------------------------------
 
 {-
