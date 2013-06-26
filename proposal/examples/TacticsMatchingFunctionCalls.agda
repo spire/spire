@@ -270,3 +270,56 @@ eg-rm-plus0-Fin a (fin i) = proj₂
   (rm-plus0-Fin (`Fin₂ (a `+ `zero) , fin i))
 
 ----------------------------------------------------------------------
+
+{-
+A tactic to simplify by one step of `+.
+-}
+
+simp-step-plus0-Fin : Tactic
+simp-step-plus0-Fin (`Fin₂ (`zero `+ a) , fin i) =
+  `Fin₂ a , fin i
+simp-step-plus0-Fin (`Fin₂ (`suc a₁ `+ a₂) , fin i) =
+  `Fin₂ (`suc (a₁ `+ a₂)) , fin i
+simp-step-plus0-Fin x = x
+
+----------------------------------------------------------------------
+
+{-
+A semantics-preserving definitional evaluator, and a tactic
+to simplify as far as possible using definitional equality.
+This is like the "simp" tactic in Coq.
+-}
+
+eval₂ : (a₁ : Arith) → Σ Arith (λ a₂ → eval a₁ ≡ eval a₂)
+eval₂ `zero = `zero , refl
+eval₂ (`suc a)
+  with eval₂ a
+... | a′ , p
+  rewrite p = `suc a′ , refl
+eval₂ (`zero `+ a₂) = eval₂ a₂
+eval₂ (`suc a₁ `+ a₂)
+  with eval₂ a₁ | eval₂ a₂
+... | a₁′ , p | a₂′ , q
+  rewrite p | q = `suc (a₁′ `+ a₂′) , refl
+eval₂ (a₁ `+ a₂)
+  with eval₂ a₁ | eval₂ a₂
+... | a₁′ , p | a₂′ , q
+  rewrite p | q = (a₁′ `+ a₂′) , refl
+eval₂ (`zero `* a₂) = `zero , refl
+eval₂ (`suc a₁ `* a₂)
+  with eval₂ a₁ | eval₂ a₂
+... | a₁′ , p | a₂′ , q
+  rewrite p | q = a₂′ `+ (a₁′ `* a₂′) , refl
+eval₂ (a₁ `* a₂)
+  with eval₂ a₁ | eval₂ a₂
+... | a₁′ , p | a₂′ , q
+  rewrite p | q = (a₁′ `* a₂′) , refl
+
+simp-Fin : Tactic
+simp-Fin (`Fin₂ a , fin i)
+  with eval₂ a
+... | a′ , p rewrite p =
+  `Fin₂ a′ , fin i
+simp-Fin x = x
+
+----------------------------------------------------------------------
