@@ -50,6 +50,18 @@ eval (a₁ `* a₂) = eval a₁ * eval a₂
 ----------------------------------------------------------------------
 
 {-
+An alternative to the Arith codes is to create a *view* of the
+natural numbers along with a collection of functions over them.
+-}
+
+data ArithView : ℕ → Set where
+  `nat : (n : ℕ) → ArithView n
+  _`+_ : (n₁ n₂ : ℕ) → ArithView (n₁ + n₂)
+  _`*_ : (n₁ n₂ : ℕ) → ArithView (n₁ * n₂)
+
+----------------------------------------------------------------------
+
+{-
 Φ (standing for *function*-indexed types)
 represents an indexed type, but we *can* pattern
 match on function calls in its index position.
@@ -92,6 +104,17 @@ data Fin₂ (a : Arith) : Set where
 ----------------------------------------------------------------------
 
 {-
+Here is the ArithView specialized into the Fin type.
+-}
+
+data Fin₃ : ℕ → Set where
+  fin : (n : ℕ) (i : Fin n) → Fin₃ n
+  fin+ : (n₁ n₂ : ℕ) (i : Fin (n₁ + n₂)) → Fin₃ (n₁ + n₂)
+  fin* : (n₁ n₂ : ℕ) (i : Fin (n₁ * n₂)) → Fin₃ (n₁ * n₂)
+
+----------------------------------------------------------------------
+
+{-
 A small universe of dependent types that is sufficient for the
 examples given below.
 -}
@@ -101,7 +124,7 @@ data Type : Set
 
 data Type where
   `Bool `ℕ `Arith : Type
-  `Fin : (n : ℕ) → Type
+  `ArithView `Fin : (n : ℕ) → Type
   `Φ : (A A′ : Type)
     (el : ⟦ A ⟧ → ⟦ A′ ⟧)
     (B : ⟦ A′ ⟧ → Type)
@@ -109,16 +132,19 @@ data Type where
     → Type
   `ΦArith : (B : ℕ → Type) (a : Arith) → Type
   `Fin₂ : (a : Arith) → Type
+  `Fin₃ : (n : ℕ) → Type
   `Π `Σ : (A : Type) (B : ⟦ A ⟧ → Type) → Type
   `Id : (A : Type) (x y : ⟦ A ⟧) → Type
 
 ⟦ `Bool ⟧ = Bool
 ⟦ `ℕ ⟧ = ℕ
 ⟦ `Arith ⟧ = Arith
+⟦ `ArithView n ⟧ = ArithView n
 ⟦ `Fin n ⟧ = Fin n
 ⟦ `Φ A A′ el B a ⟧ = Φ ⟦ A ⟧ ⟦ A′ ⟧ el (λ a → ⟦ B a ⟧) a
 ⟦ `ΦArith B a ⟧ = ΦArith (λ x → ⟦ B x ⟧) a
 ⟦ `Fin₂ a ⟧ = Fin₂ a
+⟦ `Fin₃ n ⟧ = Fin₃ n
 ⟦ `Π A B ⟧ = (a : ⟦ A ⟧) → ⟦ B a ⟧
 ⟦ `Σ A B ⟧ = Σ ⟦ A ⟧ (λ a → ⟦ B a ⟧)
 ⟦ `Id A x y ⟧ = x ≡ y
@@ -254,20 +280,64 @@ Finally, here is the same tactic but using the even more
 specialized Fin₂ type.
 -}
 
-rm-plus0-Fin : Tactic
-rm-plus0-Fin (`Fin₂ (a `+ `zero) , fin i) =
+rm-plus0-Fin₂ : Tactic
+rm-plus0-Fin₂ (`Fin₂ (a `+ `zero) , fin i) =
   `Fin₂ a
   ,
   fin (subst (λ x → ⟦ `Fin x ⟧) (sym (plusrident (eval a))) i)
-rm-plus0-Fin x = x
+rm-plus0-Fin₂ x = x
 
 ----------------------------------------------------------------------
 
-eg-rm-plus0-Fin : (a : Arith)
+eg-rm-plus0-Fin₂ : (a : Arith)
   → ⟦ `Fin₂ (a `+ `zero) ⟧
   → ⟦ `Fin₂ a ⟧
-eg-rm-plus0-Fin a (fin i) = proj₂
-  (rm-plus0-Fin (`Fin₂ (a `+ `zero) , fin i))
+eg-rm-plus0-Fin₂ a (fin i) = proj₂
+  (rm-plus0-Fin₂ (`Fin₂ (a `+ `zero) , fin i))
+
+----------------------------------------------------------------------
+
+{-
+A tactic that simplifies an ArithView index.
+To target Fin, ideally you want to match on something like:
+`Σ `ℕ (λ n → `ArithView n `× Fin n)
+But this requires matching on a λ, and a non-linear occurrence
+of n.
+
+The example after this one accomplishes the same thing via the
+specialized Fin₃ type instead.
+-}
+
+rm-plus0-ArithView : Tactic
+rm-plus0-ArithView (`ArithView .(n + 0) , (n `+ 0)) =
+  `ArithView n , `nat n 
+rm-plus0-ArithView x = x
+
+----------------------------------------------------------------------
+
+{-
+A tactic to simplify to simplify the "view"-based Fin type Fin₃.
+This is most similar to rm-plus0-Fin₂, except Fin₃ is view-based
+while Fin₂ is universe-based (where the universe is the codes of
+possible operations).
+
+On one hand this Fin₃ approach is simpler than Fin₂, because you do
+not need to write an eval function or tell it to reduce definitional
+equalities explicitly (like you would to get Arith to compute).
+
+On the other hand, the Fin₂ approach is more powerful because it
+allows you to control when things reduce. This is more like Coq
+tactics, where you might not want something to reduce and you use
+"simpl" explicitly when you do. The "simpl" tactic is defined below
+via the eval₂ function.
+-}
+
+rm-plus0-Fin₃ : Tactic
+rm-plus0-Fin₃ (`Fin₃ .(n + 0) , fin+ n 0 i) =
+  `Fin₃ n
+  ,
+  fin n (subst Fin (sym (plusrident n)) i)
+rm-plus0-Fin₃ x = x
 
 ----------------------------------------------------------------------
 
