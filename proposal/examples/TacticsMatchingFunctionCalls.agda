@@ -83,6 +83,15 @@ data ΦArith (B : ℕ → Set) (a : Arith) : Set where
 ----------------------------------------------------------------------
 
 {-
+Going further, we could even specialize B in ΦArith to Fin.
+-}
+
+data Fin₂ (a : Arith) : Set where
+  fin : (i : Fin (eval a)) → Fin₂ a
+
+----------------------------------------------------------------------
+
+{-
 A small universe of dependent types that is sufficient for the
 examples given below.
 -}
@@ -99,6 +108,7 @@ data Type where
     (a : ⟦ A ⟧)
     → Type
   `ΦArith : (B : ℕ → Type) (a : Arith) → Type
+  `Fin₂ : (a : Arith) → Type
   `Π `Σ : (A : Type) (B : ⟦ A ⟧ → Type) → Type
   `Id : (A : Type) (x y : ⟦ A ⟧) → Type
 
@@ -108,6 +118,7 @@ data Type where
 ⟦ `Fin n ⟧ = Fin n
 ⟦ `Φ A A′ el B a ⟧ = Φ ⟦ A ⟧ ⟦ A′ ⟧ el (λ a → ⟦ B a ⟧) a
 ⟦ `ΦArith B a ⟧ = ΦArith (λ x → ⟦ B x ⟧) a
+⟦ `Fin₂ a ⟧ = Fin₂ a
 ⟦ `Π A B ⟧ = (a : ⟦ A ⟧) → ⟦ B a ⟧
 ⟦ `Σ A B ⟧ = Σ ⟦ A ⟧ (λ a → ⟦ B a ⟧)
 ⟦ `Id A x y ⟧ = x ≡ y
@@ -218,10 +229,10 @@ Here is the same tactic but using the specialized ΦArith type.
 -}
 
 rm-plus0-Arith : Tactic
-rm-plus0-Arith (`ΦArith B (a `+ `zero) , φ b) =
+rm-plus0-Arith (`ΦArith B (a `+ `zero) , φ i) =
   `ΦArith B a
   ,
-  φ (subst (λ x → ⟦ B x ⟧) (sym (plusrident (eval a))) b)
+  φ (subst (λ x → ⟦ B x ⟧) (sym (plusrident (eval a))) i)
 rm-plus0-Arith x = x
 
 ----------------------------------------------------------------------
@@ -235,5 +246,27 @@ eg-rm-plus0-Arith : (a : Arith)
   → ⟦ `ΦArith `Fin a ⟧
 eg-rm-plus0-Arith a (φ i) = proj₂
   (rm-plus0-Arith (`ΦArith `Fin (a `+ `zero) , φ i))
+
+----------------------------------------------------------------------
+
+{-
+Finally, here is the same tactic but using the even more 
+specialized Fin₂ type.
+-}
+
+rm-plus0-Fin : Tactic
+rm-plus0-Fin (`Fin₂ (a `+ `zero) , fin i) =
+  `Fin₂ a
+  ,
+  fin (subst (λ x → ⟦ `Fin x ⟧) (sym (plusrident (eval a))) i)
+rm-plus0-Fin x = x
+
+----------------------------------------------------------------------
+
+eg-rm-plus0-Fin : (a : Arith)
+  → ⟦ `Fin₂ (a `+ `zero) ⟧
+  → ⟦ `Fin₂ a ⟧
+eg-rm-plus0-Fin a (fin i) = proj₂
+  (rm-plus0-Fin (`Fin₂ (a `+ `zero) , fin i))
 
 ----------------------------------------------------------------------
