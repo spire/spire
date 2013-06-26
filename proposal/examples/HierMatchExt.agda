@@ -22,7 +22,8 @@ open import Data.Fin.Props
 open import Data.Product
 open import Data.String
 open import Function
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ( inspect )
+open Deprecated-inspect
 module HierMatchExt where
 
 ----------------------------------------------------------------------
@@ -106,7 +107,9 @@ Tactic ℓ = ⟦ suc ℓ ∣ `Tactic ℓ ⟧
 ----------------------------------------------------------------------
 
 rm-plus0-Fin : (ℓ : ℕ) → Tactic (suc ℓ)
-rm-plus0-Fin ℓ (`⟦ `Σ `ℕ B ⟧ , (n , b)) =
+rm-plus0-Fin ℓ (`⟦ `Σ `ℕ B ⟧ , (n , b))
+  with inspect (B n)
+... | `Fin m with-≡ p =
   `Π `ℕ (λ x → `Id `Type (B x) (`Fin (x + 0)))
   `→
   `Σ `ℕ `Fin
@@ -114,15 +117,16 @@ rm-plus0-Fin ℓ (`⟦ `Σ `ℕ B ⟧ , (n , b)) =
   λ f → n , subst Fin
     (plusrident n)
     (subst (λ A → ⟦ ℓ ∣ A ⟧) (f n) b)
+... | Bn with-≡ p = (`⟦ `Σ `ℕ B ⟧ , (n , subst (λ x → ⟦ ℓ ∣ B x ⟧) refl b))
 rm-plus0-Fin ℓ x = x
 
 ----------------------------------------------------------------------
 
-eg-rm-plus0-Fin : (ℓ : ℕ) →
-  ⟦ suc ℓ ∣ `⟦ `Σ `ℕ (λ n → `Fin (n + zero)) ⟧
-        `→ `⟦ `Σ `ℕ (λ n → `Fin n) ⟧ ⟧
-eg-rm-plus0-Fin ℓ (n , i) = proj₂
-  (rm-plus0-Fin ℓ (`⟦ `Σ `ℕ (λ n → `Fin (n + zero)) ⟧ , (n , i)))
-  (λ _ → refl)
+-- eg-rm-plus0-Fin : (ℓ : ℕ) →
+--   ⟦ suc ℓ ∣ `⟦ `Σ `ℕ (λ n → `Fin (n + zero)) ⟧
+--         `→ `⟦ `Σ `ℕ (λ n → `Fin n) ⟧ ⟧
+-- eg-rm-plus0-Fin ℓ (n , i) = proj₂
+--   (rm-plus0-Fin ℓ (`⟦ `Σ `ℕ (λ n → `Fin (n + zero)) ⟧ , (n , i)))
+--   (λ _ → refl)
 
 ----------------------------------------------------------------------
