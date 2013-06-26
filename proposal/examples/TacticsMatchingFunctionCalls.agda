@@ -95,7 +95,7 @@ data ΦArith (B : ℕ → Set) (a : Arith) : Set where
 ----------------------------------------------------------------------
 
 {-
-Going further, we could even specialize B in ΦArith to Fin.
+Going further, we could even specialize B in ΦArith with Fin.
 -}
 
 data Fin₂ (a : Arith) : Set where
@@ -104,7 +104,7 @@ data Fin₂ (a : Arith) : Set where
 ----------------------------------------------------------------------
 
 {-
-Here is the ArithView specialized into the Fin type.
+Here is the ArithView specialized with the Fin type.
 -}
 
 data Fin₃ : ℕ → Set where
