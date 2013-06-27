@@ -90,8 +90,8 @@ substitute1 weaken = sM 0
   sR i e0 (e1 :@ e2)       = sR i e0 e1 `app` sM i e0 e2
 
   app :: Exp M -> Exp M -> Exp M
-  app (Lift e) e' = e :@ e'
-  app (Lam e)  e' = substitute1 e' e
+  app (Lift e) e' = Lift (e :@ e')
+  app (Lam (Binder e)) e' = substitute1 weaken e' e
 
 sVar :: Int -> Exp M -> Int -> Exp M
 sVar i e0 j | i == j    = e0
