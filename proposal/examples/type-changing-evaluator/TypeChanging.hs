@@ -110,3 +110,30 @@ normalize1 appM = n
   n (Lam (Binder e))           = Lam (Binder (n e))
 
 n1 = normalize1 (appM1 $ substitute1 weaken1)
+
+----------------------------------------------------------------
+-- Pretty printers
+
+pp :: Exp e -> String
+pp = p ["x" ++ show i | i <- [0..]] []
+  where
+  -- Print open exp with respect to (f)ree and (b)ound names.
+  p :: [String] -> [String] -> Exp e -> String
+  p f b (Var i) = if i < length b then b !! i else w ("#" ++ show i)
+  p f b (e1 :@ e2) = l e1 (p f b e1) ++ " " ++ r e2 (p f b e2)
+  p (x:f) b (Lam (Binder e)) = "\\" ++ x ++ ". " ++ p f (x:b) e
+
+  -- Optionally (w)rap (l)eft and (r)ight subexpressions.
+  w :: String  -> String
+  w s = "(" ++ s ++ ")"
+  l , r :: Exp e -> String -> String
+  l (Lam _)  = w
+  l _        = id
+  r (_ :@ _) = w
+  r (Lam _)  = w
+  r _        = id
+
+ppp :: Exp e -> IO ()
+ppp  = putStrLn . pp
+pppn :: Exp E -> IO ()
+pppn = ppp . n1
