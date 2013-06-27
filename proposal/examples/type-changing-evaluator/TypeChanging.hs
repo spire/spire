@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable
+  , ViewPatterns
   , TypeFamilies
   , RankNTypes
   , StandaloneDeriving
@@ -78,7 +79,7 @@ wVar i j | i <= j    = Var (succ j)
 
 -- Substitute an expression for variable zero:
 -- If G |- e1:A and G,A |- e2:B then G |- substitute e1 e2:B.
-substitute1 :: (forall e. Exp e -> Exp e) -> Exp M -> Exp M -> Exp M
+substitute1 :: (Exp M -> Exp M) -> Exp M -> Exp M -> Exp M
 substitute1 weaken = sM 0
   where
   sM :: Int -> Exp M -> Exp M -> Exp M
@@ -87,13 +88,25 @@ substitute1 weaken = sM 0
 
   sR :: Int -> Exp M -> Exp R -> Exp M
   sR i e0 (Var j)          = sVar i e0 j
-  sR i e0 (e1 :@ e2)       = sR i e0 e1 `app` sM i e0 e2
+  sR i e0 (e1 :@ e2)       = sR i e0 e1 `appM` sM i e0 e2
 
-  app :: Exp M -> Exp M -> Exp M
-  app (Lift e) e' = Lift (e :@ e')
-  app (Lam (Binder e)) e' = substitute1 weaken e' e
+  appM = appM1 (substitute1 weaken)
+
+appM1 :: (Exp M -> Exp M -> Exp M) -> Exp M -> Exp M -> Exp M
+appM1 substitute (Lift e) e' = Lift (e :@ e')
+appM1 substitute (Lam (Binder e)) e' = substitute e' e
 
 sVar :: Int -> Exp M -> Int -> Exp M
 sVar i e0 j | i == j    = e0
             | i <  j    = Lift $ Var (pred j)
             | otherwise = Lift $ Var j
+
+normalize1 :: (Exp M -> Exp M -> Exp M) -> Exp E -> Exp M
+normalize1 appM = n
+  where
+  n :: Exp E -> Exp M
+  n (Var i)                    = Lift $ Var i
+  n ((n -> e1') :@ (n -> e2')) = e1' `appM` e2'
+  n (Lam (Binder e))           = Lam (Binder (n e))
+
+n1 = normalize1 (appM1 $ substitute1 weaken1)
