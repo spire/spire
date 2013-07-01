@@ -83,6 +83,7 @@ substitute1 :: (Exp M -> Exp M) -> Exp M -> Exp M -> Exp M
 substitute1 weaken = sM 0
   where
   sM :: Int -> Exp M -> Exp M -> Exp M
+  -- Generic!
   sM i e0 (Lam (Binder e)) = Lam (Binder (sM (succ i) (weaken e0) e))
   sM i e0 (Lift e)         = sR i e0 e
 
@@ -107,6 +108,7 @@ normalize1 appM = n
   n :: Exp E -> Exp M
   n (Var i)                    = Lift $ Var i
   n ((n -> e1') :@ (n -> e2')) = e1' `appM` e2'
+  -- Generic!
   n (Lam (Binder e))           = Lam (Binder (n e))
 
 n1 = normalize1 (appM1 $ substitute1 weaken1)
@@ -137,3 +139,35 @@ ppp :: Exp e -> IO ()
 ppp  = putStrLn . pp
 pppn :: Exp E -> IO ()
 pppn = ppp . n1
+
+----------------------------------------------------------------
+-- Examples.
+
+-- Closed examples.
+
+k = Lam (Binder (Lam (Binder (Var 1))))
+s = Lam (Binder (Lam (Binder (Lam (Binder $
+       (Var 2 :@ Var 0) :@
+       (Var 1 :@ Var 0))))))
+i = Lam (Binder (Var 0))
+skk = (s :@ k) :@ k
+skkEta = Lam (Binder (skk :@ Var 0))
+
+-- Open examples.
+
+e1 = Var 0
+e2 = Lam (Binder (Var 1 :@ Var 0))
+e3 = Lam (Binder (Lam (Binder (Var 2 :@ Var 3))))
+e4 = (e3 :@ e2) :@ e1
+
+-- All examples.
+egs = [ k , s , i , skk , skkEta , e1 , e2 , e3 , e4 ]
+
+main = do
+  ppp s
+  ppp skkEta
+  pppn skkEta
+  -- print $ agree n1 n2 n3
+  -- print $ agree freeVars1 freeVars2 freeVars3
+  -- where
+  -- agree f g h = and [ f e == g e && g e == h e | e <- egs ]
