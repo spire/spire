@@ -35,7 +35,7 @@ tests = TestList [
     ,
 
     freeVarsDB0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
-    ~?= [NomVar ("x",1)]
+    ~?= [NomVar ("x",0)]
 
     ]
 

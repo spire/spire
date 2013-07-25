@@ -2,7 +2,7 @@ all: spire
 
 .PHONY: deps
 deps:
-	cabal install wl-pprint parsec mtl syb
+	cabal install wl-pprint parsec mtl syb hunit
 
 tmp:
 	mkdir tmp
