@@ -3,16 +3,12 @@ module Spire.Canonical.HereditarySubstitution
   ( sub , foldSub
   , evalStrAppend , evalStrEq , evalIf , evalCaseBool
   , evalProj1 , evalProj2 , evalApp , evalDInterp
-  , freeVarsDB0 )
+  , freeVarsDB0, weakenVal0 )
 where
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Data.Generics
 import Spire.Canonical.Types
-
-import Debug.Trace
--- trace' x y = trace x y
-trace' x y = y
 
 ----------------------------------------------------------------------
 
@@ -163,8 +159,7 @@ type WeakenMonad = Reader Int
 weakenNomVarM :: NomVar -> WeakenMonad NomVar
 weakenNomVarM (NomVar (id , k)) = do
   isFree <- asks (<= k)
-  trace' ("XXX weakenNomVarM XXX: " ++ show id) $
-    return $ NomVar (id , if isFree then succ k else k)
+  return $ NomVar (id , if isFree then succ k else k)
 
 weakenM :: GenericM WeakenMonad
 weakenM = everywhereMM (mkMM incMM) (mkM weakenNomVarM)
@@ -208,22 +203,6 @@ everywhereMM :: Monad m => GenericMM m -> GenericM m -> GenericM m
 everywhereMM mm m x = mm (m =<< gmapM (everywhereMM mm m) x)
 
 ----------------------------------------------------------------------
-
--- Weakening tests
-{-
-
-weakenVal0 (Neut (NVar (NomVar ("x", 0))))
-== (Neut (NVar (NomVar ("x", 1))))
-
-weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
-== (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
-
-weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
-== VLam VUnit (Bound ("x",Neut (NVar (NomVar ("x",2)))))
-
--}
-
-----------------------------------------------------------------------
 -- DeBruijn free variables.
 --
 -- Implementing a named free variable collector would be similar.
@@ -255,21 +234,5 @@ freeVarsDB n x = execWriter $ runReaderT (freeVarsDBM x) n
 -- Weaken free variables, assuming we start under no binders.
 freeVarsDB0 :: Data a => a -> [NomVar]
 freeVarsDB0 = freeVarsDB 0
-
-----------------------------------------------------------------------
-
--- FreeVarsDB tests
-{-
-
-freeVarsDB0 (Neut (NVar (NomVar ("x", 0))))
-== [NomVar ("x", 0)]
-
-freeVarsDB0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
-== []
-
-freeVarsDB0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
-== [NVar (NomVar ("x",1)]
-
--}
 
 ----------------------------------------------------------------------
