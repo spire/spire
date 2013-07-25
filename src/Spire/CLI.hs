@@ -17,8 +17,8 @@ run = do
 
 checkFromFile :: FilePath -> IO ()
 checkFromFile file = do
-  source <- readFile file
-  case parseProgram file source of
+  code <- readFile file
+  case parseProgram file code of
     Left error -> do
       putStrLn "Parse error:"
       putStrLn $ formatParseError error

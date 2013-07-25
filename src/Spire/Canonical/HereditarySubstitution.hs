@@ -215,11 +215,11 @@ everywhereMM mm m x = mm (m =<< gmapM (everywhereMM mm m) x)
 type FreeVarsDBMonad = ReaderT Int (Writer [NomVar])
 
 freeVarsDBNomVarM :: NomVar -> FreeVarsDBMonad NomVar
-freeVarsDBNomVarM (NomVar (id , k)) = do
+freeVarsDBNomVarM orig@(NomVar (id , k)) = do
   binders <- ask
   let isFree = binders <= k
   when isFree $ tell [NomVar (id , k - binders)]
-  return undefined -- Don't care about the results here (hack).
+  return orig
 
 freeVarsDBM :: GenericM FreeVarsDBMonad
 freeVarsDBM = everywhereMM (mkMM incMM) (mkM freeVarsDBNomVarM)

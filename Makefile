@@ -19,7 +19,7 @@ clean:
 	-rm spire
 
 test:
-	runghc -isrc src/Spire/Test.hs
+	runghc -isrc src/Spire/Test.hs examples
 
 ott: ott
 	ott -i formalization/ott/spire.ott -o formalization/ott/spire.tex

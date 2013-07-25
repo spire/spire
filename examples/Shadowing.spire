@@ -7,5 +7,5 @@ f = true
 f : Bool * Bool
 f = f , f
 
-g : Bool
-g = g
+g : Bool * Bool
+g = f
