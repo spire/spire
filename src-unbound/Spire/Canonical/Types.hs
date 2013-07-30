@@ -5,18 +5,17 @@
   , FlexibleInstances
   , FlexibleContexts
   , UndecidableInstances
+  , ViewPatterns
   #-}
 
 module Spire.Canonical.Types where
-import Unbound.LocallyNameless hiding ( Subst , subst, substs )
-
-snoc :: [a] -> a -> [a]
-snoc xs x = xs ++ [x]
+import Unbound.LocallyNameless
 
 ----------------------------------------------------------------------
 
-type Nom = Name Value
 type Type = Value
+type Nom = Name Value
+type NomType = (Nom , Embed Type)
 
 data Value =
   {- Types -}
@@ -41,6 +40,19 @@ data Elim =
 $(derive [''Value , ''Elim])
 instance Alpha Value
 instance Alpha Elim
+
+----------------------------------------------------------------------
+
+data Tel = Empty
+  | Extend (Rebind NomType Tel)
+  deriving Show
+
+$(derive [''Tel])
+instance Alpha Tel
+
+snocTel :: Tel -> NomType -> Tel
+snocTel Empty y = Extend (rebind y Empty)
+snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 
 ----------------------------------------------------------------------
 

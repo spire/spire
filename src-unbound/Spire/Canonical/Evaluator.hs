@@ -1,10 +1,15 @@
 {-# LANGUAGE MultiParamTypeClasses , FlexibleInstances #-}
 
 module Spire.Canonical.Evaluator where
-import Unbound.LocallyNameless hiding ( Subst , subst, substs )
-import Spire.Unbound.Subst
+import Unbound.LocallyNameless
+import Spire.Unbound.SubstM
 import Spire.Canonical.Types
 import Control.Monad.Error
+
+----------------------------------------------------------------------
+
+snoc :: [a] -> a -> [a]
+snoc xs x = xs ++ [x]
 
 ----------------------------------------------------------------------
 
@@ -13,7 +18,7 @@ type EvalM = FreshM
 ($$) :: Bind Nom Value -> Value -> EvalM Value
 ($$) b x = do
   (nm , f) <- unbind b
-  subst nm x f
+  substM nm x f
 
 elim :: Value -> Elim -> EvalM Value
 elim (VElim nm fs) e         = return $ VElim nm $ snoc fs e
@@ -27,10 +32,10 @@ elim _              EProj2   = error "Ill-typed evaluation of proj2"
 elims :: Value -> [Elim] -> EvalM Value
 elims = foldM elim
 
-instance Subst EvalM Value Elim
+instance SubstM EvalM Value Elim
 
-instance Subst EvalM Value Value where
-  isVar (VElim nm fs) = Just $ SubstCoerce nm (\x -> Just (elims x fs))
-  isVar _ = Nothing
+instance SubstM EvalM Value Value where
+  isVarM (VElim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
+  isVarM _ = Nothing
 
 ----------------------------------------------------------------------
