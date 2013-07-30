@@ -50,13 +50,19 @@ check (Infer a) _B = do
   return a'
 
 infer :: Infer -> ContextM (Value , Type)
-infer ITT   = return (VTT , VUnit)
+infer ITT   = return (VTT   , VUnit)
+infer IUnit = return (VUnit , VType)
 infer IType = return (VType , VType)
 
 infer (ISg _A _B) = do
   _A' <- check _A VType
   _B' <- checkExtend _A' _B VType
   return (VSg _A' _B' , VType)
+
+infer (IPi _A _B) = do
+  _A' <- check _A VType
+  _B' <- checkExtend _A' _B VType
+  return (VPi _A' _B' , VType)
 
 infer (IVar nm) = do
   ctx <- asks ctx
@@ -68,17 +74,41 @@ infer (IAnn a _A) = do
   return (a' , _A')
 
 infer (IProj1 ab) = do
-  (ab', _AB) <- infer ab
+  (ab' , _AB) <- infer ab
   case _AB of
     VSg _A _B -> do
-      a' <- elim ab' EProj1
+      a'     <- elim ab' EProj1
       return (a' , _A)
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
       "Projected value:\n" ++ show ab ++
       "\nProjected type:\n" ++ show _AB
 
-infer _ = undefined
+infer (IProj2 ab) = do
+  (ab' , _AB) <- infer ab
+  case _AB of
+    VSg _A _B -> do
+      a'     <- elim ab' EProj1
+      b'     <- elim ab' EProj2
+      _B'    <- _B $$ a'
+      return (b' , _B')
+    _ -> throwError $
+      "Ill-typed, projection of non-pair!\n" ++
+      "Projected value:\n" ++ show ab ++
+      "\nProjected type:\n" ++ show _AB
+
+infer (IApp f a) = do
+  (f' , _F) <- infer f
+  case _F of
+    VPi _A _B -> do
+      a'     <- check a _A
+      b'     <- elim f' (EApp a')
+      _B'    <- _B $$ a'
+      return (b' , _B')
+    _ -> throwError $
+      "Ill-typed, projection of non-function!\n" ++
+      "Applied value:\n" ++ show f ++
+      "\nApplied type:\n" ++ show _F
 
 ----------------------------------------------------------------------
 
