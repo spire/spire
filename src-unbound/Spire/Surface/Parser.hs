@@ -1,6 +1,16 @@
+{-# LANGUAGE
+    MultiParamTypeClasses
+  , TemplateHaskell
+  , ScopedTypeVariables
+  , FlexibleInstances
+  , FlexibleContexts
+  , UndecidableInstances
+  #-}
+
 module Spire.Surface.Parser where
 import Spire.Surface.Types
 import Spire.Canonical.Types
+import Unbound.LocallyNameless (bind)
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
@@ -117,15 +127,19 @@ table = [
     [Infix parseSpaceApp AssocLeft]
   , [ Infix (parseInfix "," SPair) AssocRight]
   , [Infix (parseInfix "$" SApp) AssocRight]
-  , [Infix (parseInfix "*" (boundInfix SSg)) AssocRight]
-  , [Infix (parseInfix "->" (boundInfix SPi)) AssocRight]
+  , [Infix (parseInfix "*" infixSg) AssocRight]
+  , [Infix (parseInfix "->" infixPi) AssocRight]
   ] where
+
   parseSpaceApp = failIfStmt >> return SApp
+
   parseInfix op con = parseOp op >> return con
 
-  boundInfix con = \ _A _B -> case _A of
-    SAnn (SVar l) _A' -> con _A' (Bound l _B)
-    _ -> con _A (Bound wildcard _B)
+  infixSg (SAnn (SVar nm) _A) _B = SSg _A (bind nm _B)
+  infixSg _A _B = sSg _A wildcard _B
+
+  infixPi (SAnn (SVar nm) _A) _B = SPi _A (bind nm _B)
+  infixPi _A _B = sPi _A wildcard _B
 
 ----------------------------------------------------------------------
 
@@ -155,7 +169,7 @@ parseLam = try $ do
   l <- parseWildOrIdent
   parseOp "->"
   tm <- parseSyntax
-  return $ SLam (Bound l tm)
+  return $ sLam l tm
 
 parseAnn = parseParens $ do
   --    binding   or  annotation
@@ -172,6 +186,6 @@ parseType = parseKeyword "Type" >> return SType
 
 parseVar = do
   l <- parseIdent
-  return $ SVar l
+  return $ sVar l
 
 ----------------------------------------------------------------------
