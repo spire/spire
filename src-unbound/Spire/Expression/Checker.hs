@@ -20,17 +20,33 @@ import Data.Functor.Identity
 
 type CheckM = ErrorT String FreshM
 
-lookUp :: Nom -> Tel -> CheckM Type
-lookUp nm Empty = throwError $ "Not in context: " ++ show nm
+lookUp :: Nom -> Tel -> CheckM (Value , Type)
+lookUp nm Empty = throwError $
+  "Variable not in context:\n" ++ show nm
 lookUp nm (Extend (unrebind -> ((x , Embed _A) , xs))) =
   if nm == x
-  then return _A
+  then let a = VElim nm [] in return (a , _A)
   else lookUp nm xs
 
 ----------------------------------------------------------------------
 
 check :: Tel -> Check -> Type -> CheckM Value
-check = undefined
+
+check ctx (CPair a b) (VSg _A _B) = undefined
+
+check ctx (CPair a b) _ = throwError "Ill-typed!"
+
+check ctx (Infer a) _B = do
+  (a' , _A) <- infer ctx a
+  unless (aeq _A _B) $ throwError $
+    "Ill-typed!\n" ++
+    "Expected type:\n" ++ show _B ++
+    "\n\nInferred type:\n" ++ show _A ++
+    "\n\nContext:\n" ++ show ctx ++
+    "\n\nUnevaluated value:\n" ++ show a
+  return a'
+
+check ctx a _A = undefined
 
 infer :: Tel -> Infer -> CheckM (Value , Type)
 infer ctx ITT   = return (VTT , VUnit)
@@ -40,10 +56,13 @@ infer ctx (ISg _A _B) = do
   _A' <- check ctx _A VType
   _B' <- checkExtend ctx _A' _B VType
   return (VSg _A' _B' , VType)
-infer ctx (IPi _A _B) = do
+
+infer ctx (IVar nm) = lookUp nm ctx
+
+infer ctx (IAnn a _A) = do
   _A' <- check ctx _A VType
-  _B' <- checkExtend ctx _A' _B VType
-  return (VPi _A' _B' , VType)
+  a' <- check ctx a _A'
+  return (a' , _A')
 
 infer ctx i = undefined
 
