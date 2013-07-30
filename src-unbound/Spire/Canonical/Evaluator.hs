@@ -8,6 +8,13 @@ import Control.Monad.Error
 
 ----------------------------------------------------------------------
 
+instance SubstM ContextM Value Elim
+instance SubstM ContextM Value Value where
+  isVarM (Elim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
+  isVarM _ = Nothing
+
+----------------------------------------------------------------------
+
 snoc :: [a] -> a -> [a]
 snoc xs x = xs ++ [x]
 
@@ -19,7 +26,7 @@ snoc xs x = xs ++ [x]
   substM nm x f
 
 elim :: Value -> Elim -> ContextM Value
-elim (Elim nm fs) e         = return $ Elim nm $ snoc fs e
+elim (Elim nm fs)   e        = return $ Elim nm $ snoc fs e
 elim (VLam _A f)    (EApp a) = f $$ a
 elim _              (EApp a) = return $ error "Ill-typed evaluation of ($)"
 elim (VPair a b _B) EProj1   = return a
@@ -29,10 +36,5 @@ elim _              EProj2   = return $ error "Ill-typed evaluation of proj2"
 
 elims :: Value -> [Elim] -> ContextM Value
 elims = foldM elim
-
-instance SubstM ContextM Value Elim
-instance SubstM ContextM Value Value where
-  isVarM (Elim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
-  isVarM _ = Nothing
 
 ----------------------------------------------------------------------
