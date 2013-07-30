@@ -21,7 +21,7 @@ type EvalM = FreshM
   substM nm x f
 
 elim :: Value -> Elim -> EvalM Value
-elim (VElim nm fs) e         = return $ VElim nm $ snoc fs e
+elim (Elim nm fs) e         = return $ Elim nm $ snoc fs e
 elim (VLam _A b)    (EApp x) = b $$ x
 elim _              (EApp x) = error "Ill-typed evaluation of ($)"
 elim (VPair a b _B) EProj1   = return a
@@ -35,7 +35,7 @@ elims = foldM elim
 instance SubstM EvalM Value Elim
 
 instance SubstM EvalM Value Value where
-  isVarM (VElim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
+  isVarM (Elim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
   isVarM _ = Nothing
 
 ----------------------------------------------------------------------

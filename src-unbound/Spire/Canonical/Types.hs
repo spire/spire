@@ -28,7 +28,7 @@ data Value =
   | VPair Value Value Value {- : Type -}
   | VLam Value {- : Type -} (Bind Nom Value)
 
-  | VElim Nom [Elim]
+  | Elim Nom [Elim]
   deriving Show
 
 data Elim =
@@ -40,6 +40,11 @@ data Elim =
 $(derive [''Value , ''Elim])
 instance Alpha Value
 instance Alpha Elim
+
+instance Eq Value where
+  (==) = aeq
+instance Eq Elim where
+  (==) = aeq
 
 ----------------------------------------------------------------------
 
@@ -56,10 +61,7 @@ snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 
 ----------------------------------------------------------------------
 
-var :: String -> Value
-var nm = VElim (s2n nm) []
-
-lam :: String -> Type -> Value -> Value
-lam nm _A b = VLam _A $ bind (s2n nm) b
+var :: Nom -> Value
+var nm = Elim nm []
 
 ----------------------------------------------------------------------
