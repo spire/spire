@@ -17,7 +17,8 @@ data Syntax =
     STT
   | SPair Syntax Syntax
   | SLam (Bind Nom Syntax)
-  | SUnit | SBool | SType
+
+  | SUnit | SType
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
 
@@ -34,6 +35,8 @@ instance Alpha Syntax
 ----------------------------------------------------------------------
 
 wildcard = "_"
+
+----------------------------------------------------------------------
 
 sVar :: String -> Syntax
 sVar nm = SVar (s2n nm)

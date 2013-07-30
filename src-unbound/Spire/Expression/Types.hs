@@ -21,6 +21,7 @@ data Check =
 
 data Infer =
     ITT
+
   | IUnit | IType
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)

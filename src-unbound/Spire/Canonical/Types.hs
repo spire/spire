@@ -20,12 +20,10 @@ type Nom = Name Value
 type NomType = (Nom , Embed Type)
 
 data Value =
-  {- Types -}
     VUnit | VType
   | VPi Value (Bind Nom Value)
   | VSg Value (Bind Nom Value)
 
-  {- Values -}
   | VTT
   | VPair Value Value Value {- : Type -}
   | VLam Value {- : Type -} (Bind Nom Value)
