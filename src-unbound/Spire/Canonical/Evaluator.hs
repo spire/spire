@@ -21,11 +21,11 @@ snoc xs x = xs ++ [x]
 elim :: Value -> Elim -> ContextM Value
 elim (Elim nm fs) e         = return $ Elim nm $ snoc fs e
 elim (VLam _A f)    (EApp a) = f $$ a
-elim _              (EApp a) = throwError "Ill-typed evaluation of ($)"
+elim _              (EApp a) = return $ error "Ill-typed evaluation of ($)"
 elim (VPair a b _B) EProj1   = return a
-elim _              EProj1   = throwError "Ill-typed evaluation of proj1"
+elim _              EProj1   = return $ error "Ill-typed evaluation of proj1"
 elim (VPair a b _B) EProj2   = return b
-elim _              EProj2   = throwError "Ill-typed evaluation of proj2"
+elim _              EProj2   = return $ error "Ill-typed evaluation of proj2"
 
 elims :: Value -> [Elim] -> ContextM Value
 elims = foldM elim
