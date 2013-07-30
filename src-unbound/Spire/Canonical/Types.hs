@@ -9,6 +9,8 @@
   #-}
 
 module Spire.Canonical.Types where
+import Control.Monad.Error
+import Control.Monad.Reader
 import Unbound.LocallyNameless
 
 ----------------------------------------------------------------------
@@ -61,7 +63,12 @@ snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 
 ----------------------------------------------------------------------
 
-var :: Nom -> Value
-var nm = Elim nm []
+data ContextR = ContextR { ctx :: Tel }
+type ContextM = ReaderT ContextR (ErrorT String FreshM)
+
+----------------------------------------------------------------------
+
+vVar :: Nom -> Value
+vVar nm = Elim nm []
 
 ----------------------------------------------------------------------

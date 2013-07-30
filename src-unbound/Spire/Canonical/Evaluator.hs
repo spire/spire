@@ -13,28 +13,25 @@ snoc xs x = xs ++ [x]
 
 ----------------------------------------------------------------------
 
-type EvalM = FreshM
-
-($$) :: Bind Nom Value -> Value -> EvalM Value
+($$) :: Bind Nom Value -> Value -> ContextM Value
 ($$) b x = do
   (nm , f) <- unbind b
   substM nm x f
 
-elim :: Value -> Elim -> EvalM Value
+elim :: Value -> Elim -> ContextM Value
 elim (Elim nm fs) e         = return $ Elim nm $ snoc fs e
-elim (VLam _A b)    (EApp x) = b $$ x
-elim _              (EApp x) = error "Ill-typed evaluation of ($)"
+elim (VLam _A f)    (EApp a) = f $$ a
+elim _              (EApp a) = throwError "Ill-typed evaluation of ($)"
 elim (VPair a b _B) EProj1   = return a
-elim _              EProj1   = error "Ill-typed evaluation of proj1"
+elim _              EProj1   = throwError "Ill-typed evaluation of proj1"
 elim (VPair a b _B) EProj2   = return b
-elim _              EProj2   = error "Ill-typed evaluation of proj2"
+elim _              EProj2   = throwError "Ill-typed evaluation of proj2"
 
-elims :: Value -> [Elim] -> EvalM Value
+elims :: Value -> [Elim] -> ContextM Value
 elims = foldM elim
 
-instance SubstM EvalM Value Elim
-
-instance SubstM EvalM Value Value where
+instance SubstM ContextM Value Elim
+instance SubstM ContextM Value Value where
   isVarM (Elim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
   isVarM _ = Nothing
 
