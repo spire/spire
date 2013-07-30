@@ -14,11 +14,11 @@ import Unbound.LocallyNameless
 ----------------------------------------------------------------------
 
 data Syntax =
-    STT
+    STT | STrue | SFalse
   | SPair Syntax Syntax
   | SLam (Bind Nom Syntax)
 
-  | SUnit | SType
+  | SUnit | SBool | SType
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
 
@@ -26,6 +26,7 @@ data Syntax =
   | SProj1 Syntax
   | SProj2 Syntax
   | SApp Syntax Syntax
+  | SIf Syntax Syntax Syntax
   | SAnn Syntax Syntax
  deriving Show
 

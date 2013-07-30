@@ -50,9 +50,12 @@ check (Infer a) _B = do
   return a'
 
 infer :: Infer -> ContextM (Value , Type)
-infer ITT   = return (VTT   , VUnit)
-infer IUnit = return (VUnit , VType)
-infer IType = return (VType , VType)
+infer ITT    = return (VTT   , VUnit)
+infer ITrue  = return (VTrue   , VUnit)
+infer IFalse = return (VFalse   , VUnit)
+infer IUnit  = return (VUnit , VType)
+infer IBool  = return (VBool , VType)
+infer IType  = return (VType , VType)
 
 infer (ISg _A _B) = do
   _A' <- check _A VType
@@ -109,6 +112,17 @@ infer (IApp f a) = do
       "Ill-typed, projection of non-function!\n" ++
       "Applied value:\n" ++ show f ++
       "\nApplied type:\n" ++ show _F
+
+infer (IIf b ct cf) = do
+  b' <- check b VBool
+  (ct' , _C) <- infer ct
+  (cf' , _C') <- infer cf
+  unless (_C == _C') $ throwError $
+    "Ill-typed, conditional branches have different types!\n" ++
+    "First branch:\n" ++ show _C ++
+    "\nSecond branch:\n" ++ show _C'
+  c <- elim b' (EIf ct' cf')
+  return (c , _C)
 
 ----------------------------------------------------------------------
 

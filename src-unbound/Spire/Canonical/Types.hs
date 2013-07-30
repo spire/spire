@@ -20,11 +20,11 @@ type Nom = Name Value
 type NomType = (Nom , Embed Type)
 
 data Value =
-    VUnit | VType
+    VUnit | VBool | VType 
   | VPi Value (Bind Nom Value)
   | VSg Value (Bind Nom Value)
 
-  | VTT
+  | VTT | VTrue | VFalse
   | VPair Value Value Value {- : Type -}
   | VLam Value {- : Type -} (Bind Nom Value)
 
@@ -35,6 +35,7 @@ data Elim =
     EApp Value
   | EProj1
   | EProj2
+  | EIf Value Value
   deriving Show
 
 $(derive [''Value , ''Elim])

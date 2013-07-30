@@ -104,6 +104,7 @@ parseSyntax = buildExpressionParser table parseChoice
 parseChoice :: ParserM Syntax
 parseChoice = try $ choice [
     parseAtom
+  , parseIf
   , parseProj1
   , parseProj2
   , parseLam
@@ -115,7 +116,10 @@ parseAtom = choice
   , parseAnn
 
   , parseTT
+  , parseTrue
+  , parseFalse
   , parseUnit
+  , parseBool
   , parseType
   ]
 
@@ -125,7 +129,7 @@ failIfStmt =
 
 table = [
     [Infix parseSpaceApp AssocLeft]
-  , [ Infix (parseInfix "," SPair) AssocRight]
+  , [Infix (parseInfix "," SPair) AssocRight]
   , [Infix (parseInfix "$" SApp) AssocRight]
   , [Infix (parseInfix "*" infixSg) AssocRight]
   , [Infix (parseInfix "->" infixPi) AssocRight]
@@ -136,21 +140,21 @@ table = [
   parseInfix op con = parseOp op >> return con
 
   infixSg (SAnn (SVar nm) _A) _B = SSg _A (bind nm _B)
-  infixSg _A _B = sSg _A wildcard _B
+  infixSg _A                  _B = sSg _A wildcard _B
 
   infixPi (SAnn (SVar nm) _A) _B = SPi _A (bind nm _B)
-  infixPi _A _B = sPi _A wildcard _B
+  infixPi _A                  _B = sPi _A wildcard _B
 
 ----------------------------------------------------------------------
 
--- parseIf = do
---   parseKeyword "if"
---   b <- parseSyntax
---   parseKeyword "then"
---   c1 <- parseSyntax
---   parseKeyword "else"
---   c2 <- parseSyntax
---   return $ SIf b c1 c2
+parseIf = do
+  parseKeyword "if"
+  b <- parseSyntax
+  parseKeyword "then"
+  c1 <- parseSyntax
+  parseKeyword "else"
+  c2 <- parseSyntax
+  return $ SIf b c1 c2
 
 parseProj1 = try $ do
   parseKeyword "proj1"
@@ -180,12 +184,13 @@ parseAnn = parseParens $ do
 
 ----------------------------------------------------------------------
 
-parseTT = parseKeyword "tt" >> return STT
-parseUnit = parseKeyword "Unit" >> return SUnit
-parseType = parseKeyword "Type" >> return SType
+parseTT    = parseKeyword "tt"    >> return STT
+parseTrue  = parseKeyword "true"  >> return STrue
+parseFalse = parseKeyword "false" >> return SFalse
+parseUnit  = parseKeyword "Unit"  >> return SUnit
+parseBool  = parseKeyword "Bool"  >> return SBool
+parseType  = parseKeyword "Type"  >> return SType
 
-parseVar = do
-  l <- parseIdent
-  return $ sVar l
+parseVar = return . sVar =<< parseIdent
 
 ----------------------------------------------------------------------

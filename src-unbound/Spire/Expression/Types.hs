@@ -20,15 +20,16 @@ data Check =
   deriving Show
 
 data Infer =
-    ITT
+    ITT | ITrue | IFalse
 
-  | IUnit | IType
+  | IUnit | IBool | IType
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
 
   | IVar Nom
   | IProj1 Infer
   | IProj2 Infer
+  | IIf Check Infer Infer
   | IApp Infer Check
   | IAnn Check Check
   deriving Show
