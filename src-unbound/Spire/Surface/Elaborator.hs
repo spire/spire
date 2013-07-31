@@ -51,12 +51,12 @@ elabI (SVar nm) = return $ IVar nm
 
 elabI (SProj1 ab)   = IProj1 <$> elabI ab
 elabI (SProj2 ab)   = IProj2 <$> elabI ab
-elabI (SApp f a)    = IApp <$> elabI f <*> elabC a
-elabI (SIf b ct cf) = IIf <$> elabC b <*> elabI ct <*> elabI cf
-elabI (SAnn a _A)   = IAnn <$> elabC a <*> elabC _A
+elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
+elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf
+elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
 elabI (SPi _A _B) = IPi <$> elabC _A <*> elabBC _B
-elabI (SSg _A _B) = IPi <$> elabC _A <*> elabBC _B
+elabI (SSg _A _B) = ISg <$> elabC _A <*> elabBC _B
 
 elabI x@(SPair _ _) = failUnannotated x
 elabI x@(SLam _)    = failUnannotated x

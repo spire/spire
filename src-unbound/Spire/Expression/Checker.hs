@@ -46,16 +46,18 @@ check (Infer a) _B = do
     "Expected type:\n" ++ show _B ++
     "\n\nInferred type:\n" ++ show _A ++
     "\n\nContext:\n" ++ show ctx ++
-    "\n\nUnevaluated value:\n" ++ show a
+    "\n\nValue:\n" ++ show a'
   return a'
 
 infer :: Infer -> SpireM (Value , Type)
-infer ITT    = return (VTT   , VUnit)
-infer ITrue  = return (VTrue   , VUnit)
-infer IFalse = return (VFalse   , VUnit)
-infer IUnit  = return (VUnit , VType)
-infer IBool  = return (VBool , VType)
-infer IType  = return (VType , VType)
+
+infer ITT    = return (VTT    , VUnit)
+infer ITrue  = return (VTrue  , VBool)
+infer IFalse = return (VFalse , VBool)
+
+infer IUnit  = return (VUnit  , VType)
+infer IBool  = return (VBool  , VType)
+infer IType  = return (VType  , VType)
 
 infer (ISg _A _B) = do
   _A' <- check _A VType

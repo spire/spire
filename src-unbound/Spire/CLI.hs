@@ -27,9 +27,10 @@ checkFromFile file = do
       putStrLn $ formatParseError error
 
     Right program@(a , _A) -> do
-      putStrLn $ "Parsed type:\n"
+      putStrLn $ "Parsed type:"
       putStrLn $ show a
-      putStrLn $ "Parsed value:\n"
+      putStrLn ""
+      putStrLn $ "Parsed value:"
       putStrLn $ show _A
       putStrLn ""
 
@@ -37,10 +38,12 @@ checkFromFile file = do
         Left error -> putStrLn error
         Right (a' , _A') -> do
           putStrLn "Well-typed!"
-          putStrLn $ "Evaluated type:\n"
+          putStrLn $ "Evaluated type:"
           putStrLn $ show _A'
-          putStrLn $ "Evaluated value:\n"
+          putStrLn ""
+          putStrLn $ "Evaluated value:"
           putStrLn $ show a'
+
 
 ----------------------------------------------------------------------
 
