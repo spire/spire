@@ -6,6 +6,7 @@ import Spire.Surface.Types
 import Spire.Surface.Parser
 import Spire.Surface.Elaborator
 import Spire.Expression.Checker
+import Data.List
 
 ----------------------------------------------------------------------
 
@@ -26,35 +27,22 @@ checkFromFile file = do
       putStrLn "Parse error:"
       putStrLn $ formatParseError error
 
-    Right program@(a , _A) -> do
-      putStrLn $ "Parsed type:"
-      putStrLn $ show a
+    Right program -> do
+      putStrLn $ "Parsed program:"
       putStrLn ""
-      putStrLn $ "Parsed value:"
-      putStrLn $ show _A
+      putStrLn $ showProg program
       putStrLn ""
 
-      case checkDef program of
+      case checkProgram program of
         Left error -> putStrLn error
-        Right (a' , _A') -> do
+        Right program' -> do
           putStrLn "Well-typed!"
-          putStrLn $ "Evaluated type:"
-          putStrLn $ show _A'
+          putStrLn $ "Evaluated program:"
           putStrLn ""
-          putStrLn $ "Evaluated value:"
-          putStrLn $ show a'
+          putStrLn $ showProg program'
 
-
-----------------------------------------------------------------------
-
-checkDef :: (Syntax , Syntax) -> Either String (Value , Type)
-checkDef = runSpireM . checkDefM
-
-checkDefM :: (Syntax , Syntax) -> SpireM (Value , Type)
-checkDefM (a , _A) = do
-  let syn = SAnn a _A
-  expr <- elabI syn
-  val <- infer expr
-  return val
+showProg :: Show a => [a] -> String
+showProg xs = concat $ intersperse "\n" (map show xs) 
 
 ----------------------------------------------------------------------
+

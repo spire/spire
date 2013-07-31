@@ -22,8 +22,8 @@ import Data.Functor.Identity (Identity)
 
 ----------------------------------------------------------------------
 
-parseProg :: FilePath -> String -> Either ParseError SProg
-parseProg = parse (parseSpaces >> many parseDef)
+parseProgram :: FilePath -> String -> Either ParseError SProg
+parseProgram = parse (parseSpaces >> parseProg)
 
 -- Format error message so that Emacs' compilation mode can parse the
 -- location information.
@@ -82,6 +82,9 @@ parseAngles :: ParserM a -> ParserM a
 parseAngles = try . angles tokenizer
 
 ----------------------------------------------------------------------
+
+parseProg :: ParserM SProg
+parseProg = many parseDef
 
 parseDef :: ParserM SDef
 parseDef = do

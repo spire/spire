@@ -14,6 +14,15 @@ import Unbound.LocallyNameless
 import Spire.Canonical.Types
 import Spire.Surface.Types
 import Spire.Expression.Types
+import Spire.Expression.Checker
+
+----------------------------------------------------------------------
+
+checkProgram :: SProg -> Either String VProg
+checkProgram = runSpireM . checkProgramM
+
+checkProgramM :: SProg -> SpireM VProg
+checkProgramM = checkProg <=< elabProg
 
 ----------------------------------------------------------------------
 
