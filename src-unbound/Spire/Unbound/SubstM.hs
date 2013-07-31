@@ -18,19 +18,19 @@ import Unbound.LocallyNameless.Alpha
 data SubstCoerceM m a b =
   SubstCoerceM (Name b) (b -> Maybe (m a))
 
-class (Rep1 (SubstDM m b) a) => SubstM m b a where
+class (Monad m, Rep1 (SubstDM m b) a) => SubstM m b a where
 
-  isVarM :: Monad m => a -> Maybe (SubstCoerceM m a b)
+  isVarM :: a -> Maybe (SubstCoerceM m a b)
   isVarM _ = Nothing
 
-  substM :: Monad m => Name b -> b -> a -> m a
+  substM :: Name b -> b -> a -> m a
   substM n u x | isFree n =
      case isVarM x of
        Just (SubstCoerceM m f) -> if m == n then maybe (return x) id (f u) else return x
        Nothing -> substR1M rep1 n u x
   substM m _ _ = error $ "Cannot substitute for bound variable " ++ show m
 
-  substsM :: Monad m => [(Name b, b)] -> a -> m a
+  substsM :: [(Name b, b)] -> a -> m a
   substsM ss x
     | all (isFree . fst) ss =
         case isVarM x of 
@@ -50,7 +50,7 @@ data SubstDM m b a = SubstDM {
   substsDM :: [(Name b, b)] -> a -> m a
 }
 
-instance (Monad m, SubstM m b a) => Sat (SubstDM m b a) where
+instance (SubstM m b a) => Sat (SubstDM m b a) where
   dict = SubstDM isVarM substM substsM
 
 substDefaultM :: Monad m => Rep1 (SubstDM m b) a => Name b -> b -> a -> m a
@@ -76,16 +76,16 @@ substsR1M _ = \ _ c -> return c
 
 ----------------------------------------------------------------------
 
-instance SubstM m b Int
-instance SubstM m b Bool
-instance SubstM m b ()
-instance SubstM m b Char
-instance SubstM m b Integer
-instance SubstM m b Float
-instance SubstM m b Double
+instance Monad m => SubstM m b Int
+instance Monad m => SubstM m b Bool
+instance Monad m => SubstM m b ()
+instance Monad m => SubstM m b Char
+instance Monad m => SubstM m b Integer
+instance Monad m => SubstM m b Float
+instance Monad m => SubstM m b Double
 
-instance SubstM m b AnyName
-instance (Rep a) => SubstM m b (R a)
+instance Monad m => SubstM m b AnyName
+instance (Monad m, Rep a) => SubstM m b (R a)
 instance (Monad m, Rep a) => SubstM m b (Name a)
 
 instance (Monad m, SubstM m c a, SubstM m c b) => SubstM m c (a,b)
