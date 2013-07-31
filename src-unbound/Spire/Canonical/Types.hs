@@ -25,7 +25,7 @@ data Value =
   | VSg Value (Bind Nom Value)
 
   | VTT | VTrue | VFalse
-  | VPair Value Value Value {- : Type -}
+  | VPair Value Value (Bind Nom Value) {- : A -> Type -}
   | VLam Value {- : Type -} (Bind Nom Value)
 
   | Elim Nom [Elim]

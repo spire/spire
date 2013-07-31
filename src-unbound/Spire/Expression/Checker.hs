@@ -29,10 +29,9 @@ check (CLam bnd_b) (VPi _A bnd_B) = do
 
 check (CLam _) _ = throwError "Ill-typed!"
 
-check (CPair a b) (VSg _A bnd_B) = do
+check (CPair a b) (VSg _A _B) = do
   a'        <- check a _A
-  (nm , _B) <- unbind bnd_B
-  _B'       <- substM nm a' _B
+  _B'       <- _B $$ a'
   b'        <- check b _B'
   return    $  VPair a' b' _B
 
