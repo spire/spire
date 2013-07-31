@@ -17,10 +17,20 @@ import Spire.Expression.Types
 
 ----------------------------------------------------------------------
 
+elabProg :: SProg -> SpireM CProg
+elabProg [] = return []
+elabProg (SDef nm a _A : xs) = do
+  a'     <- elabC a
+  _A'    <- elabC _A
+  xs'    <- elabProg xs
+  return (CDef nm a' _A' : xs')
+
+----------------------------------------------------------------------
+
 elabC :: Syntax -> SpireM Check
 
-elabC (SPair a b) = CPair <$> elabC a <*> elabC b
-elabC (SLam b)    = CLam <$> elabBC b
+elabC (SPair a b) = CPair <$> elabC  a <*> elabC b
+elabC (SLam b)    = CLam  <$> elabBC b
 
 elabC x@STT         = elabIC x
 elabC x@STrue       = elabIC x

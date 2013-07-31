@@ -39,3 +39,10 @@ instance Alpha Check
 instance Alpha Infer
 
 ----------------------------------------------------------------------
+
+data CDef = CDef Nom Check Check
+  deriving Show
+
+type CProg = [CDef]
+
+----------------------------------------------------------------------

@@ -35,6 +35,11 @@ instance Alpha Syntax
 
 ----------------------------------------------------------------------
 
+data SDef = SDef Nom Syntax Syntax
+  deriving Show
+
+type SProg = [SDef]
+
 wildcard = "_"
 
 ----------------------------------------------------------------------

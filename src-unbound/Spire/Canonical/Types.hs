@@ -62,15 +62,26 @@ snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 
 ----------------------------------------------------------------------
 
-data ContextR = ContextR { ctx :: Tel }
-type SpireM = ReaderT ContextR (ErrorT String FreshM)
+data VDef = VDef Nom Value Value
+  deriving Show
 
--- runReaderT :: ReaderT r m a -> r -> m a
--- runErrorT :: ErrorT e m a -> m (Either e a)
--- runFreshM :: FreshM a -> a
+type Env = [VDef]
+type VProg = Env
+
+----------------------------------------------------------------------
+
+data SpireR = SpireR { ctx :: Tel , env :: Env }
+emptyR = SpireR { ctx = Empty , env = [] }
+type SpireM = ReaderT SpireR (ErrorT String FreshM)
+
+{-
+runReaderT :: ReaderT r m a -> r -> m a
+runErrorT :: ErrorT e m a -> m (Either e a)
+runFreshM :: FreshM a -> a
+-}
 
 runSpireM :: SpireM a -> Either String a
-runSpireM m = runFreshM $ runErrorT $ runReaderT m $ ContextR Empty
+runSpireM m = runFreshM $ runErrorT $ runReaderT m $ emptyR
 
 ----------------------------------------------------------------------
 

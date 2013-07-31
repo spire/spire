@@ -20,6 +20,16 @@ import Data.Functor.Identity
 
 ----------------------------------------------------------------------
 
+checkProg :: CProg -> SpireM VProg
+checkProg [] = return []
+checkProg (CDef nm a _A : xs) = do
+  _A'    <- check _A VType
+  a'     <- check a _A'
+  xs'    <- extendEnv nm a' _A' $ checkProg xs
+  return (VDef nm a' _A' : xs')
+
+----------------------------------------------------------------------
+
 check :: Check -> Type -> SpireM Value
 
 check (CLam bnd_b) (VPi _A bnd_B) = do
@@ -70,7 +80,7 @@ infer (IPi _A _B) = do
 
 infer (IVar nm) = do
   ctx <- asks ctx
-  lookUp nm ctx
+  lookupCtx nm ctx
 
 infer (IAnn a _A) = do
   _A' <- check _A VType
@@ -127,17 +137,30 @@ infer (IIf b ct cf) = do
 
 ----------------------------------------------------------------------
 
-lookUp :: Nom -> Tel -> SpireM (Value , Type)
-lookUp nm Empty = do
-  ctx <- asks ctx
-  throwError $
-    "Variable not in context!\n" ++
-    "Referenced variable:\n" ++ show nm ++
-    "\nCurrent context:\n" ++ show ctx
-lookUp nm (Extend (unrebind -> ((x , Embed _A) , xs))) =
+lookupCtx :: Nom -> Tel -> SpireM (Value , Type)
+lookupCtx nm (Extend (unrebind -> ((x , Embed _A) , xs))) =
   if nm == x
   then return (vVar nm , _A)
-  else lookUp nm xs
+  else lookupCtx nm xs
+lookupCtx nm Empty = do
+  env <- asks env
+  lookupEnv nm env
+
+----------------------------------------------------------------------
+
+lookupEnv :: Nom -> Env -> SpireM (Value , Type)
+lookupEnv nm (VDef x a _A : xs) =
+  if nm == x
+  then return (a , _A)
+  else lookupEnv nm xs
+lookupEnv nm [] = do
+  env <- asks env
+  ctx <- asks ctx
+  throwError $
+    "Variable not in context or environment!\n" ++
+    "Referenced variable:\n" ++ show nm ++
+    "\nCurrent context:\n" ++ show ctx ++
+    "\nCurrent environment:\n" ++ show env
 
 ----------------------------------------------------------------------
 
@@ -151,5 +174,9 @@ checkExtend _A bd _B = do
 extendCtx :: Nom -> Type -> SpireM a -> SpireM a
 extendCtx x _A = local
   (\r -> r { ctx = snocTel (ctx r) (x , Embed _A) })
+
+extendEnv :: Nom -> Value -> Type -> SpireM a -> SpireM a
+extendEnv x a _A = local
+  (\r -> r { env = VDef x a _A : (env r) })
 
 ----------------------------------------------------------------------

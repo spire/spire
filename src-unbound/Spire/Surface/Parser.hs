@@ -10,7 +10,7 @@
 module Spire.Surface.Parser where
 import Spire.Surface.Types
 import Spire.Canonical.Types
-import Unbound.LocallyNameless (bind)
+import Unbound.LocallyNameless (bind , s2n)
 import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
@@ -18,12 +18,12 @@ import Text.Parsec.Token
 import Text.Parsec.Language
 import Text.Parsec.Error
 import Text.Printf
-import Data.Functor.Identity(Identity)
+import Data.Functor.Identity (Identity)
 
 ----------------------------------------------------------------------
 
-parseProgram :: FilePath -> String -> Either ParseError (Syntax , Syntax)
-parseProgram = parse (parseSpaces >> parseDef)
+parseProg :: FilePath -> String -> Either ParseError SProg
+parseProg = parse (parseSpaces >> many parseDef)
 
 -- Format error message so that Emacs' compilation mode can parse the
 -- location information.
@@ -83,7 +83,7 @@ parseAngles = try . angles tokenizer
 
 ----------------------------------------------------------------------
 
-parseDef :: ParserM (Syntax , Syntax)
+parseDef :: ParserM SDef
 parseDef = do
   l <- parseIdent
   parseOp ":"
@@ -91,7 +91,7 @@ parseDef = do
   parseToken l
   parseOp "="
   tm <- parseSyntax
-  return (tm , tp)
+  return $ SDef (s2n l) tm tp
 
 ----------------------------------------------------------------------
 
