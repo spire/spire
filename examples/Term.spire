@@ -10,7 +10,19 @@
 -- myFalse : Bool
 -- myFalse = (\ b -> if b then false else true : Bool -> Bool) true
 
-myPair : (b : Bool) * if b then Unit else Bool
-myPair = false , true
+-- myPair : (b : Bool) * if b then Unit else Bool
+-- myPair = false , true
+
+-- swapped1 : Unit
+-- swapped1 = ((\u -> (\b -> u)) : Unit -> Bool -> Unit) tt false
+
+-- swapped2 : Bool
+-- swapped2 = ((\u -> (\b -> b)) : Unit -> Bool -> Bool) tt false
+
+-- shadowed1 : Unit -> Bool -> Bool
+-- shadowed1 = \x -> \x -> x
+
+shadowed2 : Bool -> Bool -> Unit -> Unit
+shadowed2 = \x -> \x -> \x -> x
 
 
