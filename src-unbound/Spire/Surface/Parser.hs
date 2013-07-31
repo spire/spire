@@ -22,25 +22,22 @@ import Data.Functor.Identity(Identity)
 
 ----------------------------------------------------------------------
 
--- parseProgram :: FilePath -> String -> Either ParseError Statements
--- parseProgram = parse (parseSpaces >> parseDefs)
+parseProgram :: FilePath -> String -> Either ParseError (Syntax , Syntax)
+parseProgram = parse (parseSpaces >> parseDef)
 
--- parseTerm :: FilePath -> String -> Either ParseError Syntax
--- parseTerm = parse (parseSpaces >> parseSyntax)
-
--- -- Format error message so that Emacs' compilation mode can parse the
--- -- location information.
--- formatParseError :: ParseError -> String
--- formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
---   where
---   file = sourceName . errorPos $ error
---   line = sourceLine . errorPos $ error
---   col = sourceColumn . errorPos $ error
---   -- Copied from 'Show' instance for 'ParseError':
---   -- http://hackage.haskell.org/packages/archive/parsec/latest/doc/html/src/Text-Parsec-Error.html#ParseError
---   msg = showErrorMessages "or" "unknown parse error"
---           "expecting" "unexpected" "end of input"
---           (errorMessages error)
+-- Format error message so that Emacs' compilation mode can parse the
+-- location information.
+formatParseError :: ParseError -> String
+formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
+  where
+  file = sourceName . errorPos $ error
+  line = sourceLine . errorPos $ error
+  col = sourceColumn . errorPos $ error
+  -- Copied from 'Show' instance for 'ParseError':
+  -- http://hackage.haskell.org/packages/archive/parsec/latest/doc/html/src/Text-Parsec-Error.html#ParseError
+  msg = showErrorMessages "or" "unknown parse error"
+          "expecting" "unexpected" "end of input"
+          (errorMessages error)
 
 ----------------------------------------------------------------------
 

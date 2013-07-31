@@ -65,6 +65,13 @@ snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 data ContextR = ContextR { ctx :: Tel }
 type SpireM = ReaderT ContextR (ErrorT String FreshM)
 
+-- runReaderT :: ReaderT r m a -> r -> m a
+-- runErrorT :: ErrorT e m a -> m (Either e a)
+-- runFreshM :: FreshM a -> a
+
+runSpireM :: SpireM a -> Either String a
+runSpireM m = runFreshM $ runErrorT $ runReaderT m $ ContextR Empty
+
 ----------------------------------------------------------------------
 
 vVar :: Nom -> Value
