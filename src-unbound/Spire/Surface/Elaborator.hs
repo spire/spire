@@ -17,7 +17,7 @@ import Spire.Expression.Types
 
 ----------------------------------------------------------------------
 
-elabC :: Syntax -> ContextM Check
+elabC :: Syntax -> SpireM Check
 
 elabC (SPair a b) = CPair <$> elabC a <*> elabC b
 elabC (SLam b)    = CLam <$> elabBC b
@@ -39,7 +39,7 @@ elabC x@(SAnn _ _)  = elabIC x
 
 ----------------------------------------------------------------------
 
-elabI :: Syntax -> ContextM Infer
+elabI :: Syntax -> SpireM Infer
 
 elabI STT       = return ITT
 elabI STrue     = return ITrue
@@ -63,18 +63,18 @@ elabI x@(SLam _)    = failUnannotated x
 
 ----------------------------------------------------------------------
 
-elabBC :: Bind Nom Syntax -> ContextM (Bind Nom Check)
+elabBC :: Bind Nom Syntax -> SpireM (Bind Nom Check)
 elabBC bnd = do
   (nm , a) <- unbind bnd
   a'       <- elabC a
   return   $  bind nm a'
 
-failUnannotated :: Syntax -> ContextM Infer
+failUnannotated :: Syntax -> SpireM Infer
 failUnannotated a = throwError $
   "Failed to infer the type of this term, please annotate it:\n" ++
   show a
 
-elabIC :: Syntax -> ContextM Check
+elabIC :: Syntax -> SpireM Check
 elabIC x = Infer <$> elabI x
 
 ----------------------------------------------------------------------

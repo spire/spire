@@ -20,7 +20,7 @@ import Data.Functor.Identity
 
 ----------------------------------------------------------------------
 
-check :: Check -> Type -> ContextM Value
+check :: Check -> Type -> SpireM Value
 
 check (CLam bnd_b) (VPi _A bnd_B) = do
   (nm , _B) <- unbind bnd_B
@@ -49,7 +49,7 @@ check (Infer a) _B = do
     "\n\nUnevaluated value:\n" ++ show a
   return a'
 
-infer :: Infer -> ContextM (Value , Type)
+infer :: Infer -> SpireM (Value , Type)
 infer ITT    = return (VTT   , VUnit)
 infer ITrue  = return (VTrue   , VUnit)
 infer IFalse = return (VFalse   , VUnit)
@@ -126,7 +126,7 @@ infer (IIf b ct cf) = do
 
 ----------------------------------------------------------------------
 
-lookUp :: Nom -> Tel -> ContextM (Value , Type)
+lookUp :: Nom -> Tel -> SpireM (Value , Type)
 lookUp nm Empty = do
   ctx <- asks ctx
   throwError $
@@ -140,14 +140,14 @@ lookUp nm (Extend (unrebind -> ((x , Embed _A) , xs))) =
 
 ----------------------------------------------------------------------
 
-checkExtend :: Type -> Bind Nom Check -> Type -> ContextM (Bind Nom Value)
+checkExtend :: Type -> Bind Nom Check -> Type -> SpireM (Bind Nom Value)
 checkExtend _A bd _B = do
   ctx <- asks ctx
   (x , b) <- unbind bd
   b' <- extendCtx x _A $ check b _B
   return $ bind x b'
 
-extendCtx :: Nom -> Type -> ContextM a -> ContextM a
+extendCtx :: Nom -> Type -> SpireM a -> SpireM a
 extendCtx x _A = local
   (\r -> r { ctx = snocTel (ctx r) (x , Embed _A) })
 

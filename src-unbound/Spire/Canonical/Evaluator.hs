@@ -8,8 +8,8 @@ import Control.Monad.Error
 
 ----------------------------------------------------------------------
 
-instance SubstM ContextM Value Elim
-instance SubstM ContextM Value Value where
+instance SubstM SpireM Value Elim
+instance SubstM SpireM Value Value where
   isVarM (Elim nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
   isVarM _ = Nothing
 
@@ -20,12 +20,12 @@ snoc xs x = xs ++ [x]
 
 ----------------------------------------------------------------------
 
-($$) :: Bind Nom Value -> Value -> ContextM Value
+($$) :: Bind Nom Value -> Value -> SpireM Value
 ($$) b x = do
   (nm , f) <- unbind b
   substM nm x f
 
-elim :: Value -> Elim -> ContextM Value
+elim :: Value -> Elim -> SpireM Value
 elim (Elim nm fs)   e           = return $ Elim nm $ snoc fs e
 elim (VLam _A f)    (EApp a)    = f $$ a
 elim _              (EApp a)    = return $ error "Ill-typed evaluation of ($)"
@@ -37,7 +37,7 @@ elim VTrue          (EIf ct cf) = return ct
 elim VFalse         (EIf ct cf) = return cf
 elim _              (EIf ct cf) = return $ error "Ill-typed evaluation of if"
 
-elims :: Value -> [Elim] -> ContextM Value
+elims :: Value -> [Elim] -> SpireM Value
 elims = foldM elim
 
 ----------------------------------------------------------------------

@@ -63,7 +63,7 @@ snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 ----------------------------------------------------------------------
 
 data ContextR = ContextR { ctx :: Tel }
-type ContextM = ReaderT ContextR (ErrorT String FreshM)
+type SpireM = ReaderT ContextR (ErrorT String FreshM)
 
 ----------------------------------------------------------------------
 
