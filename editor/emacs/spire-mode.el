@@ -44,6 +44,7 @@
 (defun spire-check-file ()
   "Type check a file using `spire-command' as an inferior mode."
   (interactive)
+  (save-buffer 0)
   (when (get-buffer *spire*)
     (with-current-buffer *spire*
       (when (comint-check-proc *spire*)
