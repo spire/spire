@@ -71,7 +71,7 @@ type VProg = Env
 ----------------------------------------------------------------------
 
 data SpireR = SpireR { ctx :: Tel , env :: Env }
-emptyR = SpireR { ctx = Empty , env = [] }
+emptySpireR = SpireR { ctx = Empty , env = [] }
 type SpireM = ReaderT SpireR (ErrorT String FreshM)
 
 {-
@@ -81,7 +81,7 @@ runFreshM :: FreshM a -> a
 -}
 
 runSpireM :: SpireM a -> Either String a
-runSpireM m = runFreshM $ runErrorT $ runReaderT m $ emptyR
+runSpireM m = runFreshM $ runErrorT $ runReaderT m $ emptySpireR
 
 ----------------------------------------------------------------------
 
