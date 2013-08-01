@@ -2,10 +2,11 @@ module Spire.CLI where
 import Control.Monad.Error
 import System.Environment
 import Spire.Canonical.Types
+import Spire.Expression.Checker
 import Spire.Surface.Types
 import Spire.Surface.Parser
 import Spire.Surface.Elaborator
-import Spire.Expression.Checker
+import Spire.Surface.PrettyPrinter
 import Data.List
 
 ----------------------------------------------------------------------
@@ -30,7 +31,7 @@ checkFromFile file = do
     Right program -> do
       putStrLn $ "Parsed program:"
       putStrLn ""
-      putStrLn $ showProg program
+      putStrLn $ prettyPrint program
       putStrLn ""
 
       case checkProgram program of
