@@ -29,8 +29,8 @@ checkProgramM = checkProg <=< elabProg
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
 elabProg (SDef nm a _A : xs) = do
-  a'     <- elabC a
   _A'    <- elabC _A
+  a'     <- elabC a
   xs'    <- elabProg xs
   return (CDef nm a' _A' : xs')
 
