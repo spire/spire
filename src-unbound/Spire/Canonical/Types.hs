@@ -81,7 +81,10 @@ runFreshM :: FreshM a -> a
 -}
 
 runSpireM :: SpireM a -> Either String a
-runSpireM m = runFreshM $ runErrorT $ runReaderT m $ emptySpireR
+runSpireM = runFreshM . runErrorT . runSpireR
+
+runSpireR :: SpireM a -> ErrorT String FreshM a
+runSpireR m = runReaderT m emptySpireR
 
 ----------------------------------------------------------------------
 
