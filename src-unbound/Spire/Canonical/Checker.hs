@@ -5,13 +5,12 @@
   , FlexibleInstances
   , FlexibleContexts
   , UndecidableInstances
-  , ViewPatterns
   #-}
 
 module Spire.Canonical.Checker where
 import Control.Monad.Error
 import Control.Monad.Reader
-import Unbound.LocallyNameless
+import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Unbound.SubstM
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
@@ -33,67 +32,74 @@ checkV VBool  _     = throwError "Ill-typed!"
 checkV VType  VType = return ()
 checkV VType  _     = throwError "Ill-typed!"
 
-checkV (Elim nm xs) _B = do
-  ctx <- asks ctx
-  _A  <- inferVar nm ctx
-  _B' <- inferEs (vVar nm) _A xs
-  unless (_B == _B') $ throwError "Ill-typed!"
+checkV (VSg _A _B) VType = do
+  checkV _A VType
+  checkVExtend _A _B VType
+checkV (VSg _A _B) _ =
+  throwError "Ill-typed!"
 
-checkV a _A = undefined
+checkV (VPi _A _B) VType = do
+  checkV _A VType
+  checkVExtend _A _B VType
+checkV (VPi _A _B) _ =
+  throwError "Ill-typed!"
 
-----------------------------------------------------------------------
+checkV (VLam b) (VPi _A bnd_B) = do
+  (x , _B) <- unbind bnd_B
+  checkVExtend _A b _B
+checkV (VLam bnd_b) _ =
+  throwError "Ill-typed!"
 
-inferVar :: Nom -> Tel -> SpireM Type
-inferVar = undefined
-
-----------------------------------------------------------------------
-
-inferEs :: Value -> Type -> [Elim] -> SpireM Type
-inferEs a _A [] = return _A
-inferEs a _A (e : es) = do
-  _A' <- inferE a _A e
-  a'  <- elim a e
-  inferEs a' _A' es
-
-----------------------------------------------------------------------
-
-{-
-Here 'Type' is the type of what is being eliminated and 'Value' is that
-value as a Spine. We infer the type of the result of 
-the elimination.
-In other words, 'Value' will always be a (Nom , [Elim]) pair -- a 
-spine application.
--}
-
-inferE :: Value -> Type -> Elim -> SpireM Type
-
-inferE _ (VPi _A _B) (EApp a) = do
+checkV (VPair a b) (VSg _A _B) = do
   checkV a _A
-  _B $$ a
+  checkV b =<< _B `sub` a
+checkV (VPair a b) _ =
+  throwError "Ill-typed!"
 
-inferE _ (VSg _A _B) EProj1 = do
-  return _A
-
-inferE ab (VSg _A _B) EProj2 = do
-  a <- elim ab EProj1
-  _B $$ a
-
-inferE _ _ _ = undefined
-
+checkV (VNeut nm fs) _B = do
+  _B' <- inferN nm fs
+  unless (_B == _B') $
+    throwError "Ill-typed!"
 
 ----------------------------------------------------------------------
 
--- inferE :: Nom -> [Elim] -> Type -> [Elim] -> SpireM Type
+inferN :: Nom -> Spine -> SpireM Type
+inferN nm Id = do
+  ctx <- asks ctx
+  return snd `ap` lookupCtx nm ctx
 
--- inferE nm xs (VPi _A _B) (y@(EApp a) : ys) = do
---   checkV a _A
---   _B' <- _B $$ a
---   inferE nm (snoc xs y) _B' ys
+inferN nm (Pipe fs (EApp a)) = do
+  _AB <- inferN nm fs
+  case _AB of
+    VPi _A _B -> do
+      checkV a _A
+      _B `sub` a
+    _         -> throwError "Ill-typed!"
 
--- inferE nm xs (VSg _A _B) (y@EProj1 : ys) = do
---   --  return _A
---   undefined
+inferN nm (Pipe fs EProj1) = do
+  _AB <- inferN nm fs
+  case _AB of
+    VSg _A _B -> return _A
+    _         -> throwError "Ill-typed!"
 
--- -- inferE (VSg _A _B) EProj2 =
+inferN nm (Pipe fs EProj2) = do
+  _AB <- inferN nm fs
+  case _AB of
+    VSg _A _B -> _B `sub` VNeut nm (Pipe fs EProj1)
+    _         -> throwError "Ill-typed!"
 
--- inferE _ _ _ _ = undefined
+inferN nm (Pipe fs (ECaseBool _P ct cf)) = do
+  _A <- inferN nm fs
+  case _A of
+    VBool -> _P `sub` VNeut nm fs
+    _     -> throwError "Ill-typed!"  
+
+----------------------------------------------------------------------
+
+checkVExtend :: Type -> Bind Nom Value -> Type -> SpireM ()
+checkVExtend _A bnd_b _B = do
+  ctx <- asks ctx
+  (x , b) <- unbind bnd_b
+  extendCtx x _A $ checkV b _B
+
+----------------------------------------------------------------------

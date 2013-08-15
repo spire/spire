@@ -11,7 +11,7 @@ import Control.Monad.Reader
 import qualified Text.PrettyPrint.Leijen as PP
 import Text.PrettyPrint.Leijen (Doc)
 import Unbound.LocallyNameless
-import Spire.Canonical.Types (Nom)
+import Spire.Canonical.Types (Nom , isWildcard)
 
 ----------------------------------------------------------------------
 

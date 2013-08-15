@@ -9,9 +9,10 @@
   #-}
 
 module Spire.Canonical.Types where
+import Data.List
 import Control.Monad.Error
 import Control.Monad.Reader
-import Unbound.LocallyNameless
+import Unbound.LocallyNameless hiding ( Spine )
 
 ----------------------------------------------------------------------
 
@@ -25,26 +26,32 @@ data Value =
   | VSg Value (Bind Nom Value)
 
   | VTT | VTrue | VFalse
-  | VPair Value Value (Bind Nom Value) {- : A -> Type -}
-  | VLam Value {- : Type -} (Bind Nom Value)
+  | VPair Value Value
+  | VLam (Bind Nom Value)
 
-  | Elim Nom [Elim]
+  | VNeut Nom Spine
   deriving Show
 
 data Elim =
     EApp Value
   | EProj1
   | EProj2
-  | EIf Value Value
+  | ECaseBool (Bind Nom Value) Value Value
   deriving Show
 
-$(derive [''Value , ''Elim])
+data Spine = Id | Pipe Spine Elim
+  deriving Show
+
+$(derive [''Value , ''Elim , ''Spine])
 instance Alpha Value
 instance Alpha Elim
+instance Alpha Spine
 
 instance Eq Value where
   (==) = aeq
 instance Eq Elim where
+  (==) = aeq
+instance Eq Spine where
   (==) = aeq
 
 ----------------------------------------------------------------------
@@ -88,7 +95,27 @@ runSpireR m = runReaderT m emptySpireR
 
 ----------------------------------------------------------------------
 
+extendCtx :: Nom -> Type -> SpireM a -> SpireM a
+extendCtx x _A = local
+  (\r -> r { ctx = snocTel (ctx r) (x , Embed _A) })
+
+extendEnv :: Nom -> Value -> Type -> SpireM a -> SpireM a
+extendEnv x a _A = local
+  (\r -> r { env = VDef x a _A : (env r) })
+
+----------------------------------------------------------------------
+
+wildcard = "_"
+
+isWildcard :: Nom -> Bool
+isWildcard nm = isPrefixOf wildcard (name2String nm)
+
+----------------------------------------------------------------------
+
 vVar :: Nom -> Value
-vVar nm = Elim nm []
+vVar nm = VNeut nm Id
+
+eIf :: Value -> Value -> Value -> Elim
+eIf _C ct cf = ECaseBool (bind (s2n wildcard) _C) ct cf
 
 ----------------------------------------------------------------------

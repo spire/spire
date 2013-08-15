@@ -10,7 +10,6 @@
 module Spire.Surface.Types where
 import Spire.Canonical.Types
 import Unbound.LocallyNameless
-import Data.List
 
 ----------------------------------------------------------------------
 
@@ -40,11 +39,6 @@ data SDef = SDef Nom Syntax Syntax
   deriving Show
 
 type SProg = [SDef]
-
-wildcard = "_"
-
-isWildcard :: Nom -> Bool
-isWildcard nm = isPrefixOf wildcard (name2String nm)
 
 ----------------------------------------------------------------------
 

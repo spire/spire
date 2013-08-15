@@ -32,18 +32,18 @@ checkProg (CDef nm a _A : xs) = do
 
 check :: Check -> Type -> SpireM Value
 
-check (CLam bnd_b) (VPi _A bnd_B) = do
+check (CLam b) (VPi _A bnd_B) = do
   (nm , _B) <- unbind bnd_B
-  b'        <- checkExtend _A bnd_b _B
-  return    $  VLam _A b'
+  b'        <- checkExtend _A b _B
+  return    $  VLam b'
 
 check (CLam _) _ = throwError "Ill-typed!"
 
 check (CPair a b) (VSg _A _B) = do
   a'        <- check a _A
-  _B'       <- _B $$ a'
+  _B'       <- _B `sub` a'
   b'        <- check b _B'
-  return    $  VPair a' b' _B
+  return    $  VPair a' b'
 
 check (CPair _ _) _ = throwError "Ill-typed!"
 
@@ -104,7 +104,7 @@ infer (IProj2 ab) = do
     VSg _A _B -> do
       a'     <- elim ab' EProj1
       b'     <- elim ab' EProj2
-      _B'    <- _B $$ a'
+      _B'    <- _B `sub` a'
       return (b' , _B')
     _ -> throwError $
       "Ill-typed, projection of non-pair!\n" ++
@@ -117,7 +117,7 @@ infer (IApp f a) = do
     VPi _A _B -> do
       a'     <- check a _A
       b'     <- elim f' (EApp a')
-      _B'    <- _B $$ a'
+      _B'    <- _B `sub` a'
       return (b' , _B')
     _ -> throwError $
       "Ill-typed, projection of non-function!\n" ++
@@ -126,41 +126,14 @@ infer (IApp f a) = do
 
 infer (IIf b ct cf) = do
   b' <- check b VBool
-  (ct' , _C) <- infer ct
+  (ct' , _C)  <- infer ct
   (cf' , _C') <- infer cf
   unless (_C == _C') $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
     "First branch:\n" ++ show _C ++
     "\nSecond branch:\n" ++ show _C'
-  c <- elim b' (EIf ct' cf')
+  c <- elim b' (eIf _C ct' cf')
   return (c , _C)
-
-----------------------------------------------------------------------
-
-lookupCtx :: Nom -> Tel -> SpireM (Value , Type)
-lookupCtx nm (Extend (unrebind -> ((x , Embed _A) , xs))) =
-  if nm == x
-  then return (vVar nm , _A)
-  else lookupCtx nm xs
-lookupCtx nm Empty = do
-  env <- asks env
-  lookupEnv nm env
-
-----------------------------------------------------------------------
-
-lookupEnv :: Nom -> Env -> SpireM (Value , Type)
-lookupEnv nm (VDef x a _A : xs) =
-  if nm == x
-  then return (a , _A)
-  else lookupEnv nm xs
-lookupEnv nm [] = do
-  env <- asks env
-  ctx <- asks ctx
-  throwError $
-    "Variable not in context or environment!\n" ++
-    "Referenced variable:\n" ++ show nm ++
-    "\nCurrent context:\n" ++ show ctx ++
-    "\nCurrent environment:\n" ++ show env
 
 ----------------------------------------------------------------------
 
@@ -170,13 +143,5 @@ checkExtend _A bd _B = do
   (x , b) <- unbind bd
   b' <- extendCtx x _A $ check b _B
   return $ bind x b'
-
-extendCtx :: Nom -> Type -> SpireM a -> SpireM a
-extendCtx x _A = local
-  (\r -> r { ctx = snocTel (ctx r) (x , Embed _A) })
-
-extendEnv :: Nom -> Value -> Type -> SpireM a -> SpireM a
-extendEnv x a _A = local
-  (\r -> r { env = VDef x a _A : (env r) })
 
 ----------------------------------------------------------------------
