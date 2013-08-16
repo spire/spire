@@ -32,10 +32,9 @@ checkProg (CDef nm a _A : xs) = do
 
 check :: Check -> Type -> SpireM Value
 
-check (CLam b) (VPi _A bnd_B) = do
-  (nm , _B) <- unbind bnd_B
-  b'        <- checkExtend _A b _B
-  return    $  VLam b'
+check (CLam b) (VPi _A _B) = do
+  b' <- checkExtend2 _A b _B
+  return $ VLam b'
 
 check (CLam _) _ = throwError "Ill-typed!"
 
@@ -147,10 +146,18 @@ infer (ICaseBool _P ct cf b) = do
 ----------------------------------------------------------------------
 
 checkExtend :: Type -> Bind Nom Check -> Type -> SpireM (Bind Nom Value)
-checkExtend _A bd _B = do
-  ctx <- asks ctx
-  (x , b) <- unbind bd
-  b' <- extendCtx x _A $ check b _B
-  return $ bind x b'
+checkExtend _A bnd_b _B = do
+  ctx     <- asks ctx
+  (x , b) <- unbind bnd_b
+  b'      <- extendCtx x _A $ check b _B
+  return  $  bind x b'
+
+checkExtend2 :: Type -> Bind Nom Check -> Bind Nom Type -> SpireM (Bind Nom Value)
+checkExtend2 _A bnd_b bnd_B = do
+  ctx       <- asks ctx
+  (nm ,  b) <- unbind bnd_b
+  _B        <- bnd_B `sub` vVar nm
+  b'        <- extendCtx nm _A $ check b _B
+  return    $  bind nm b'
 
 ----------------------------------------------------------------------

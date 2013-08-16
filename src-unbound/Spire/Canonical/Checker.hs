@@ -54,9 +54,8 @@ checkV (VPi _A _B) VType = do
 checkV (VPi _A _B) _ =
   throwError "Ill-typed!"
 
-checkV (VLam b) (VPi _A bnd_B) = do
-  (x , _B) <- unbind bnd_B
-  checkVExtend _A b _B
+checkV (VLam b) (VPi _A _B) =
+  checkVExtend2 _A b _B
 checkV (VLam bnd_b) _ =
   throwError "Ill-typed!"
 
@@ -108,8 +107,15 @@ inferN nm (Pipe fs (ECaseBool _P ct cf)) = do
 
 checkVExtend :: Type -> Bind Nom Value -> Type -> SpireM ()
 checkVExtend _A bnd_b _B = do
-  ctx <- asks ctx
+  ctx     <- asks ctx
   (x , b) <- unbind bnd_b
   extendCtx x _A $ checkV b _B
+
+checkVExtend2 :: Type -> Bind Nom Value -> Bind Nom Type -> SpireM ()
+checkVExtend2 _A bnd_b bnd_B = do
+  ctx      <- asks ctx
+  (nm , b) <- unbind bnd_b
+  _B       <- bnd_B `sub` vVar nm
+  extendCtx nm _A $ checkV b _B
 
 ----------------------------------------------------------------------

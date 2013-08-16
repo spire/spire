@@ -3,12 +3,12 @@ longType : Type
 longType = Bool -> (b:Bool) -> Unit * (u:Unit) * Unit -> Unit -> Bool ->
            (if b then Unit else Unit -> Unit)
 
--- longFunctionName : longType
--- longFunctionName = \ _ -> \ b -> \ _ -> \ _ -> \ _ ->
---                    caseBool (\b -> if b then Unit else Unit -> Unit)
---                             tt
---                             (\ u -> u)
---                             b
+longFunctionName : longType
+longFunctionName = \ _ -> \ b -> \ _ -> \ _ -> \ _ ->
+                   caseBool (\b -> if b then Unit else Unit -> Unit)
+                            tt
+                            (\ u -> u)
+                            b
 
 longIf : Unit
 longIf = if if if true then false else true
