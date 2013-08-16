@@ -1,6 +1,0 @@
-
-foo : String
-foo = if true then "foo" else "bar"
-
-foobar : String
-foobar = if foo == "foo" then foo ++ "bar" else "WRONG"

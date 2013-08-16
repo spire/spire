@@ -1,8 +1,0 @@
-myTrue : Bool
-myTrue = true
-
-sumOne : (b : Bool) * (if b then Unit else String)
-sumOne = myTrue , tt
-
-sumOneElse : Bool * (if proj1 sumOne then Unit else String)
-sumOneElse = myTrue , tt
