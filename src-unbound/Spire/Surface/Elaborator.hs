@@ -1,12 +1,3 @@
-{-# LANGUAGE
-    MultiParamTypeClasses
-  , TemplateHaskell
-  , ScopedTypeVariables
-  , FlexibleInstances
-  , FlexibleContexts
-  , UndecidableInstances
-  #-}
-
 module Spire.Surface.Elaborator where
 import Control.Monad.Error
 import Control.Applicative
