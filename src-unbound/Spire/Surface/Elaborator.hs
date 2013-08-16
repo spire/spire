@@ -55,6 +55,7 @@ elabC x@(SProj2 _)  = elabIC x
 elabC x@(SIf _ _ _) = elabIC x
 elabC x@(SApp _ _)  = elabIC x
 elabC x@(SAnn _ _)  = elabIC x
+elabC x@(SCaseBool _ _ _ _) = elabIC x
 
 ----------------------------------------------------------------------
 
@@ -73,6 +74,9 @@ elabI (SProj2 ab)   = IProj2 <$> elabI ab
 elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
 elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf
 elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
+
+elabI (SCaseBool _P ct cf b) =
+  ICaseBool <$> elabBC _P <*> elabC ct <*> elabC cf <*> elabC b
 
 elabI (SPi _A _B) = IPi <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B) = ISg <$> elabC _A <*> elabBC _B

@@ -30,6 +30,7 @@ data Infer =
   | IProj1 Infer
   | IProj2 Infer
   | IIf Check Infer Infer
+  | ICaseBool (Bind Nom Check) Check Check Check
   | IApp Infer Check
   | IAnn Check Check
   deriving Show

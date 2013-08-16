@@ -115,6 +115,11 @@ dProj2 o ab = dt "proj2" <+> ww o ab
 dApp o f a = alignM $ w o f </> ww o a
 dAnn o a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
 
+dCaseBool o bnd t f bool =
+  dt "caseBool" <+> (alignM . sepM)
+    [ parensM $ dLam o bnd
+      , ww o t , ww o f , ww o bool ]
+
 ----------------------------------------------------------------------
 
 instance Display Syntax where
@@ -139,6 +144,7 @@ instance Display Syntax where
     SProj2 ab -> dProj2 s ab
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
+    SCaseBool bnd t f bool -> dCaseBool s bnd t f bool
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -183,6 +189,7 @@ instance Precedence Syntax where
     SProj2 _    -> projLevel
     SApp _ _    -> appLevel
     SAnn _ _    -> annLevel
+    SCaseBool _ _ _ _ -> caseBoolLevel
     _           -> atomicLevel
   assoc s = case s of
     SPi   _ _ -> piAssoc
@@ -237,6 +244,7 @@ sgAssoc        = AssocRight
 piLevel        = 5
 piAssoc        = AssocRight
 ifLevel        = 6
+caseBoolLevel  = 6
 lamLevel       = 7
 defsLevel      = 9
 defLevel       = 10

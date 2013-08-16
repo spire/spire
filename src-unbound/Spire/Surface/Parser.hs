@@ -105,6 +105,7 @@ parseChoice :: ParserM Syntax
 parseChoice = try $ choice [
     parseAtom
   , parseIf
+  , parseCaseBool
   , parseProj1
   , parseProj2
   , parseLam
@@ -155,6 +156,14 @@ parseIf = do
   parseKeyword "else"
   c2 <- parseSyntax
   return $ SIf b c1 c2
+
+parseCaseBool = do
+  parseKeyword "caseBool"
+  SLam m <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
+  pt <- parseAtom
+  pf <- parseAtom
+  b <- parseAtom
+  return $ SCaseBool m pt pf b
 
 parseProj1 = try $ do
   parseKeyword "proj1"

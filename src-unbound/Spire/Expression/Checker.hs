@@ -135,6 +135,15 @@ infer (IIf b ct cf) = do
   c <- elim b' (eIf _C ct' cf')
   return (c , _C)
 
+infer (ICaseBool _P ct cf b) = do
+  b'  <- check b VBool
+  _P' <- checkExtend VBool _P VType
+  ct' <- check ct =<< _P' `sub` VTrue
+  cf' <- check cf =<< _P' `sub` VFalse
+  c   <- b' `elim` ECaseBool _P' ct' cf'
+  _C  <- _P' `sub` b'
+  return (c , _C)
+
 ----------------------------------------------------------------------
 
 checkExtend :: Type -> Bind Nom Check -> Type -> SpireM (Bind Nom Value)

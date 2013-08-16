@@ -27,6 +27,7 @@ data Syntax =
   | SProj2 Syntax
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
+  | SCaseBool (Bind Nom Syntax) Syntax Syntax Syntax
   | SAnn Syntax Syntax
  deriving Show
 
