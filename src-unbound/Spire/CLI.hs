@@ -7,6 +7,7 @@ import Spire.Surface.Types
 import Spire.Surface.Parser
 import Spire.Surface.Elaborator
 import Spire.Surface.PrettyPrinter
+import Spire.Pipeline
 import Data.List
 
 ----------------------------------------------------------------------

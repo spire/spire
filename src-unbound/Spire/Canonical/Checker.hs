@@ -17,6 +17,16 @@ import Spire.Canonical.Evaluator
 
 ----------------------------------------------------------------------
 
+recheckProg :: VProg -> SpireM ()
+recheckProg [] = return ()
+recheckProg (VDef nm a _A : xs) = do
+  checkV _A VType
+  checkV a _A
+  recheckProg xs
+  return ()
+
+----------------------------------------------------------------------
+
 checkV :: Value -> Type -> SpireM ()
 checkV VTT    VUnit = return ()
 checkV VTT    _     = throwError "Ill-typed!"

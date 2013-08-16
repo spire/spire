@@ -81,18 +81,6 @@ data SpireR = SpireR { ctx :: Tel , env :: Env }
 emptySpireR = SpireR { ctx = Empty , env = [] }
 type SpireM = ReaderT SpireR (ErrorT String FreshM)
 
-{-
-runReaderT :: ReaderT r m a -> r -> m a
-runErrorT :: ErrorT e m a -> m (Either e a)
-runFreshM :: FreshM a -> a
--}
-
-runSpireM :: SpireM a -> Either String a
-runSpireM = runFreshM . runErrorT . runSpireR
-
-runSpireR :: SpireM a -> ErrorT String FreshM a
-runSpireR m = runReaderT m emptySpireR
-
 ----------------------------------------------------------------------
 
 extendCtx :: Nom -> Type -> SpireM a -> SpireM a

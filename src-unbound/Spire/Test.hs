@@ -10,6 +10,7 @@ import Spire.Canonical.Evaluator
 import Spire.Surface.Parser
 import Spire.Surface.Elaborator
 import Spire.Expression.Checker
+import Spire.Pipeline
 
 ----------------------------------------------------------------------
 
@@ -41,7 +42,7 @@ assertWellTyped file code = case parseProgram file code of
   Left  error     -> assertFailure ("Parse error:\n" ++ formatParseError error)
   Right syntax    -> case checkProgram syntax of
     Left  error   -> assertFailure ("Check error:\n" ++ error)
-    Right program -> return ()
+    Right _       -> return ()
 
 ----------------------------------------------------------------------
 
