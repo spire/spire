@@ -41,10 +41,7 @@ checkFromFile file = do
           putStrLn "Well-typed!"
           putStrLn $ "Evaluated program:"
           putStrLn ""
-          putStrLn $ showProg program'
-
-showProg :: Show a => [a] -> String
-showProg xs = concat $ intersperse "\n" (map show xs) 
+          putStrLn $ prettyPrint program'
 
 ----------------------------------------------------------------------
 

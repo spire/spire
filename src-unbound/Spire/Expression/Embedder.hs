@@ -9,7 +9,7 @@ import Spire.Surface.Types
 
 ----------------------------------------------------------------------
 
-embedI :: Infer -> SpireM Syntax
+embedI :: Infer -> FreshM Syntax
 embedI ITT    = return STT
 embedI ITrue  = return STrue
 embedI IFalse = return SFalse
@@ -27,17 +27,20 @@ embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a
 embedI (IAnn a _A) = SAnn <$> embedC a <*> embedC _A
 
-embedC :: Check -> SpireM Syntax
+embedC :: Check -> FreshM Syntax
 embedC (CPair a b) = SPair <$> embedC a <*> embedC b
 embedC (CLam b) = SLam <$> embedCB b
 embedC (Infer i) = embedI i
 
 ----------------------------------------------------------------------
 
-embedCB :: Bind Nom Check -> SpireM (Bind Nom Syntax)
-embedCB bnd = do
-  (nm , a) <- unbind bnd
-  a' <- embedC a
-  return $ bind nm a'
+embedCB :: Bind Nom Check -> FreshM (Bind Nom Syntax)
+embedCB bnd_a = do
+  (nm , a) <- unbind bnd_a
+  a'       <- embedC a
+  return   $ bind nm a'
+
+embedCDef :: CDef -> FreshM SDef
+embedCDef (CDef nm a _A) = SDef nm <$> embedC a <*> embedC _A
 
 ----------------------------------------------------------------------

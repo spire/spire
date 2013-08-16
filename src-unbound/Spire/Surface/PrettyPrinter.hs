@@ -1,16 +1,16 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, RankNTypes #-}
 module Spire.Surface.PrettyPrinter (prettyPrint , prettyPrintError) where
--- import Spire.Canonical.Embedding
--- import Spire.Canonical.Types
--- import Spire.Expression.Embedding
--- import Spire.Expression.Types
+import Spire.Canonical.Embedder
+import Spire.Canonical.Types
+import Spire.Expression.Embedder
+import Spire.Expression.Types
 import Spire.Surface.Types
 
 import Control.Applicative ((<$>) , (<*>))
 import Control.Monad.Reader
 import qualified Text.PrettyPrint.Leijen as PP
 import Text.PrettyPrint.Leijen (Doc)
-import Unbound.LocallyNameless
+import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Canonical.Types (Nom , isWildcard)
 
 ----------------------------------------------------------------------
@@ -159,22 +159,25 @@ instance Display Nom where
 
 ----------------------------------------------------------------------
 
--- instance Display Defs where
---   display = d . map embedD
+instance Display CProg where
+  display = d . runFreshM . mapM embedCDef
 
--- instance Display Check where
---   display = d . embedC
+instance Display VProg where
+  display = d . runFreshM . mapM (embedCDef <=< embedVDef)
 
--- instance Display Infer where
---   display = d . embedI
+instance Display Check where
+  display = d . runFreshM . embedC
+
+instance Display Infer where
+  display = d . runFreshM . embedI
 
 ----------------------------------------------------------------------
 
--- instance Display Val where
---   display = d . embedI . embedV
+instance Display Value where
+  display = d . runFreshM . (embedC <=< embedV)
 
--- instance Display Neut where
---   display = d . embedI . embedN
+instance Display (Nom , Spine) where
+  display (nm , fs) = d . runFreshM $ (embedI =<< embedN nm fs)
 
 ----------------------------------------------------------------------
 
