@@ -18,13 +18,10 @@ import Spire.Canonical.Types (Nom , isWildcard)
 prettyPrint :: Display t => t -> String
 prettyPrint t = render $ runFreshM $ runReaderT (display t) emptyDisplayR
   where
-  render = show
-  {-
   -- To adjust the printing parameters:
   render x = PP.displayS (PP.renderPretty ribbon columns x) ""
   columns = 80
-  ribbon = 0.3
-  -}
+  ribbon = 1.0
 
 prettyPrintError :: (Show t , Display t) => t -> String
 prettyPrintError a  = prettyPrint a ++ "    (RAW: " ++ show a ++ ")"
