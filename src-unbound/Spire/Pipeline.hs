@@ -6,6 +6,8 @@ import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Surface.Elaborator
 import Spire.Expression.Checker
 import Spire.Canonical.Checker
+import Spire.Expression.Embedder
+import Spire.Canonical.Embedder
 import Spire.Canonical.Types
 import Spire.Surface.Types
 
@@ -16,9 +18,14 @@ checkProgram = runSpireM . checkProgramM
 
 checkProgramM :: SProg -> SpireM VProg
 checkProgramM surface = do
-  expression  <- elabProg surface
-  canonical   <- checkProg expression
-  ()          <- recheckProg canonical
+  expression   <- elabProg surface
+  canonical    <- checkProg expression
+  ()           <- recheckProg canonical
+  let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical
+  expression'  <- elabProg surface'
+  canonical'   <- checkProg expression'
+  unless (canonical == canonical') $
+    throwError "Embedding is unstable!"
   return canonical
 
 ----------------------------------------------------------------------

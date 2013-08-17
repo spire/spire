@@ -70,7 +70,7 @@ snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 ----------------------------------------------------------------------
 
 data VDef = VDef Nom Value Value
-  deriving Show
+  deriving (Show , Eq)
 
 type Env = [VDef]
 type VProg = Env
