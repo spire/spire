@@ -1,51 +1,49 @@
+{-# LANGUAGE
+    MultiParamTypeClasses
+  , TemplateHaskell
+  , ScopedTypeVariables
+  , FlexibleInstances
+  , FlexibleContexts
+  , UndecidableInstances
+  #-}
+
 module Spire.Expression.Types where
+import Unbound.LocallyNameless
 import Spire.Canonical.Types
 
 ----------------------------------------------------------------------
 
 data Check =
-    CLam (Bound Check)
+    CLam (Bind Nom Check)
   | CPair Check Check
-  | CIn Check
   | Infer Infer
-  deriving ( Show, Read )
+  deriving Show
 
 data Infer =
     ITT | ITrue | IFalse
-  | IQuotes StrLit
-  | ILamAnn Check (Bound Infer)
-  | IUnit | IBool | IString | IDesc | IProg | IType
-  | IPi Check (Bound Check)
-  | ISg Check (Bound Check)
-  | IFix Check
 
-  | IDUnit | IDRec
-  | IDSum Check Check
-  | IDPi Check (Bound Check)
-  | IDSg Check (Bound Check)
+  | IUnit | IBool | IType
+  | IPi Check (Bind Nom Check)
+  | ISg Check (Bind Nom Check)
 
-  | IDefs [Def]
-  | IVar Ident
-  | IStrAppend Check Check
-  | IStrEq Check Check
-  | IIf Check Infer Infer
-  | ICaseBool (Bound Check) Check Check Check
+  | IVar Nom
   | IProj1 Infer
   | IProj2 Infer
+  | IIf Check Infer Infer
+  | ICaseBool (Bind Nom Check) Check Check Check
   | IApp Infer Check
   | IAnn Check Check
-  | IDInterp Check Check
-  deriving ( Show, Read )
+  deriving Show
+
+$(derive [''Check , ''Infer])
+instance Alpha Check
+instance Alpha Infer
 
 ----------------------------------------------------------------------
 
--- This is really a combination of context and environment:
---
---   'map fst :: EnvCtx -> [(Ident , Type)]'
---
--- recovers a traditional context.
-type EnvCtx = [((Ident , Type) , Maybe Val)]
-type Def = (Ident , Check , Check)
-type Defs = [Def]
+data CDef = CDef Nom Check Check
+  deriving Show
+
+type CProg = [CDef]
 
 ----------------------------------------------------------------------

@@ -1,78 +1,109 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE
+    MultiParamTypeClasses
+  , TemplateHaskell
+  , ScopedTypeVariables
+  , FlexibleInstances
+  , FlexibleContexts
+  , UndecidableInstances
+  , ViewPatterns
+  #-}
+
 module Spire.Canonical.Types where
-import Data.Generics
+import Data.List
+import Control.Monad.Error
+import Control.Monad.Reader
+import Unbound.LocallyNameless hiding ( Spine )
 
 ----------------------------------------------------------------------
 
-data Val =
-    VUnit | VBool | VString | VDesc | VProg | VType
-  | VPi Type (Bound Type)
-  | VSg Type (Bound Type)
-  | VFix Desc
+type Type = Value
+type Nom = Name Value
+type NomType = (Nom , Embed Type)
+
+data Value =
+    VUnit | VBool | VType 
+  | VPi Value (Bind Nom Value)
+  | VSg Value (Bind Nom Value)
 
   | VTT | VTrue | VFalse
-  | VQuotes StrLit
-  | VPair Type (Bound Type) Val Val
-  | VLam Type (Bound Val)
+  | VPair Value Value
+  | VLam (Bind Nom Value)
 
-  | VDUnit | VDRec
-  | VDSum Desc Desc
-  | VDPi Type (Bound Desc)
-  | VDSg Type (Bound Desc)
-  | VIn Desc Val
+  | VNeut Nom Spine
+  deriving Show
 
-  | VDefs [VDef]
-  | Neut Neut
-  deriving ( Eq, Show, Read, Data, Typeable )
+data Elim =
+    EApp Value
+  | EProj1
+  | EProj2
+  | ECaseBool (Bind Nom Value) Value Value
+  deriving Show
 
-data Neut =
-    NVar NomVar
-  | NStrAppendL Neut Val
-  | NStrAppendR Val Neut
-  | NStrEqL Neut Val
-  | NStrEqR Val Neut
-  | NIf Neut Val Val
-  | NCaseBool (Bound Type) Val Val Neut
-  | NProj1 Neut
-  | NProj2 Neut
-  | NApp Neut Val
-  | NDInterp Neut Val
-  deriving ( Eq, Show, Read, Data, Typeable )
+data Spine = Id | Pipe Spine Elim
+  deriving Show
 
-----------------------------------------------------------------------
+$(derive [''Value , ''Elim , ''Spine])
+instance Alpha Value
+instance Alpha Elim
+instance Alpha Spine
 
-vSum :: Type -> Type -> Type
-vSum aT bT = VSg VBool (Bound (internalId , Neut cT)) where
-  cT = NIf (NVar (NomVar (internalId , 0))) aT bT
+instance Eq Value where
+  (==) = aeq
+instance Eq Elim where
+  (==) = aeq
+instance Eq Spine where
+  (==) = aeq
 
 ----------------------------------------------------------------------
 
-type Ident = String
+data Tel = Empty
+  | Extend (Rebind NomType Tel)
+  deriving Show
+
+$(derive [''Tel])
+instance Alpha Tel
+
+snocTel :: Tel -> NomType -> Tel
+snocTel Empty y = Extend (rebind y Empty)
+snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
+
+----------------------------------------------------------------------
+
+data VDef = VDef Nom Value Value
+  deriving (Show , Eq)
+
+type Env = [VDef]
+type VProg = Env
+
+----------------------------------------------------------------------
+
+data SpireR = SpireR { ctx :: Tel , env :: Env }
+emptySpireR = SpireR { ctx = Empty , env = [] }
+type SpireM = ReaderT SpireR (ErrorT String FreshM)
+
+----------------------------------------------------------------------
+
+extendCtx :: Nom -> Type -> SpireM a -> SpireM a
+extendCtx x _A = local
+  (\r -> r { ctx = snocTel (ctx r) (x , Embed _A) })
+
+extendEnv :: Nom -> Value -> Type -> SpireM a -> SpireM a
+extendEnv x a _A = local
+  (\r -> r { env = VDef x a _A : (env r) })
+
+----------------------------------------------------------------------
+
 wildcard = "_"
-internalId = "_x"
 
-newtype Bound a = Bound (Ident , a)
-  deriving ( Show, Read, Data, Typeable )
-
-instance Eq a => Eq (Bound a) where
-  Bound (_ , x) == Bound (_ , y) = x == y
+isWildcard :: Nom -> Bool
+isWildcard nm = isPrefixOf wildcard (name2String nm)
 
 ----------------------------------------------------------------------
 
-type Var = Int
-newtype NomVar = NomVar (Ident , Var)
-  deriving ( Show, Read, Data, Typeable )
+vVar :: Nom -> Value
+vVar nm = VNeut nm Id
 
-instance Eq NomVar where
-  NomVar (_ , i) == NomVar (_ , j) = i == j
-
-----------------------------------------------------------------------
-
-type Type = Val
-type Desc = Val
-type VDef = (Val , Type)
-type Result = Either String
-type VCtx = [Type]
-type StrLit = String
+eIf :: Value -> Value -> Value -> Elim
+eIf _C ct cf = ECaseBool (bind (s2n wildcard) _C) ct cf
 
 ----------------------------------------------------------------------

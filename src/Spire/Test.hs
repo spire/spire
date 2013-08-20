@@ -6,48 +6,16 @@ import System.FilePath
 import Test.HUnit
 import Text.Parsec.Error
 import Spire.Canonical.Types
-import Spire.Canonical.HereditarySubstitution
-import Spire.Surface.Parsing
-import Spire.Surface.Elaborating
-import Spire.Expression.CheckingAndEvaluation
+import Spire.Canonical.Evaluator
+import Spire.Surface.Parser
+import Spire.Surface.Elaborator
+import Spire.Expression.Checker
+import Spire.Pipeline
 
 ----------------------------------------------------------------------
 
 unitTests :: Test
-unitTests = TestList [
-
-  context "Weakening" [
-  
-    weakenVal0 (Neut (NVar (NomVar ("x", 0))))
-    ~?= Neut (NVar (NomVar ("x", 1)))
-    ,
-
-    weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
-    ~?= VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0))))))
-    ,
-
-    weakenVal0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
-    ~?= VLam VUnit (Bound ("x",Neut (NVar (NomVar ("x",2)))))
-
-    ]
-  ,
-  
-  context "FreeVarsDB" [
-
-    freeVarsDB0 (Neut (NVar (NomVar ("x", 0))))
-    ~?= [NomVar ("x", 0)]
-    ,
-
-    freeVarsDB0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 0)))))))
-    ~?= []
-    ,
-
-    freeVarsDB0 (VLam VUnit (Bound ("x" , (Neut (NVar (NomVar ("x", 1)))))))
-    ~?= [NomVar ("x",0)]
-
-    ]
-
-  ]
+unitTests = TestList []
 
 ----------------------------------------------------------------------
 
@@ -72,11 +40,9 @@ testFile file = do
 assertWellTyped :: FilePath -> String -> Assertion
 assertWellTyped file code = case parseProgram file code of
   Left  error     -> assertFailure ("Parse error:\n" ++ formatParseError error)
-  Right syntax    -> case elabS syntax of
-    Left  error   -> assertFailure ("Elaboration error:\n" ++ error)
-    Right program -> case checkDefsStable program of
-      Left  error -> assertFailure ("Type error:\n" ++ error)
-      Right _     -> return ()
+  Right syntax    -> case checkProgram syntax of
+    Left  error   -> assertFailure ("Check error:\n" ++ error)
+    Right _       -> return ()
 
 ----------------------------------------------------------------------
 

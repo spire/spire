@@ -21,9 +21,6 @@ clean:
 test:
 	runghc -isrc src/Spire/Test.hs examples
 
-test-unbound:
-	runghc -isrc-unbound src-unbound/Spire/Test.hs examples
-
 ott: ott
 	ott -i formalization/ott/spire.ott -o formalization/ott/spire.tex
 	pdflatex -output-directory formalization/ott/ formalization/ott/spire.tex

@@ -1,12 +1,16 @@
 module Spire.CLI where
 import Control.Monad.Error
 import System.Environment
-import Spire.Surface.Types
-import Spire.Surface.Parsing
-import Spire.Surface.Elaborating
-import Spire.Surface.PrettyPrinting
-import Spire.Expression.CheckingAndEvaluation
 import Spire.Canonical.Types
+import Spire.Expression.Checker
+import Spire.Surface.Types
+import Spire.Surface.Parser
+import Spire.Surface.Elaborator
+import Spire.Surface.PrettyPrinter
+import Spire.Pipeline
+import Data.List
+
+----------------------------------------------------------------------
 
 run :: IO ()
 run = do
@@ -14,6 +18,8 @@ run = do
   if null args
   then putStrLn "Please enter the name of the file to be checked."
   else checkFromFile (head args)
+
+----------------------------------------------------------------------
 
 checkFromFile :: FilePath -> IO ()
 checkFromFile file = do
@@ -24,16 +30,18 @@ checkFromFile file = do
       putStrLn $ formatParseError error
 
     Right program -> do
-      putStrLn $ "Parsed program:\n"
+      putStrLn $ "Parsed program:"
+      putStrLn ""
       putStrLn $ prettyPrint program
       putStrLn ""
 
-      case elabS program of
+      case checkProgram program of
         Left error -> putStrLn error
-        Right program' -> case checkDefsStable program' of
+        Right program' -> do
+          putStrLn "Well-typed!"
+          putStrLn $ "Evaluated program:"
+          putStrLn ""
+          putStrLn $ prettyPrint program'
 
-          Left error -> putStrLn error
-          Right program'' -> do
-            putStrLn "Well-typed!"
-            putStrLn $ "Evaluated program:\n"
-            putStrLn $ prettyPrint program''
+----------------------------------------------------------------------
+

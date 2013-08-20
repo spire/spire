@@ -1,39 +1,58 @@
+{-# LANGUAGE
+    MultiParamTypeClasses
+  , TemplateHaskell
+  , ScopedTypeVariables
+  , FlexibleInstances
+  , FlexibleContexts
+  , UndecidableInstances
+  #-}
+
 module Spire.Surface.Types where
 import Spire.Canonical.Types
+import Unbound.LocallyNameless
 
 ----------------------------------------------------------------------
 
-data Statement =
- SDef Ident Syntax Syntax
- deriving ( Show , Read )
-
-type Statements = [Statement]
-
 data Syntax =
     STT | STrue | SFalse
-  | SQuotes StrLit
   | SPair Syntax Syntax
-  | SLam (Bound Syntax)
-  | SUnit | SBool | SString | SDesc | SType
-  | SPi Syntax (Bound Syntax)
-  | SSg Syntax (Bound Syntax)
-  | SFix Syntax
+  | SLam (Bind Nom Syntax)
 
-  | SDUnit | SDRec
-  | SDSum Syntax Syntax
-  | SDPi Syntax (Bound Syntax)
-  | SDSg Syntax (Bound Syntax)
-  | SIn Syntax
+  | SUnit | SBool | SType
+  | SPi Syntax (Bind Nom Syntax)
+  | SSg Syntax (Bind Nom Syntax)
 
-  | SVar Ident
-  | SStrAppend Syntax Syntax
-  | SStrEq Syntax Syntax
-  | SIf Syntax Syntax Syntax
-  | SCaseBool (Bound Syntax) Syntax Syntax Syntax
+  | SVar Nom
   | SProj1 Syntax
   | SProj2 Syntax
   | SApp Syntax Syntax
+  | SIf Syntax Syntax Syntax
+  | SCaseBool (Bind Nom Syntax) Syntax Syntax Syntax
   | SAnn Syntax Syntax
- deriving ( Show , Read )
+ deriving Show
+
+$(derive [''Syntax])
+instance Alpha Syntax
+
+----------------------------------------------------------------------
+
+data SDef = SDef Nom Syntax Syntax
+  deriving Show
+
+type SProg = [SDef]
+
+----------------------------------------------------------------------
+
+sVar :: String -> Syntax
+sVar nm = SVar (s2n nm)
+
+sLam :: String -> Syntax -> Syntax
+sLam nm x = SLam $ bind (s2n nm) x
+
+sPi :: Syntax -> String -> Syntax -> Syntax
+sPi x nm y = SPi x $ bind (s2n nm) y
+
+sSg :: Syntax -> String -> Syntax -> Syntax
+sSg x nm y = SSg x $ bind (s2n nm) y
 
 ----------------------------------------------------------------------
