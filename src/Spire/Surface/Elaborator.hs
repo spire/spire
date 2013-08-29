@@ -63,6 +63,11 @@ elabI (SCaseBool _P ct cf b) =
 elabI (SPi _A _B) = IPi <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B) = ISg <$> elabC _A <*> elabBC _B
 
+-- Once we have meta variables, we should always be able to infer a type for 
+-- a lambda, by inserting a meta variable to type the domain of the lambda,
+-- but a pair will still fail because any inferred type for the RHS
+-- is a specialized version of a more general type (in which a universal variable
+-- standing for the LHS is free).
 elabI x@(SPair _ _) = failUnannotated x
 elabI x@(SLam _)    = failUnannotated x
 
