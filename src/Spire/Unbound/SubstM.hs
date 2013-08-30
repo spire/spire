@@ -9,7 +9,6 @@
 module Spire.Unbound.SubstM where
 import Data.List (find)
 import Generics.RepLib
-import Unbound.LocallyNameless.Fresh
 import Unbound.LocallyNameless.Types
 import Unbound.LocallyNameless.Alpha
 
