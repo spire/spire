@@ -12,11 +12,9 @@ module Spire.Expression.Checker where
 import Unbound.LocallyNameless
 import Control.Monad.Error
 import Control.Monad.Reader
-import Spire.Unbound.SubstM
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Expression.Types
-import Data.Functor.Identity
 
 ----------------------------------------------------------------------
 
@@ -147,14 +145,12 @@ infer (ICaseBool _P ct cf b) = do
 
 checkExtend :: Type -> Bind Nom Check -> Type -> SpireM (Bind Nom Value)
 checkExtend _A bnd_b _B = do
-  ctx     <- asks ctx
   (x , b) <- unbind bnd_b
   b'      <- extendCtx x _A $ check b _B
   return  $  bind x b'
 
 checkExtend2 :: Type -> Bind Nom Check -> Bind Nom Type -> SpireM (Bind Nom Value)
 checkExtend2 _A bnd_b bnd_B = do
-  ctx       <- asks ctx
   (nm ,  b) <- unbind bnd_b
   _B        <- bnd_B `sub` vVar nm
   b'        <- extendCtx nm _A $ check b _B

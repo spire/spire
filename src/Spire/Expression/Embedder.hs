@@ -1,8 +1,6 @@
 module Spire.Expression.Embedder where
 import Unbound.LocallyNameless
-import Control.Monad.Error
 import Control.Applicative
-import Spire.Unbound.SubstM
 import Spire.Canonical.Types
 import Spire.Expression.Types
 import Spire.Surface.Types

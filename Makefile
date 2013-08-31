@@ -9,8 +9,14 @@ tmp:
 
 .PHONY: spire
 # Compile, putting generated files in ./tmp.
+#
+# The -fno-warn-unused-binds turns off warns about unused and
+# unexported top-level defs, and unused local defs, but not unused
+# pattern bindings.  Those can be disabled with
+# -fno-warn-unused-matches.
 spire: tmp
-	ghc -isrc -o spire \
+	ghc -W -fno-warn-unused-binds \
+    -isrc -o spire \
 	  -hidir tmp -odir tmp \
 	  src/Spire.hs
 

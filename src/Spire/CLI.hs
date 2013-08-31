@@ -1,14 +1,8 @@
 module Spire.CLI where
-import Control.Monad.Error
 import System.Environment
-import Spire.Canonical.Types
-import Spire.Expression.Checker
-import Spire.Surface.Types
 import Spire.Surface.Parser
-import Spire.Surface.Elaborator
 import Spire.Surface.PrettyPrinter
 import Spire.Pipeline
-import Data.List
 
 ----------------------------------------------------------------------
 

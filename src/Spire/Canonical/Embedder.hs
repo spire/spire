@@ -1,11 +1,7 @@
 module Spire.Canonical.Embedder where
-import Control.Monad.Error
-import Control.Monad.Reader
 import Control.Applicative
 import Unbound.LocallyNameless hiding ( Spine )
-import Spire.Unbound.SubstM
 import Spire.Canonical.Types
-import Spire.Canonical.Evaluator
 import Spire.Expression.Types
 
 ----------------------------------------------------------------------
