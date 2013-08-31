@@ -36,7 +36,7 @@ data Value =
   | VPair Value Value
   | VLam (Bind Nom Value)
 
-  | VMeta (BindMeta Value)
+  | VBindMeta (BindMeta Value)
 
   | VNeut Nom Spine
   deriving Show
