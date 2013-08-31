@@ -5,6 +5,7 @@ import System.Environment
 import System.FilePath
 import Test.HUnit
 import Text.Parsec.Error
+import Text.Parsec (parse)
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Surface.Parser
@@ -16,7 +17,7 @@ import Unbound.LocallyNameless
 ----------------------------------------------------------------------
 
 unitTests :: Test
-unitTests = TestList [ alpha ] where
+unitTests = TestList [ alpha , parsing ] where
   alpha = "Alpha-equality" ~: [ t1 , t2 ] where
     t1 = test $ assertBool "Universal quantifiers have alpha"
                            (e1 == e2) where
@@ -27,6 +28,16 @@ unitTests = TestList [ alpha ] where
                            (not $ e1 == e1) where
       e1 = VMeta (BindMeta (bind (s2n "x" , Embed (VType , Nothing))
                                  (VNeut (s2n "x") Id)))
+  -- Our equality is defined to disequate all terms with mvar binders,
+  -- so we can't compare the terms here :P
+  parsing = "Parsing" ~: [ t1 , t2 ] where
+    p = show . parse parseSyntax ""
+    t1 = test $ assertEqual s (p s) ps where
+      s  = "? x : Type = Type . x"
+      ps = "Right (SBindMeta (BindMeta (<(x,{(SType,Just SType)})> SVar 0@0)))"
+    t2 = test $ assertEqual s (p s) ps where
+      s  = "? x : _ . _"
+      ps = "Right (SBindMeta (BindMeta (<(x,{(SWildCard,Nothing)})> SWildCard)))"
 
 ----------------------------------------------------------------------
 
