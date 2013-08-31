@@ -25,15 +25,15 @@ sub b x = do
 elim :: Value -> Elim -> SpireM Value
 elim (VNeut nm fs) f        = return $ VNeut nm (Pipe fs f)
 elim (VLam f)      (EApp a) = f `sub` a
-elim _             (EApp a) = throwError "Ill-typed evaluation of ($)"
-elim (VPair a b)   EProj1   = return a
+elim _             (EApp _) = throwError "Ill-typed evaluation of ($)"
+elim (VPair a _)   EProj1   = return a
 elim _             EProj1   = throwError "Ill-typed evaluation of proj1"
-elim (VPair a b)   EProj2   = return b
+elim (VPair _ b)   EProj2   = return b
 elim _             EProj2   = throwError "Ill-typed evaluation of proj2"
 
-elim VTrue  (ECaseBool _P ct cf) = return ct
-elim VFalse (ECaseBool _P ct cf) = return cf
-elim _      (ECaseBool _P ct cf) = throwError "Ill-typed evaluation of if"
+elim VTrue  (ECaseBool _P ct _) = return ct
+elim VFalse (ECaseBool _P _ cf) = return cf
+elim _      (ECaseBool _P _  _) = throwError "Ill-typed evaluation of if"
 
 elims :: Value -> Spine -> SpireM Value
 elims x Id = return x

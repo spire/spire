@@ -6,12 +6,11 @@ import Spire.Expression.Embedder
 import Spire.Expression.Types
 import Spire.Surface.Types
 
-import Control.Applicative ((<$>) , (<*>))
+import Control.Applicative ((<$>))
 import Control.Monad.Reader
 import qualified Text.PrettyPrint.Leijen as PP
 import Text.PrettyPrint.Leijen (Doc)
 import Unbound.LocallyNameless hiding ( Spine )
-import Spire.Canonical.Types (Nom , isWildcard)
 
 ----------------------------------------------------------------------
 
@@ -64,7 +63,7 @@ dt = return . PP.text
 binding :: (Precedence t', Precedence t, Display t) =>
            t' -> Nom -> t -> DisplayM Doc
 binding outside nm tp | isWildcard nm = wrapNonAssoc outside tp
-binding outside nm tp = parensM . hsepM $ [d nm , dt ":" , d tp]
+binding _       nm tp = parensM . hsepM $ [d nm , dt ":" , d tp]
 
 ----------------------------------------------------------------------
 -- Short hands.
@@ -110,7 +109,7 @@ dIf o c t f = alignM . sepM $ [ dt "if" <+> w o c
 dProj1 o ab = dt "proj1" <+> ww o ab
 dProj2 o ab = dt "proj2" <+> ww o ab
 dApp o f a = alignM $ w o f </> ww o a
-dAnn o a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
+dAnn _ a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
 
 dCaseBool o bnd t f bool =
   dt "caseBool" <+> (alignM . sepM)

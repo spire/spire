@@ -11,7 +11,6 @@ module Spire.Canonical.Checker where
 import Control.Monad.Error
 import Control.Monad.Reader
 import Unbound.LocallyNameless hiding ( Spine )
-import Spire.Unbound.SubstM
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 
@@ -19,7 +18,7 @@ import Spire.Canonical.Evaluator
 
 recheckProg :: VProg -> SpireM ()
 recheckProg [] = return ()
-recheckProg (VDef nm a _A : xs) = do
+recheckProg (VDef _ a _A : xs) = do
   checkV _A VType
   checkV a _A
   recheckProg xs
@@ -56,13 +55,13 @@ checkV (VPi _A _B) _ =
 
 checkV (VLam b) (VPi _A _B) =
   checkVExtend2 _A b _B
-checkV (VLam bnd_b) _ =
+checkV (VLam _) _ =
   throwError "Ill-typed!"
 
 checkV (VPair a b) (VSg _A _B) = do
   checkV a _A
   checkV b =<< _B `sub` a
-checkV (VPair a b) _ =
+checkV (VPair _ _) _ =
   throwError "Ill-typed!"
 
 checkV (VNeut nm fs) _B = do
@@ -97,7 +96,7 @@ inferN nm (Pipe fs EProj2) = do
     VSg _A _B -> _B `sub` VNeut nm (Pipe fs EProj1)
     _         -> throwError "Ill-typed!"
 
-inferN nm (Pipe fs (ECaseBool _P ct cf)) = do
+inferN nm (Pipe fs (ECaseBool _P _ _)) = do
   _A <- inferN nm fs
   case _A of
     VBool -> _P `sub` VNeut nm fs
@@ -107,13 +106,11 @@ inferN nm (Pipe fs (ECaseBool _P ct cf)) = do
 
 checkVExtend :: Type -> Bind Nom Value -> Type -> SpireM ()
 checkVExtend _A bnd_b _B = do
-  ctx     <- asks ctx
   (x , b) <- unbind bnd_b
   extendCtx x _A $ checkV b _B
 
 checkVExtend2 :: Type -> Bind Nom Value -> Bind Nom Type -> SpireM ()
 checkVExtend2 _A bnd_b bnd_B = do
-  ctx      <- asks ctx
   (nm , b) <- unbind bnd_b
   _B       <- bnd_B `sub` vVar nm
   extendCtx nm _A $ checkV b _B
