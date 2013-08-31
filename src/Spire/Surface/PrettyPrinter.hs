@@ -90,6 +90,7 @@ dFalse = dt "false"
 dUnit  = dt "Unit"
 dBool  = dt "Bool"
 dType  = dt "Type"
+dWildCard = dt wildcard
 
 -- Constructors with arguments pass *themselves* and their args to
 -- their printers.
@@ -116,6 +117,12 @@ dCaseBool o bnd t f bool =
     [ parensM $ dLam o bnd
       , ww o t , ww o f , ww o bool ]
 
+dBindMeta o bm = do
+  (nm , _T , mt , b) <- unbindMeta bm
+  let t = maybe (dt "") (\t -> dt "" <+> dt "=" <+> w o t) mt
+  fsepM [ dt "?" <+> d nm <+> dt ":" <+> d _T <> t <+> dt "."
+        , w o b ]
+
 ----------------------------------------------------------------------
 
 instance Display Syntax where
@@ -131,10 +138,13 @@ instance Display Syntax where
     SPair a b -> dPair s a b
     SLam b    -> dLam s b
 
+    SBindMeta b -> dBindMeta s b
+
     SPi _A _B -> dPi s _A _B
     SSg _A _B -> dSg s _A _B
 
     SVar nm   -> d nm
+    SWildCard -> dWildCard
     SIf c t f -> dIf s c t f
     SProj1 ab -> dProj1 s ab
     SProj2 ab -> dProj2 s ab
@@ -189,6 +199,7 @@ instance Precedence Syntax where
     SApp _ _    -> appLevel
     SAnn _ _    -> annLevel
     SCaseBool _ _ _ _ -> caseBoolLevel
+    SBindMeta _ -> bindMetaLevel
     _           -> atomicLevel
   assoc s = case s of
     SPi   _ _ -> piAssoc
@@ -245,6 +256,7 @@ piAssoc        = AssocRight
 ifLevel        = 6
 caseBoolLevel  = 6
 lamLevel       = 7
+bindMetaLevel  = 7
 defsLevel      = 9
 defLevel       = 10
 
