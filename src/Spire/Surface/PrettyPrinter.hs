@@ -97,7 +97,7 @@ dWildCard = dt wildcard
 dPair o x y = ww o x <+> dt "," <+> w o y
 dLam o bnd_b = do
   (nm , b) <- unbind bnd_b
-  fsepM [ dt "\\" <+> w o nm <+> dt "->" , w o b ]
+  fsepM [ dt "\\" <+> d nm <+> dt "->" , w o b ]
 dPi o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
   fsepM [ binding o nm _A <+> dt "->" , w o _B ]

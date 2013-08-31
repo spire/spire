@@ -1,5 +1,6 @@
 module Spire.Surface.Elaborator where
 import Control.Monad.Error
+import Control.Monad.Writer
 import Control.Applicative
 import Unbound.LocallyNameless
 import Spire.Canonical.Types
@@ -11,14 +12,27 @@ import Spire.Expression.Types
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
 elabProg (SDef nm a _A : xs) = do
-  _A'    <- elabC _A
-  a'     <- elabC a
+  _A'    <- elab _A
+  a'     <- elab a
   xs'    <- elabProg xs
   return (CDef nm a' _A' : xs')
 
 ----------------------------------------------------------------------
 
-elabC :: Syntax -> SpireM Check
+WIP: this is totally broken, but the idea is to run the elaboration in a writer that collects meta vars, and then bind them at the top level.  will also have to bind intermediate mvars at lambdas inside, using censor forget after using listen to read the internally bound metas.
+
+elab :: Syntax -> SpireM Check
+elab s = do
+  (c , nms) <- runWriter $ elabC s
+  foldM bind' c (reverse nms)
+  where
+  c `bind'` nm = do
+    _T <- fresh (s2n "meta_T")
+    return . bindMeta _T SType Nothing . bindMeta nm _T Nothing $ c
+
+type SpireM' = WriterT [Nom] SpireM
+
+elabC :: Syntax -> SpireM' Check
 
 elabC (SPair a b) = CPair <$> elabC  a <*> elabC b
 elabC (SLam b)    = CLam  <$> elabBC b
@@ -41,7 +55,7 @@ elabC x@(SCaseBool _ _ _ _) = elabIC x
 
 ----------------------------------------------------------------------
 
-elabI :: Syntax -> SpireM Infer
+elabI :: Syntax -> SpireM' Infer
 
 elabI STT       = return ITT
 elabI STrue     = return ITrue
@@ -73,18 +87,18 @@ elabI x@(SLam _)    = failUnannotated x
 
 ----------------------------------------------------------------------
 
-elabBC :: Bind Nom Syntax -> SpireM (Bind Nom Check)
+elabBC :: Bind Nom Syntax -> SpireM' (Bind Nom Check)
 elabBC bnd = do
   (nm , a) <- unbind bnd
   a'       <- elabC a
   return   $  bind nm a'
 
-failUnannotated :: Syntax -> SpireM Infer
+failUnannotated :: Syntax -> SpireM' Infer
 failUnannotated a = throwError $
   "Failed to infer the type of this term, please annotate it:\n" ++
   show a
 
-elabIC :: Syntax -> SpireM Check
+elabIC :: Syntax -> SpireM' Check
 elabIC x = Infer <$> elabI x
 
 ----------------------------------------------------------------------
