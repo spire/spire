@@ -15,3 +15,9 @@ wild = ?x:_ . x
 
 wild' : Unit
 wild' = _
+
+id : (T:Type) -> T -> T
+id = \ _ -> \ x -> x
+
+idExample : (Unit -> Unit) * Unit
+idExample = (\x -> id _ (id _ x) , tt)

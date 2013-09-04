@@ -30,8 +30,17 @@ type NomType = DecNom Type
 newtype BindMeta a = BindMeta (Bind (DecNom (a, Maybe a)) a)
   deriving Show
 
+
 bindMeta :: Alpha t => Nom -> t -> Maybe t -> t -> BindMeta t
 bindMeta nm _T mt e = BindMeta $ bind (nm, Embed (_T , mt)) e
+
+-- ?x:T.e
+bindHole :: Alpha t => Nom -> t -> t -> BindMeta t
+bindHole nm _T e = bindMeta nm _T Nothing e
+
+-- ?x:T=t.e
+bindGuess :: Alpha t => Nom -> t -> t -> t -> BindMeta t
+bindGuess nm _T t e = bindMeta nm _T (Just t) e
 
 unbindMeta :: (Fresh m, Alpha t)
            => BindMeta t -> m (Nom, t, Maybe t, t)
