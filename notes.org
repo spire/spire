@@ -49,7 +49,7 @@ annotated and so there may be a general well-typedness assumption
 there too.
 
 * Bugs
-** Pretty printer doesn't freshen names?
+** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
 uses WILD as the name of all such mvars, even when there is
 shadowing. Looking at the code, I see (safe) unbind is used, so I'm
@@ -65,3 +65,6 @@ Probably the bug is with the mvar impl, since this works in GHCI
 But I definitely transform all wild names with 'fresh' in the
 elaborator???
 
+Solution: 'name2String' is just a projection function for extracting
+the string part of the abstract type of names :P Above I used 'show'.
+So, the pretty printer was wrong.

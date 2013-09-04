@@ -161,7 +161,10 @@ instance Display SProg where
   display defs =  PP.vcat . PP.punctuate PP.line <$> mapM d defs
 
 instance Display Nom where
-  display = dt . name2String
+  -- It's incorrect to use 'name2String' in place of 'show' here, in
+  -- that it allows shadowing, but this is really ugly, since it
+  -- prints many unnecessary freshenings.
+  display = dt . show
 
 ----------------------------------------------------------------------
 
