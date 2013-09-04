@@ -1,0 +1,67 @@
+* Refinement
+We need to bring our implementation together with Gundry's unification
+implementation and the Matita refinement algorithm.  The Matita
+refinement is the relatively simple part, so we can be more flexible
+there.  But, it would be nice to avoid having to change the
+unification code too drastically if possible.
+
+** MVars
+I was initially inclined to bind mvars in terms as in McBride's thesis
+and Brady's Idris refiner, because it seems more general and simpler
+that way.  But the Matita refinement paper, and McBride and Gundry's
+unification paper, bind the mvars once at the outside (in Gundry's
+tests he seemingly allows any quantifier alternation, but in fact the
+universal quantifier ('gal' binder) automatically skolemizes ("lifts")
+any in scope existentials ('boy' binder).
+
+So, choices include:
+1. don't allow mvar binders in terms, and instead require them to all
+   appear at the top level, skolemizing as necessary.
+
+   A bonus is that we no longer have to worry about comparing mvar
+   binder containing terms for equality.
+
+2. allow mvar binders everywhere (as I'm currently) doing, but make
+   the unifier fail if it encounters an mvar binder during
+   unification.
+
+The second option has the annoying side effect of needing a bunch of
+erroneous default cases that we expect to never be reached. The first
+option has the annoying side effect of me having to rewrite most of
+the mvar code I just wrote :P
+
+** Spines and beta redexes
+The Matita refiner and the Gundry unifier expect spine applications. I
+think it's not important to Matita -- only used for refinement of
+vectors of wild cards -- but it might be important to the unifier /
+non-trivial to change the unifier to use unrestricted application.
+Our canonical language is in spine application form, but our source
+and intermediate (expression) languages are not.  So, if the refiner
+is from expression to expression or expression to canonical, then
+naively, beta-redexes will have to be dealt with at some point.  But,
+it might be as simple as reducing them during type checking, as in the
+current canonical type checker, since in the Matita paper it appears
+that all entry points to unification are between terms that are types
+(and the unification routine there has a precondition that its inputs
+be well typed).  The Gundry unifier of course unifies arbitrary terms
+(not necessarily types), but the unification problems are type
+annotated and so there may be a general well-typedness assumption
+there too.
+
+* Bugs
+** Pretty printer doesn't freshen names?
+Or, the wild card to mvar implementation is buggy: the pretty printer
+uses WILD as the name of all such mvars, even when there is
+shadowing. Looking at the code, I see (safe) unbind is used, so I'm
+confused.
+
+Probably the bug is with the mvar impl, since this works in GHCI
+(after loading Spire.Canonical.Types):
+
+  runFreshM . replicateM 10 $ fresh (s2n "x" :: Name Int)
+  ==>
+  [x,x1,x2,x3,x4,x5,x6,x7,x8,x9]
+
+But I definitely transform all wild names with 'fresh' in the
+elaborator???
+
