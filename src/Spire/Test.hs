@@ -63,9 +63,11 @@ testFile file = do
 assertWellTyped :: FilePath -> String -> Assertion
 assertWellTyped file code = case parseProgram file code of
   Left  error     -> assertFailure ("Parse error:\n" ++ formatParseError error)
-  Right syntax    -> case checkProgram syntax of
-    Left  error   -> assertFailure ("Check error:\n" ++ error)
-    Right _       -> return ()
+  Right syntax    -> case elabProgram syntax of
+    Left  error   -> assertFailure ("Elab error:\n" ++ error)
+    Right program -> case checkProgram program of
+      Left error  -> assertFailure ("Check error:\n" ++ error)
+      Right _     -> return ()
 
 ----------------------------------------------------------------------
 

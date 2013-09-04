@@ -1,24 +1,27 @@
-module Spire.Pipeline where
+module Spire.Pipeline (elabProgram , checkProgram) where
 import Control.Monad.Error
 import Control.Monad.Reader
 import Unbound.LocallyNameless hiding ( Spine )
 
 import Spire.Surface.Elaborator
+import Spire.Surface.Types
 import Spire.Expression.Checker
 import Spire.Canonical.Checker
 import Spire.Expression.Embedder
+import Spire.Expression.Types
 import Spire.Canonical.Embedder
 import Spire.Canonical.Types
-import Spire.Surface.Types
 
 ----------------------------------------------------------------------
 
-checkProgram :: SProg -> Either String VProg
+elabProgram :: SProg -> Either String CProg
+elabProgram = runSpireM . elabProg
+
+checkProgram :: CProg -> Either String VProg
 checkProgram = runSpireM . checkProgramM
 
-checkProgramM :: SProg -> SpireM VProg
-checkProgramM surface = do
-  expression   <- elabProg surface
+checkProgramM :: CProg -> SpireM VProg
+checkProgramM expression  = do
   canonical    <- checkProg expression
   ()           <- recheckProg canonical
   let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical

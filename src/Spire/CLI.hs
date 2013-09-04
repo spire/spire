@@ -29,13 +29,24 @@ checkFromFile file = do
       putStrLn $ prettyPrint program
       putStrLn ""
 
-      case checkProgram program of
-        Left error -> putStrLn error
-        Right program' -> do
-          putStrLn "Well-typed!"
-          putStrLn $ "Evaluated program:"
+      case elabProgram program of
+        Left error -> do
+          putStrLn "Elaboration error:"
+          putStrLn error
+
+        Right program -> do
+          putStrLn $ "Elaborated program:"
           putStrLn ""
-          putStrLn $ prettyPrint program'
+          putStrLn $ prettyPrint program
+          putStrLn ""
+
+          case checkProgram program of
+            Left error -> putStrLn error
+            Right program' -> do
+              putStrLn "Well-typed!"
+              putStrLn $ "Evaluated program:"
+              putStrLn ""
+              putStrLn $ prettyPrint program'
 
 ----------------------------------------------------------------------
 
