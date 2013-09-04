@@ -18,7 +18,7 @@ import Text.Parsec.Language
 import Text.Parsec.Error
 import Text.Printf
 import Data.Functor.Identity (Identity)
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>) , (<*))
 
 ----------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ parseAngles = try . angles tokenizer
 ----------------------------------------------------------------------
 
 parseProg :: ParserM SProg
-parseProg = many parseDef
+parseProg = many parseDef <* eof
 
 parseDef :: ParserM SDef
 parseDef = do
