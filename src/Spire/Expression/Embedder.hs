@@ -1,7 +1,6 @@
 module Spire.Expression.Embedder where
 import Unbound.LocallyNameless
 import Control.Applicative
-import Data.Traversable
 import Spire.Canonical.Types
 import Spire.Expression.Types
 import Spire.Surface.Types
@@ -17,11 +16,6 @@ embedI IBool  = return SBool
 embedI IType  = return SType
 embedI (IPi _A _B) = SPi <$> embedC _A <*> embedCB _B
 embedI (ISg _A _B) = SSg <$> embedC _A <*> embedCB _B
-
-embedI (IBindMeta b) = do
-  (nm, _T, mt, e) <- unbindMeta b
-  fmap SBindMeta $
-    bindMeta nm <$> embedC _T <*> Data.Traversable.mapM embedC mt <*> embedC e
 
 embedI (IVar v) = return $ SVar v
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
