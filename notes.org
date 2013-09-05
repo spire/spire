@@ -30,6 +30,36 @@ erroneous default cases that we expect to never be reached. The first
 option has the annoying side effect of me having to rewrite most of
 the mvar code I just wrote :P
 
+I'm going to take approach (2) now.  Specifically, I'll follow Gundry
+and, unlike Matita, not have explicit mvar contexts and subs, but
+rather, skolemize mvars and apply them to all their free (in scope)
+term vars. In scope mvars for an mvar will be implicit.
+
+*** Elaborating wild cards
+Wild cards become mvars during elaboration.  The introduced mvar
+itself needs a type, which in turn introduces another mvar.  Since
+everything will be skolemized, the elaborator needs to carry a
+context.
+
+Something like:
+
+  elab (Lam _T b) = do
+    _T'     <- elab _T
+    (x , e) <- unbind b
+    e'      <- extendCtx (x , _T') $ elab e
+    return $ Lam _T' (bind x e')
+  -- And similar for Pi and Sigma ...
+
+  elab WildCard = do
+    _T  <- fresh $ s2n "WILD_TYPE"
+    w   <- fresh $ s2n "WILD"
+    ctx <- getCtx
+    let vs  = vars ctx
+        w'  = spineApp w vs
+        _T' = spineApp _T vs
+    tell [ (_T , pis ctx Type) , (w ,  pis ctx _T') ]
+    return w'
+
 ** Spines and beta redexes
 The Matita refiner and the Gundry unifier expect spine applications. I
 think it's not important to Matita -- only used for refinement of
