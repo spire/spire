@@ -19,8 +19,6 @@ elabProg (SDef nm a _A : xs) = do
 
 ----------------------------------------------------------------------
 
-WIP: this is totally broken, but the idea is to run the elaboration in a writer that collects meta vars, and then bind them at the top level.  will also have to bind intermediate mvars at lambdas inside, using censor forget after using listen to read the internally bound metas.
-
 elab :: Syntax -> SpireM Check
 elab s = do
   (c , nms) <- runWriter $ elabC s
