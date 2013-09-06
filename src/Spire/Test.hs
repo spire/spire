@@ -30,14 +30,11 @@ unitTests = TestList [ alpha , parsing ] where
                                  (VNeut (s2n "x") Id)))
   -- Our equality is defined to disequate all terms with mvar binders,
   -- so we can't compare the terms here :P
-  parsing = "Parsing" ~: [ t1 , t2 ] where
+  parsing = "Parsing" ~: [ t1 ] where
     p = show . parse parseSyntax ""
     t1 = test $ assertEqual s (p s) ps where
-      s  = "? x : Type = Type . x"
-      ps = "Right (SBindMeta (BindMeta (<(x,{(SType,Just SType)})> SVar 0@0)))"
-    t2 = test $ assertEqual s (p s) ps where
-      s  = "? x : _ . _"
-      ps = "Right (SBindMeta (BindMeta (<(x,{(SWildCard,Nothing)})> SWildCard)))"
+      s  = "\\ _ -> _"
+      ps = "Right (SLam (<_> SWildCard))"
 
 ----------------------------------------------------------------------
 

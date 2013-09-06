@@ -21,12 +21,8 @@ elabProg (SDef nm a _A : xs) = do
 
 elab :: Syntax -> SpireM Check
 elab s = do
-  (c , nms) <- runWriter $ elabC s
-  foldM bind' c (reverse nms)
-  where
-  c `bind'` nm = do
-    _T <- fresh (s2n "meta_T")
-    return . bindMeta _T SType Nothing . bindMeta nm _T Nothing $ c
+  -- (c , nms) <- runWriter $ elabC s
+  undefined
 
 type SpireM' = WriterT [Nom] SpireM
 

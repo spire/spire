@@ -1,20 +1,5 @@
-foo : Type
-foo = ?x:Type=Type.x
-
-bar : Type
-bar = ?x:Type.x
-
-baz : Bool -> Bool
-baz = ?x:Bool = true . \ _ -> x
-
-baz' : Bool -> Bool
-baz' = \ y -> ?x:Bool . x
-
-wild : Type
-wild = ?x:_ . x
-
-wild' : Unit
-wild' = _
+wild : Unit
+wild = _
 
 id : (T:Type) -> T -> T
 id = \ _ -> \ x -> x
