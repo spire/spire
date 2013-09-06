@@ -26,9 +26,8 @@ unitTests = TestList [ alpha , parsing ] where
       id x =  VLam (bind (s2n x) $ VNeut (s2n x) Id)
     t2 = test $ assertBool "Existential quantifiers don't have alpha"
                            (not $ e1 == e1) where
-      e1 = VBindMeta (BindMeta (bind (s2n "x" , Embed (VType , Nothing))
-                                     (VNeut (s2n "x") Id)))
-
+      e1 = VMeta (BindMeta (bind (s2n "x" , Embed (VType , Nothing))
+                                 (VNeut (s2n "x") Id)))
   -- Our equality is defined to disequate all terms with mvar binders,
   -- so we can't compare the terms here :P
   parsing = "Parsing" ~: [ t1 , t2 ] where

@@ -26,8 +26,6 @@ data Infer =
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
 
-  | IBindMeta (BindMeta Check)
-
   | IVar Nom
   | IProj1 Infer
   | IProj2 Infer
