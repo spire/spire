@@ -18,14 +18,7 @@ import Unbound.LocallyNameless hiding ( Spine )
 
 type Type = Value
 type Nom = Name Value
--- A decorated name. Any names in the decoration should not be bound,
--- so we Embed them.
-type DecNom t = (Nom, Embed t)
-type NomType = DecNom Type
--- A meta variable binder is a new-type so that we can hand code the
--- alpha instance to disequate all terms with meta variable binders.
-newtype BindMeta a = BindMeta (Bind (DecNom (a, Maybe a)) a)
-  deriving Show
+type NomType = (Nom , Embed Type)
 
 data Value =
     VUnit | VBool | VType 
@@ -35,8 +28,6 @@ data Value =
   | VTT | VTrue | VFalse
   | VPair Value Value
   | VLam (Bind Nom Value)
-
-  | VMeta (BindMeta Value)
 
   | VNeut Nom Spine
   deriving Show
@@ -51,28 +42,16 @@ data Elim =
 data Spine = Id | Pipe Spine Elim
   deriving Show
 
-$(derive [''Value , ''Elim , ''Spine, ''BindMeta])
+$(derive [''Value , ''Elim , ''Spine])
 instance Alpha Value
 instance Alpha Elim
 instance Alpha Spine
--- Meta variable binders are existential quantifiers, so
--- alpha-equality does not necessarily make sense for them.
--- E.g. should
---
---   ?x:Nat.x =alpha= ?x:Nat.x
---
--- be true or false?  Note that they are equal for some choices of 'x'
--- and unequal for others. We choose to always make them unequal.
-instance Alpha a => Alpha (BindMeta a) where
-  aeq' _ _ _ = False
 
 instance Eq Value where
   (==) = aeq
 instance Eq Elim where
   (==) = aeq
 instance Eq Spine where
-  (==) = aeq
-instance Alpha a => Eq (BindMeta a) where
   (==) = aeq
 
 ----------------------------------------------------------------------

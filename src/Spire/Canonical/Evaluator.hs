@@ -1,7 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses
-  , FlexibleInstances
-  , ViewPatterns
-  , FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses , FlexibleInstances, ViewPatterns #-}
 
 module Spire.Canonical.Evaluator where
 import Unbound.LocallyNameless hiding ( Spine )
@@ -17,7 +14,6 @@ instance SubstM SpireM Value Elim
 instance SubstM SpireM Value Value where
   isVarM (VNeut nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
   isVarM _ = Nothing
-instance (Alpha a, SubstM SpireM Value a) => SubstM SpireM Value (BindMeta a)
 
 ----------------------------------------------------------------------
 
