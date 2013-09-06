@@ -22,7 +22,6 @@ data Syntax =
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
 
-  | SBindMeta (BindMeta Syntax)
   | SWildCard
 
   | SVar Nom
@@ -51,8 +50,6 @@ sVar nm = SVar (s2n nm)
 
 sLam :: String -> Syntax -> Syntax
 sLam nm x = SLam $ bind (s2n nm) x
-
-sBindMeta nm _T t e = SBindMeta . BindMeta $ bind (s2n nm , Embed (_T , t)) e
 
 sPi :: Syntax -> String -> Syntax -> Syntax
 sPi x nm y = SPi x $ bind (s2n nm) y

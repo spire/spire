@@ -18,7 +18,7 @@ import Text.Parsec.Language
 import Text.Parsec.Error
 import Text.Printf
 import Data.Functor.Identity (Identity)
-import Control.Applicative ((<$>) , (<*))
+import Control.Applicative ((<*))
 
 ----------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 ----------------------------------------------------------------------
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "==",
-       "|", "#", "=>", "?", "."]
+       "|", "#", "=>"]
 keywords = [
   "if", "then", "else",
   "Unit", "Bool", "String", "Type",
@@ -109,7 +109,6 @@ parseChoice = try $ choice [
   , parseProj1
   , parseProj2
   , parseLam
-  , parseBindMeta
   ]
 
 parseAtom = choice
@@ -185,45 +184,6 @@ parseLam = try $ do
   parseOp "->"
   tm <- parseSyntax
   return $ sLam l tm
-
--- ? x : T . e
--- ? x : T = t . e
---
--- I was going to use the "->" in place of ".", to be closer to the
--- lambda syntax, but that creates problems: should
---
---   ?x:Type = A -> B -> C
---
--- parse as
---
---   ?x:Type = (A -> B) -> C
---
--- or
---
---   ?x:Type = A -> (B -> C)
---
--- ? Compare with
---
---   ?x:Type = A -> B . C
---
--- which can only mean
---
---   ?x:Type = (A -> B) . C
---
--- There will be more problem if/when equality is itself a type ... on
--- the other hand, it's not clear the user is actually expected to
--- ever input meta variable bindings, but rather just wild cards "_",
--- which elaborate to bindings ...
-parseBindMeta = try $ do
-  parseOp "?"
-  x <- parseIdent
-  parseOp ":"
-  _T <- parseSyntax
-  t <- choice [ parseOp "=" >> Just <$> parseSyntax
-              , return Nothing ]
-  parseOp "."
-  e <- parseSyntax
-  return $ sBindMeta x _T t e
 
 parseAnn = parseParens $ do
   --    binding   or  annotation
