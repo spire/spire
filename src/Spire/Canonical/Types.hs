@@ -22,24 +22,10 @@ type Nom = Name Value
 -- so we Embed them.
 type DecNom t = (Nom, Embed t)
 type NomType = DecNom Type
-
-----------------------------------------------------------------------
-
 -- A meta variable binder is a new-type so that we can hand code the
 -- alpha instance to disequate all terms with meta variable binders.
 newtype BindMeta a = BindMeta (Bind (DecNom (a, Maybe a)) a)
   deriving Show
-
-bindMeta :: Alpha t => Nom -> t -> Maybe t -> t -> BindMeta t
-bindMeta nm _T mt e = BindMeta $ bind (nm, Embed (_T , mt)) e
-
-unbindMeta :: (Fresh m, Alpha t)
-           => BindMeta t -> m (Nom, t, Maybe t, t)
-unbindMeta (BindMeta bnd) = do
-  ((x , Embed (_T , mt)) , e) <- unbind bnd
-  return (x , _T , mt , e)
-
-----------------------------------------------------------------------
 
 data Value =
     VUnit | VBool | VType 
