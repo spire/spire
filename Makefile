@@ -31,3 +31,7 @@ ott: ott
 	ott -i formalization/ott/spire.ott -o formalization/ott/spire.tex
 	pdflatex -output-directory formalization/ott/ formalization/ott/spire.tex
 
+tags: tmp
+	cd tmp \
+	&& find ../src -name '*.hs' -print \
+	   | xargs hasktags --etags

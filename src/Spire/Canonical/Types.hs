@@ -96,7 +96,7 @@ extendEnv x a _A = local
 wildcard = "_"
 
 isWildcard :: Nom -> Bool
-isWildcard nm = isPrefixOf wildcard (name2String nm)
+isWildcard nm = name2String nm == wildcard
 
 ----------------------------------------------------------------------
 
