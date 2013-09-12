@@ -1,6 +1,7 @@
 module Spire.Surface.Elaborator (elabProg) where
 import Control.Monad.Error
 import Control.Monad.Writer
+import Control.Monad.Reader
 import Control.Applicative
 import Unbound.LocallyNameless
 import Spire.Canonical.Types
@@ -12,19 +13,17 @@ import Spire.Expression.Types
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
 elabProg (SDef nm a _A : xs) = do
-  _A'    <- elab _A
-  a'     <- elab a
-  xs'    <- elabProg xs
-  return (CDef nm a' _A' : xs')
+  (_A' , _A'vs) <- elab _A
+  (a' , a'vs)   <- elab a
+  xs'           <- elabProg xs
+  return (CDef nm a' a'vs _A' _A'vs : xs')
 
 ----------------------------------------------------------------------
 
-elab :: Syntax -> SpireM Check
-elab s = do
-  -- (c , nms) <- runWriter $ elabC s
-  elabC s
+elab :: Syntax -> SpireM (Check , MVarDecls)
+elab s = runWriterT . flip runReaderT [] . elabC $ s
 
-type SpireM' = SpireM -- WriterT [Nom] (ReaderT Tel SpireM)
+type SpireM' = ReaderT [Nom] (WriterT MVarDecls SpireM)
 
 elabC :: Syntax -> SpireM' Check
 
@@ -60,12 +59,18 @@ elabI SBool     = return IBool
 elabI SType     = return IType
 elabI (SVar nm) = return $ IVar nm
 
-{-
 elabI SWildCard = do
-  nm <- fresh $ s2n "WILD"
-  tell [nm]
-  return $ IVar nm
--}
+  w <- fresh $ s2n "WILD"
+  wT <- fresh $ s2n "WILD_T"
+  -- I believe the order here is irrelevant, at least for Gundry ...
+  tell [(wT , VType) , (w , vVar wT)]
+  vs <- ask
+  return $ cApps w vs
+  where
+  cApps w vs = foldl IApp (IVar w) args
+    where
+    args = map (Infer . IVar) $ vs
+
 elabI (SProj1 ab)   = IProj1 <$> elabI ab
 elabI (SProj2 ab)   = IProj2 <$> elabI ab
 elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
@@ -91,7 +96,8 @@ elabI x@(SLam _)    = failUnannotated x
 elabBC :: Bind Nom Syntax -> SpireM' (Bind Nom Check)
 elabBC bnd = do
   (nm , a) <- unbind bnd
-  a'       <- elabC a
+  -- Store names in binding order.
+  a'       <- local (++ [nm]) $ elabC a
   return   $  bind nm a'
 
 failUnannotated :: Syntax -> SpireM' Infer

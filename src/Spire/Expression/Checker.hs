@@ -20,7 +20,7 @@ import Spire.Expression.Types
 
 checkProg :: CProg -> SpireM VProg
 checkProg [] = return []
-checkProg (CDef nm a _A : xs) = do
+checkProg (CDef nm a avs _A _Avs : xs) = do
   _A'    <- check _A VType
   a'     <- check a _A'
   xs'    <- extendEnv nm a' _A' $ checkProg xs

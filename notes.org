@@ -105,6 +105,26 @@ be well typed).  The Gundry unifier of course unifies arbitrary terms
 annotated and so there may be a general well-typedness assumption
 there too.
 
+** Source and target languages
+I'm using Expression for the source and Canonical for the target.  I'm
+not completely sure this will work, but it aligns with the canonical
+representation used in Gundry's unification code, and the fact that
+only *checked* (refined) types are used as input to unification.
+
+In particular, this means the metavar env will use canonical types to
+type the mvars it binds.
+** Scope of mvars
+We want to process definitions one at a time, so we can stop as soon
+as an unsolved mvar remains.  So, mvars corresponding to wild cards
+should be grouped with the def they correspond to.  This includes
+checking a type before checking the term it corresponds to.  Of
+course, this means we won't be doing type inference, e.g. we can't
+write
+
+  id : _
+  id _ a = a
+
+as we might in Haskell (with explicit type abstraction).
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer

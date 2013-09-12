@@ -41,8 +41,16 @@ instance Alpha Infer
 
 ----------------------------------------------------------------------
 
-data CDef = CDef Nom Check Check
+-- Here 'CDef f e' evs T' Tvs' corresponds to source program
+--
+--   f : T
+--   f = e
+--
+-- where 'e' elaborates to 'e'' producing mvar bindings 'evs' and 'T'
+-- elaborates to 'T'' producing mvar bindings 'Tvs'.
+data CDef = CDef Nom Check MVarDecls Check MVarDecls
   deriving Show
+type MVarDecls = [(Nom , Type)]
 
 type CProg = [CDef]
 

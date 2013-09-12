@@ -44,6 +44,6 @@ embedVB bnd_a = do
   return   $ bind nm a'
 
 embedVDef :: VDef -> FreshM CDef
-embedVDef (VDef nm a _A) = CDef nm <$> embedV a <*> embedV _A
+embedVDef (VDef nm a _A) = CDef nm <$> embedV a <*> pure [] <*> embedV _A <*> pure []
 
 ----------------------------------------------------------------------

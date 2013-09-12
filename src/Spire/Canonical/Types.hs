@@ -9,7 +9,6 @@
   #-}
 
 module Spire.Canonical.Types where
-import Data.List
 import Control.Monad.Error
 import Control.Monad.Reader
 import Unbound.LocallyNameless hiding ( Spine )
