@@ -156,7 +156,23 @@ instance Display Nom where
   -- It's incorrect to use 'name2String' in place of 'show' here, in
   -- that it allows shadowing, but this is really ugly, since it
   -- prints many unnecessary freshenings.
-  display = dt . show
+  --
+  -- This is like using 'show', except the freshening index is
+  -- separated from the name by "$", which makes it easier to ignore
+  -- visually.
+  --
+  -- What we really need is to track the in-scope names and only print
+  -- the freshening index when necessary.  Might be easy to hack
+  -- unbound to take care of this.
+  display nm = dt $ name2String nm ++
+                    -- The 'show' of the unbound library does not
+                    -- print the index when it's zero, so neither will
+                    -- we ...
+                    if i == 0
+                    then ""
+                    else "$" ++ show i
+    where
+    i = name2Integer nm
 
 ----------------------------------------------------------------------
 
