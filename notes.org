@@ -60,6 +60,33 @@ Something like:
     tell [ (_T , pis ctx Type) , (w ,  pis ctx _T') ]
     return w'
 
+However, unlike the Matita refinement paper, we don't have typed
+lambda binders, But, neither does Gundry, so not having them means
+fewer changes to his unification code.  So, this will introduce more
+imprecision into our wildcard elaboration, in that we will know less
+about the types, but hopefully unification will solve this just as
+well ...
+
+The simpler version is then something like:
+
+  elab (Lam b) = do
+    (x , e) <- unbind b
+    e'      <- extendVars x $ elab e
+    return $ Lam (bind x e')
+  -- And similar for Pi and Sigma ... although now there is a
+  -- distinction, since Pi and Sigma are annotated ...
+
+  elab WildCard = do
+    _T  <- fresh $ s2n "WILD_TYPE"
+    w   <- fresh $ s2n "WILD"
+    tell [ (_T , Type) , (w , _T) ]
+    vs <- getVars
+    return $ spineApp w vs
+
+The Matita refiner uses the type annotations on lambda binders, but
+hopefully we can recover the needed information from the bidirectional
+typing ...
+
 ** Spines and beta redexes
 The Matita refiner and the Gundry unifier expect spine applications. I
 think it's not important to Matita -- only used for refinement of
