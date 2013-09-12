@@ -22,9 +22,9 @@ elabProg (SDef nm a _A : xs) = do
 elab :: Syntax -> SpireM Check
 elab s = do
   -- (c , nms) <- runWriter $ elabC s
-  undefined
+  elabC s
 
-type SpireM' = WriterT [Nom] SpireM
+type SpireM' = SpireM -- WriterT [Nom] (ReaderT Tel SpireM)
 
 elabC :: Syntax -> SpireM' Check
 
@@ -60,10 +60,12 @@ elabI SBool     = return IBool
 elabI SType     = return IType
 elabI (SVar nm) = return $ IVar nm
 
+{-
 elabI SWildCard = do
   nm <- fresh $ s2n "WILD"
   tell [nm]
   return $ IVar nm
+-}
 elabI (SProj1 ab)   = IProj1 <$> elabI ab
 elabI (SProj2 ab)   = IProj2 <$> elabI ab
 elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
