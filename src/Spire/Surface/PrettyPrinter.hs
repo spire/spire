@@ -63,7 +63,7 @@ dt = return . PP.text
 binding :: (Precedence t', Precedence t, Display t) =>
            t' -> Nom -> t -> DisplayM Doc
 binding outside nm tp | isWildcard nm = wrapNonAssoc outside tp
-binding _       nm tp = parensM . hsepM $ [d nm , dt ":" , d tp]
+binding _       nm tp = parensM . hsepM $ [pushName nm (d nm) , dt ":" , d tp]
 
 ----------------------------------------------------------------------
 -- Short hands.
@@ -97,13 +97,13 @@ dWildCard = dt wildcard
 dPair o x y = ww o x <+> dt "," <+> w o y
 dLam o bnd_b = do
   (nm , b) <- unbind bnd_b
-  fsepM [ dt "\\" <+> d nm <+> dt "->" , w o b ]
+  fsepM [ dt "\\" <+> pushName nm (d nm) <+> dt "->" , pushName nm (w o b) ]
 dPi o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
-  fsepM [ binding o nm _A <+> dt "->" , w o _B ]
+  fsepM [ binding o nm _A <+> dt "->" , pushName nm (w o _B) ]
 dSg o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
-  binding o nm _A <+> dt "*" <+> d _B
+  binding o nm _A <+> dt "*" <+> pushName nm (d _B)
 dIf o c t f = alignM . sepM $ [ dt "if" <+> w o c
                               , dt "then" <+> w o t
                               , dt "else" <+> w o f ]
@@ -153,26 +153,40 @@ instance Display SProg where
   display defs =  PP.vcat . PP.punctuate PP.line <$> mapM d defs
 
 instance Display Nom where
-  -- It's incorrect to use 'name2String' in place of 'show' here, in
-  -- that it allows shadowing, but this is really ugly, since it
-  -- prints many unnecessary freshenings.
+  -- It's incorrect to use 'name2String' here, since it allows
+  -- shadowing, but using 'show' is really ugly, since it prints many
+  -- unnecessary freshenings.
   --
-  -- This is like using 'show', except the freshening index is
-  -- separated from the name by "$", which makes it easier to ignore
-  -- visually.
+  -- The approach we take is to only freshen a name 'x' if there is
+  -- another name 'y' in scope for the binding sight of 'x' s.t. 'x'
+  -- and 'y' have the same string part (a 'Name' is essentially a
+  -- '(String , Int)' pair, with the int used for freshening).
   --
-  -- What we really need is to track the in-scope names and only print
-  -- the freshening index when necessary.  Might be easy to hack
-  -- unbound to take care of this.
-  display nm = dt $ name2String nm ++
-                    -- The 'show' of the unbound library does not
-                    -- print the index when it's zero, so neither will
-                    -- we ...
-                    if i == 0
-                    then ""
-                    else "$" ++ show i
-    where
-    i = name2Integer nm
+  -- For example, the function
+  --
+  --   \ x . \ x . x
+  --
+  -- will print as
+  --
+  --   \ x . \ x$<n> . x$<n> .
+  --
+  -- A much fancier printer could detect that this example need not be
+  -- freshened, but we're taking a simple approach here.
+  display nm = do
+    nms <- asks names
+        -- Here 'nms'' is the names in scope for the binding of 'nm'.
+        -- The 'nms' is a stack of bindings, so all the bindings after
+        -- 'nm' correspond to bindings in scope for 'nm's binding.
+        --
+        -- Fnor metavars, whose binding structure is not taken into
+        -- account, we never freshen.  This will not introduce
+        -- ambiguity as long as we don't evaluate terms containing
+        -- mvars ...
+    let nms'   = drop 1 . dropWhile (/= nm) $ nms
+        suffix = if name2String nm `elem` map name2String nms'
+                 then "$" ++ show (name2Integer nm)
+                 else ""
+    dt $ name2String nm ++ suffix
 
 ----------------------------------------------------------------------
 
@@ -228,9 +242,12 @@ instance Precedence Nom where
 
 -- The 'Reader' data of the 'DisplayM'.  E.g., the "flags" Tim
 -- mentioned would go in here.
-data DisplayR = DisplayR {}
+data DisplayR = DisplayR { names :: [Nom] }
 emptyDisplayR :: DisplayR
-emptyDisplayR = DisplayR {}
+emptyDisplayR = DisplayR { names = [] }
+
+pushName :: Nom -> DisplayM a -> DisplayM a
+pushName nm = local (\d -> d { names = nm : names d })
 
 type DisplayM = ReaderT DisplayR FreshM
 
