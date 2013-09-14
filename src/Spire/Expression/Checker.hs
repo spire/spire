@@ -57,17 +57,26 @@ unifyTypes t1 t2 m = do
   b <- unify VType t1 t2
   unless b m
 
+-- XXX: Turn a type into a pi-type, by expanding it if it's an mvar
+-- application, and failing if it's any other non-pi-type value.
+forcePi :: Type -> SpireM (Type , Bind Nom Type)
+forcePi = undefined
+
 ----------------------------------------------------------------------
 
 check :: Check -> Type -> SpireM Value
 
 check (CLam b) (VPi _A _B) = do
+  -- XXX: Could do 'forcePi' here, but I'm not sure what we'd gain
+  -- ... wait for an example.
   b' <- checkExtend2 _A b _B
   return $ VLam b'
 
 check (CLam _) _ = throwError "Ill-typed!"
 
 check (CPair a b) (VSg _A _B) = do
+  -- XXX: Could have a 'forceSig' here, but again, not sure what it's
+  -- good for.
   a'        <- check a _A
   _B'       <- _B `sub` a'
   b'        <- check b _B'
@@ -117,6 +126,8 @@ infer (IAnn a _A) = do
 
 infer (IProj1 ab) = do
   (ab' , _AB) <- infer ab
+  -- XXX: Another 'forceSig' opportunity; analogous to the use of
+  -- 'forcePi' in 'IApp' below?
   case _AB of
     VSg _A _B -> do
       a'     <- elim ab' EProj1
@@ -141,16 +152,17 @@ infer (IProj2 ab) = do
 
 infer (IApp f a) = do
   (f' , _F) <- infer f
-  case _F of
-    VPi _A _B -> do
-      a'     <- check a _A
-      b'     <- elim f' (EApp a')
-      _B'    <- _B `sub` a'
-      return (b' , _B')
+  (_A , _B) <- forcePi _F
+  a'        <- check a _A
+  b'        <- elim f' (EApp a')
+  _B'       <- _B `sub` a'
+  return    (b' , _B')
+{-
     _ -> throwError $
-      "Ill-typed, projection of non-function!\n" ++
+      "Ill-typed, application of non-function!\n" ++
       "Applied value:\n" ++ show f ++
       "\nApplied type:\n" ++ show _F
+-}
 
 infer (IIf b ct cf) = do
   b' <- check b VBool
