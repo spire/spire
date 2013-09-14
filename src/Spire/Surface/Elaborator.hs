@@ -60,8 +60,8 @@ elabI SType     = return IType
 elabI (SVar nm) = return $ IVar nm
 
 elabI SWildCard = do
-  w <- fresh $ s2n "WILD"
-  wT <- fresh $ s2n "WILD_T"
+  w <- freshMV
+  wT <- freshMV
   -- I believe the order here is irrelevant, at least for Gundry ...
   tell [(wT , VType) , (w , vVar wT)]
   vs <- ask

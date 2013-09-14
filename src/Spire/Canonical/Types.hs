@@ -102,6 +102,9 @@ wildcard = "_"
 isWildcard :: Nom -> Bool
 isWildcard nm = name2String nm == wildcard
 
+freshMV :: Fresh m => m Nom
+freshMV = fresh . s2n $ "?"
+
 ----------------------------------------------------------------------
 
 vVar :: Nom -> Value
