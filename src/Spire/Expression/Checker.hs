@@ -10,12 +10,14 @@
 
 module Spire.Expression.Checker where
 import Unbound.LocallyNameless
+import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Expression.Types
+import Spire.Surface.PrettyPrinter
 
 ----------------------------------------------------------------------
 
@@ -43,6 +45,7 @@ refine :: Check -> MVarDecls -> Type -> SpireM Value
 refine a avs aT = do
   -- XXX: Initialize unification state
   modify (\r -> r { unifierCtx = () })
+  mapM (uncurry declareMV) avs
   a' <- check a aT
   -- XXX: Check unification state
   {- ... -}
@@ -60,7 +63,81 @@ unifyTypes t1 t2 m = do
 -- XXX: Turn a type into a pi-type, by expanding it if it's an mvar
 -- application, and failing if it's any other non-pi-type value.
 forcePi :: Type -> SpireM (Type , Bind Nom Type)
-forcePi = undefined
+forcePi (VPi _A _B) = return (_A , _B)
+-- Given a metavar application
+--
+--   ? x1...xn
+--
+-- we create a new pi type
+--
+--   forall x : ?A x1...xn . ?B x1...xn x
+--
+-- and equate it with the given metavar application.
+--
+-- We declare the parts
+--
+--   ?A : forall x1:T1...xn:Tn . Type
+--   ?B : forall x1:T1...xn:Tn x:(?A x1...xn) . Type
+--
+-- and return their applications
+--
+--   (?A x1 ... xn , ?B x1 ... xn) .
+--
+-- Could we make the refiner figure out these types for us, instead of
+-- constructing them?
+forcePi _T = do
+  (_ , args) <- forceMVApp _T
+  _A <- freshMV
+  _B <- freshMV
+  argTs <- mapM lookupType args
+  declareMV _A (foldPi args argTs VType)
+  _A' <- foldApp _A args
+  x <- fresh . s2n $ "x"
+  declareMV _B (foldPi (args ++ [x])  (argTs ++ [_A']) VType)
+  _B' <- bind x <$> foldApp _B (args ++ [x])
+  unify VType _T (VPi _A' _B')
+  return (_A' , _B')
+  where
+    foldPi :: [Nom] -> [Type] -> Type -> Type
+    foldPi xs xTs _T = foldr mkPi _T (zip xs xTs)
+      where
+      mkPi = (\(x , xT) _T -> VPi xT (bind x _T))
+
+    foldApp :: Nom -> [Nom] -> SpireM Value
+    foldApp x xs = foldM elim (vVar x) (map (EApp . vVar) xs)
+-- forcePi _T = throwError $ "Failed to force Pi type: " ++ prettyPrint _T
+
+-- Push a new mvar decl into the state.
+declareMV :: Nom -> Type -> SpireM ()
+declareMV = undefined
+
+-- Decompose a type as an mvar applied to a spine of arguments.
+forceMVApp :: Type -> SpireM (Nom , [Nom])
+forceMVApp _T = case _T of
+  VNeut nm s -> do
+    args <- unSpine s
+    b <- isMV nm
+    if b
+    then return (nm , args)
+    else die
+  _ -> die
+  where
+    unSpine Id = return []
+    unSpine (Pipe s (EApp (VNeut x Id))) = (x:) <$> unSpine s
+    unSpine _ = die
+
+    die = throwError $ "Failed to force MV app: " ++ prettyPrint _T
+
+-- Check if a name refers to an mvar.
+isMV :: Nom -> SpireM Bool
+isMV = undefined
+
+-- Lookup the type of a variable in the context (meta or regular).
+--
+-- Should be similar to 'lookupCtx' or 'lookupEnv' in
+-- Canonical.Evaluator.
+lookupType :: Nom -> SpireM Type
+lookupType = undefined
 
 ----------------------------------------------------------------------
 
