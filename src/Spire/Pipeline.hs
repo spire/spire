@@ -1,6 +1,7 @@
 module Spire.Pipeline (elabProgram , checkProgram) where
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.State
 import Unbound.LocallyNameless hiding ( Spine )
 
 import Spire.Surface.Elaborator
@@ -40,9 +41,9 @@ runFreshM :: FreshM a -> a
 -}
 
 runSpireM :: SpireM a -> Either String a
-runSpireM = runFreshM . runErrorT . runSpireR
-
-runSpireR :: SpireM a -> ErrorT String FreshM a
-runSpireR m = runReaderT m emptySpireR
+runSpireM = runFreshM 
+          . runErrorT
+          . flip runReaderT emptySpireR
+          . flip evalStateT emptySpireS
 
 ----------------------------------------------------------------------

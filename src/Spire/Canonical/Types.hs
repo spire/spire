@@ -11,6 +11,7 @@
 module Spire.Canonical.Types where
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.State
 import Unbound.LocallyNameless hiding ( Spine )
 
 ----------------------------------------------------------------------
@@ -78,7 +79,11 @@ type VProg = Env
 
 data SpireR = SpireR { ctx :: Tel , env :: Env }
 emptySpireR = SpireR { ctx = Empty , env = [] }
-type SpireM = ReaderT SpireR (ErrorT String FreshM)
+data SpireS = SpireS { unifierCtx :: UnifierCtx }
+emptySpireS = SpireS { unifierCtx = undefined }
+-- XXX: Replace with real unifier context type when adding unification
+type UnifierCtx = ()
+type SpireM = StateT SpireS (ReaderT SpireR (ErrorT String FreshM))
 
 ----------------------------------------------------------------------
 

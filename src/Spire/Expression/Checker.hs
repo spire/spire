@@ -12,6 +12,7 @@ module Spire.Expression.Checker where
 import Unbound.LocallyNameless
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.State
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Expression.Types
@@ -21,10 +22,40 @@ import Spire.Expression.Types
 checkProg :: CProg -> SpireM VProg
 checkProg [] = return []
 checkProg (CDef nm a avs _A _Avs : xs) = do
-  _A'    <- check _A VType
-  a'     <- check a _A'
+  _A'    <- refine _A _Avs VType
+  a'     <- refine a avs _A'
   xs'    <- extendEnv nm a' _A' $ checkProg xs
   return (VDef nm a' _A' : xs')
+
+----------------------------------------------------------------------
+-- Now with Matita-inspired refinement!
+
+-- XXX: The mvar decls are used to initialize the unification state
+-- (mvar decls, mvar defs, unification problems).  Then the checker is
+-- run.  Then the resulting state is inspected, e.g. to make sure that
+-- all the unification problems were solved and all the mvars were
+-- solved.
+--
+-- By changing the final state inspections here we can e.g. allow
+-- unification to span multiple definitions, or for mvars in types to
+-- be solved when refining the corresponding terms (type inference).
+refine :: Check -> MVarDecls -> Type -> SpireM Value
+refine a avs aT = do
+  -- XXX: Initialize unification state
+  modify (\r -> r { unifierCtx = () })
+  a' <- check a aT
+  -- XXX: Check unification state
+  {- ... -}
+  return a'
+
+-- XXX
+unify :: Type -> Value -> Value -> SpireM Bool
+unify _ v1 v2 = return $ v1 == v2
+
+unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
+unifyTypes t1 t2 m = do
+  b <- unify VType t1 t2
+  unless b m
 
 ----------------------------------------------------------------------
 
@@ -47,7 +78,7 @@ check (CPair _ _) _ = throwError "Ill-typed!"
 check (Infer a) _B = do
   (a' , _A) <- infer a
   ctx <- asks ctx
-  unless (_A == _B) $ throwError $
+  unifyTypes _A _B $ throwError $
     "Ill-typed!\n" ++
     "Expected type:\n" ++ show _B ++
     "\n\nInferred type:\n" ++ show _A ++
@@ -125,7 +156,7 @@ infer (IIf b ct cf) = do
   b' <- check b VBool
   (ct' , _C)  <- infer ct
   (cf' , _C') <- infer cf
-  unless (_C == _C') $ throwError $
+  unifyTypes _C _C' $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
     "First branch:\n" ++ show _C ++
     "\nSecond branch:\n" ++ show _C'
