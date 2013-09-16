@@ -125,6 +125,20 @@ write
   id _ a = a
 
 as we might in Haskell (with explicit type abstraction).
+** Integrating unification into our code
+To use Gundry's unification code we have at least three obvious
+choices:
+
+1. port his code to use our data types
+2. port our code to use his data types
+3. write back and forth translators
+
+I'm going to start with (3) because it is the least invasive and
+probably simplest to implement. It maintains the "unification as black
+box" abstraction appearing in papers about refinement, and this
+modularity can't hurt.  We'll have to extend the unifier later in any
+case, since it has no general data type or description support, but
+for now it should mostly work as is.
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
