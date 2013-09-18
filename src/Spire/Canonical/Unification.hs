@@ -38,7 +38,32 @@ value2Tm v = case v of
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e
 
 tm2Value :: Tm -> SpireM Value
-tm2Value = undefined
+tm2Value t = case t of
+  L b -> VLam <$> mapBindM tm2Value b
+  C Type -> return VType
+  C (Pair x y) -> VPair <$> tm2Value x <*> tm2Value y
+  C Bool -> return VBool
+  C Tt -> return VTrue
+  C Ff -> return VFalse
+  Pi t b -> VPi <$> tm2Value t <*> mapBindM tm2Value b
+  Sig t b -> VSg <$> tm2Value t <*> mapBindM tm2Value b
+  N h es -> VNeut <$> head2Nom h <*> bwdElim2Spine es
+  -- XXX: not sure which of 'Set' and 'Type' we want to translate.
+  _ -> throwError $ "Unsupported input in tm2Value: " ++ show t
+  where
+    head2Nom (V n Only) = return $ translate n
+    head2Nom h@(V _ _) = throwError $ "Attempt to translate twin: " ++ show h
+    head2Nom (M n) = return $ translate n
+
+    elim2Elim e = case e of
+      A t -> EApp <$> tm2Value t
+      Hd -> return EProj1
+      Tl -> return EProj2
+      If b x y -> ECaseBool <$> mapBindM tm2Value b <*> tm2Value x <*> tm2Value y
+      _ -> throwError $ "Unsupported input in elim2Elim: " ++ show e
+
+    bwdElim2Spine B0 = return Id
+    bwdElim2Spine (be :< e) = Pipe <$> bwdElim2Spine be <*> elim2Elim e
 
 -- XXX: this could replace most uses of unbind in our code, if the
 -- function 'f' also had access to the translated name.
