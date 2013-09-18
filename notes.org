@@ -139,6 +139,12 @@ box" abstraction appearing in papers about refinement, and this
 modularity can't hurt.  We'll have to extend the unifier later in any
 case, since it has no general data type or description support, but
 for now it should mostly work as is.
+
+The interface will need to include:
+
+- translating from Spire =Value= to Gundry =Tm=, and back.
+- maintaining Spire mvar context and unification problems in a Gundry
+  =Contextual= context.
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
