@@ -12,6 +12,7 @@ module Spire.Canonical.Types where
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.List (isPrefixOf)
 import Unbound.LocallyNameless hiding ( Spine )
 
 ----------------------------------------------------------------------
@@ -56,6 +57,7 @@ instance Eq Spine where
 
 ----------------------------------------------------------------------
 
+-- ??? Why have 'Rebind' here?
 data Tel = Empty
   | Extend (Rebind NomType Tel)
   deriving Show
@@ -102,8 +104,13 @@ wildcard = "_"
 isWildcard :: Nom -> Bool
 isWildcard nm = name2String nm == wildcard
 
+----------------------------------------------------------------------
+
 freshMV :: Fresh m => m Nom
 freshMV = fresh . s2n $ "?"
+
+isMV :: Nom -> Bool
+isMV nm = "?" `isPrefixOf` name2String nm
 
 ----------------------------------------------------------------------
 

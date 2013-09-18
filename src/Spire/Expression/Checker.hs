@@ -14,7 +14,6 @@ import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
-import Data.List (isPrefixOf)
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Expression.Types
@@ -127,10 +126,6 @@ forceMVApp _T = case _T of
     unSpine _ = die
 
     die = throwError $ "Failed to force MV app: " ++ prettyPrint _T
-
--- Check if a name refers to an mvar.
-isMV :: Nom -> Bool
-isMV nm = "?" `isPrefixOf` name2String nm
 
 -- Lookup the type of a variable in the context (meta or regular).
 --
