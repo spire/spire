@@ -6,12 +6,15 @@
   , FlexibleContexts
   , UndecidableInstances
   , ViewPatterns
+  , DeriveFunctor , DeriveFoldable , DeriveTraversable
   #-}
 
 module Spire.Canonical.Types where
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Foldable
+import Data.Traversable
 import Data.List (isPrefixOf)
 import Unbound.LocallyNameless hiding ( Spine )
 
@@ -40,10 +43,12 @@ data Elim =
   | ECaseBool (Bind Nom Value) Value Value
   deriving Show
 
-data Spine = Id | Pipe Spine Elim
-  deriving Show
+type Spine = SpineFunctor Elim
 
-$(derive [''Value , ''Elim , ''Spine])
+data SpineFunctor a = Id | Pipe (SpineFunctor a) a
+  deriving (Show , Functor , Foldable , Traversable)
+
+$(derive [''Value , ''Elim , ''SpineFunctor])
 instance Alpha Value
 instance Alpha Elim
 instance Alpha Spine
