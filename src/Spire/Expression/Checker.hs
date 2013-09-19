@@ -14,8 +14,10 @@ import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
+import qualified PatternUnify.Test
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
+import Spire.Canonical.Unification
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinter
 
@@ -32,7 +34,7 @@ checkProg (CDef nm a avs _A _Avs : xs) = do
 ----------------------------------------------------------------------
 -- Now with Matita-inspired refinement!
 
--- XXX: The mvar decls are used to initialize the unification state
+-- The mvar decls are used to initialize the unification state
 -- (mvar decls, mvar defs, unification problems).  Then the checker is
 -- run.  Then the resulting state is inspected, e.g. to make sure that
 -- all the unification problems were solved and all the mvars were
@@ -43,24 +45,33 @@ checkProg (CDef nm a avs _A _Avs : xs) = do
 -- be solved when refining the corresponding terms (type inference).
 refine :: Check -> MVarDecls -> Type -> SpireM Value
 refine a avs aT = do
-  -- XXX: Initialize unification state
-  modify (\r -> r { unifierCtx = () })
+  -- Initialize unification state
+  put emptySpireS
   mapM (uncurry declareMV) avs
+
   a' <- check a aT
+
   -- XXX: Check unification state
   {- ... -}
   return a'
 
--- XXX
 unify :: Type -> Value -> Value -> SpireM Bool
-unify _ v1 v2 = return $ v1 == v2
+unify _T v1 v2 = do
+  declareProblem _T v1 v2
+  uCtx <- gets unifierCtx
+  case PatternUnify.Test.unify uCtx of
+    -- XXX: should report this error. What we really need is a stack
+    -- of errors?
+    Left _err -> return False -- throwError err
+    Right uCtx' -> do modify (\r -> r { unifierCtx = uCtx' })
+                      return True
 
 unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
 unifyTypes t1 t2 m = do
   b <- unify VType t1 t2
   unless b m
 
--- XXX: Turn a type into a pi-type, by expanding it if it's an mvar
+-- Turn a type into a pi-type, by expanding it if it's an mvar
 -- application, and failing if it's any other non-pi-type value.
 forcePi :: Type -> SpireM (Type , Bind Nom Type)
 forcePi (VPi _A _B) = return (_A , _B)
@@ -106,10 +117,6 @@ forcePi _T = do
     foldApp :: Nom -> [Nom] -> SpireM Value
     foldApp x xs = foldM elim (vVar x) (map (EApp . vVar) xs)
 -- forcePi _T = throwError $ "Failed to force Pi type: " ++ prettyPrint _T
-
--- Push a new mvar decl into the state.
-declareMV :: Nom -> Type -> SpireM ()
-declareMV = undefined
 
 -- Decompose a type as an mvar applied to a spine of arguments.
 forceMVApp :: Type -> SpireM (Nom , [Nom])

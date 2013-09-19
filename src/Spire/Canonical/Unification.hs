@@ -1,8 +1,14 @@
+{-# LANGUAGE ViewPatterns
+           , TupleSections
+ #-}
 module Spire.Canonical.Unification where
 import Control.Applicative ((<*>) , (<$>))
 import Control.Monad.Error
+import Control.Monad.Reader
+import Control.Monad.State
 import Common.BwdFwd
 import PatternUnify.Tm
+import PatternUnify.Context
 -- import PatternUnify.Tm hiding (Elim)
 -- import qualified PatternUnify.Tm as T
 import Spire.Canonical.Types
@@ -74,3 +80,30 @@ mapBindM :: (Fresh m , Functor m , Alpha b , Alpha b' , Rep a' , Rep a)
 mapBindM f b = do
   (x , e) <- unbind b
   bind (translate x) <$> f e
+
+----------------------------------------------------------------------
+
+-- Push a new mvar decl into the unifier state.
+declareMV :: Spire.Canonical.Types.Nom -> Spire.Canonical.Types.Type -> SpireM ()
+declareMV nm _T = do
+  _T' <- value2Tm _T
+  pushEntry $ E (translate nm) (_T', HOLE)
+
+declareProblem :: Spire.Canonical.Types.Type -> Value -> Value -> SpireM ()
+declareProblem _T v1 v2 = do
+  [ _T' , v1' , v2' ] <- mapM value2Tm [ _T , v1 , v2 ]
+  ctx <- tel2List <$> asks ctx
+  params <- forM ctx $ \(x , _S) ->
+            (translate x , ) . P <$> value2Tm _S
+  let eq = Unify (EQN _T' v1' _T' v2')
+      prob = foldr (\(x , _S) p -> All _S (bind x p))
+                   eq
+                   params
+  pushEntry (Q Active prob)
+  where
+    tel2List Empty = []
+    tel2List (Extend (unrebind -> ((nm , unembed -> _T) , xs))) =
+      (nm , _T) : tel2List xs
+
+pushEntry :: Entry -> SpireM ()
+pushEntry e = modify (\r -> r { unifierCtx = e : unifierCtx r })

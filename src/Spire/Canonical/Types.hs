@@ -10,6 +10,7 @@
   #-}
 
 module Spire.Canonical.Types where
+import PatternUnify.Context
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
@@ -87,9 +88,8 @@ type VProg = Env
 data SpireR = SpireR { ctx :: Tel , env :: Env }
 emptySpireR = SpireR { ctx = Empty , env = [] }
 data SpireS = SpireS { unifierCtx :: UnifierCtx }
-emptySpireS = SpireS { unifierCtx = undefined }
--- XXX: Replace with real unifier context type when adding unification
-type UnifierCtx = ()
+emptySpireS = SpireS { unifierCtx = [] }
+type UnifierCtx = [Entry]
 type SpireM = StateT SpireS (ReaderT SpireR (ErrorT String FreshM))
 
 ----------------------------------------------------------------------
