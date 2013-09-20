@@ -4,9 +4,6 @@ all: spire
 deps: lib-unify-deps lib-unify
 	cabal install wl-pprint parsec mtl syb hunit unbound
 
-tmp:
-	mkdir tmp
-
 .PHONY: spire
 # Compile, putting generated files in ./tmp.
 #
@@ -14,13 +11,37 @@ tmp:
 # unexported top-level defs, and unused local defs, but not unused
 # pattern bindings.  Those can be disabled with
 # -fno-warn-unused-matches.
-spire: tmp
+spire: tmp lib-unify
 	ghc \
 	  -W -fno-warn-unused-binds \
 	  -isrc \
 	  -outputdir tmp \
 	  -o spire \
+	  $(GHC_PROF) \
 	  src/Spire.hs
+
+# Build spire with profiling enabled, so that e.g. we can see stack
+# traces on exceptions with
+#
+#   ./spire +RTS -xc -RTS <input file>
+#
+# To generate debug objects we use the special "man in a monocle"
+# object suffix.
+#
+# The multi-line make target sets make variables locally:
+# https://www.gnu.org/software/make/manual/make.html#Target_002dspecific
+#
+# To reinstall your cabal libs with profiling see
+# http://stackoverflow.com/questions/1704421/cabal-not-installing-dependencies-when-needing-profiling-libraries
+# (the "--reinstall world" part did not work for me, but after hiding
+# the *local* package database with
+# `mv ~/.ghc/<ghc-version>/package.conf.d{,.hidden}`
+# I successfully reinstalled the deps with `make deps`).
+debug: GHC_PROF += -prof -fprof-auto -osuf p_o
+debug: UNIFY_TARGET = cabal-install-debug
+debug: spire
+
+######################################################################
 
 clean:
 	-rm -rf tmp
@@ -65,6 +86,9 @@ tags: tmp
 	   | xargs hasktags --etags \
 	&& mv TAGS TAGS2 && cat TAGS* > TAGS
 
+tmp:
+	mkdir tmp
+
 ######################################################################
 # The unification code is in a separate repo.
 
@@ -75,4 +99,4 @@ lib-unify-deps: lib/unify.git
 	make -C lib/unify.git deps
 
 lib-unify: lib/unify.git
-	make -C lib/unify.git
+	make -C lib/unify.git $(UNIFY_TARGET)
