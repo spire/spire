@@ -75,6 +75,11 @@ snocTel :: Tel -> NomType -> Tel
 snocTel Empty y = Extend (rebind y Empty)
 snocTel (Extend (unrebind -> (x , xs))) y = Extend (rebind x (snocTel xs y))
 
+tel2List :: Tel -> [(Nom , Type)]
+tel2List Empty = []
+tel2List (Extend (unrebind -> ((nm , unembed -> _T) , xs))) =
+  (nm , _T) : tel2List xs
+
 ----------------------------------------------------------------------
 
 data VDef = VDef Nom Value Value

@@ -100,10 +100,6 @@ declareProblem _T v1 v2 = do
                    eq
                    params
   pushEntry (Q Active prob)
-  where
-    tel2List Empty = []
-    tel2List (Extend (unrebind -> ((nm , unembed -> _T) , xs))) =
-      (nm , _T) : tel2List xs
 
 pushEntry :: Entry -> SpireM ()
 pushEntry e = modify (\r -> r { unifierCtx = e : unifierCtx r })
