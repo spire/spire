@@ -151,7 +151,10 @@ check (CLam b) (VPi _A _B) = do
   b' <- checkExtend2 _A b _B
   return $ VLam b'
 
-check (CLam _) _ = throwError "Ill-typed!"
+check l@(CLam _) _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check lambda " ++ prettyPrint l ++
+  " at type " ++ prettyPrint _T
 
 check (CPair a b) (VSg _A _B) = do
   -- XXX: Could have a 'forceSig' here, but again, not sure what it's
@@ -161,7 +164,10 @@ check (CPair a b) (VSg _A _B) = do
   b'        <- check b _B'
   return    $  VPair a' b'
 
-check (CPair _ _) _ = throwError "Ill-typed!"
+check p@(CPair _ _) _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check pair " ++ prettyPrint p ++
+  " at type " ++ prettyPrint _T
 
 check (Infer a) _B = do
   (a' , _A) <- infer a
