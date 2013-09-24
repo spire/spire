@@ -1,4 +1,8 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, RankNTypes #-}
+{-# LANGUAGE TypeSynonymInstances
+           , FlexibleInstances
+           , ScopedTypeVariables
+           , RankNTypes
+           #-}
 module Spire.Surface.PrettyPrinter (prettyPrint , prettyPrintError) where
 import Spire.Canonical.Embedder
 import Spire.Canonical.Types
@@ -6,6 +10,7 @@ import Spire.Expression.Embedder
 import Spire.Expression.Types
 import Spire.Surface.Types
 
+import Common.PrettyPrint (pp)
 import Control.Applicative ((<$>))
 import Control.Monad.Reader
 import qualified Text.PrettyPrint.Leijen as PP
@@ -23,7 +28,7 @@ prettyPrint t = render $ runFreshM $ runReaderT (display t) emptyDisplayR
   ribbon = 1.0
 
 prettyPrintError :: (Show t , Display t) => t -> String
-prettyPrintError a  = prettyPrint a ++ "    (RAW: " ++ show a ++ ")"
+prettyPrintError a  = prettyPrint a ++ "\n(RAW: " ++ show a ++ ")"
 
 ----------------------------------------------------------------------
 
@@ -209,6 +214,12 @@ instance Display Value where
 
 instance Display (Nom , Spine) where
   display (nm , fs) = d . runFreshM $ (embedI =<< embedN nm fs)
+
+instance Display Tel where
+  display = listM . map (uncurry $ dAnn undefined) . tel2List
+
+instance Display UnifierCtx where
+  display = listM . map (dt . pp)
 
 ----------------------------------------------------------------------
 
