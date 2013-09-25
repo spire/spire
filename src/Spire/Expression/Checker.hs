@@ -134,29 +134,29 @@ forceMVApp _T = case _T of
 
     die = throwError $ "Failed to force MV app: " ++ prettyPrint _T
 
--- Lookup the type of a variable in the context (meta or regular).
---
--- Should be similar to 'lookupCtx' or 'lookupEnv' in
--- Canonical.Evaluator.
-lookupType :: Nom -> SpireM Type
-lookupType = undefined
+----------------------------------------------------------------------
+-- Debugging shims can be inserted between 'f' and 'f'' here.
+
+check :: Check -> Type -> SpireM Value
+check = check'
+
+infer :: Infer -> SpireM (Value , Type)
+infer = infer'
 
 ----------------------------------------------------------------------
 
-check :: Check -> Type -> SpireM Value
-
-check (CLam b) (VPi _A _B) = do
+check' (CLam b) (VPi _A _B) = do
   -- XXX: Could do 'forcePi' here, but I'm not sure what we'd gain
   -- ... wait for an example.
   b' <- checkExtend2 _A b _B
   return $ VLam b'
 
-check l@(CLam _) _T = throwError $
+check' l@(CLam _) _T = throwError $
   "Ill-typed!:\n" ++
   "attempt to check lambda " ++ prettyPrint l ++
   " at type " ++ prettyPrint _T
 
-check (CPair a b) (VSg _A _B) = do
+check' (CPair a b) (VSg _A _B) = do
   -- XXX: Could have a 'forceSig' here, but again, not sure what it's
   -- good for.
   a'        <- check a _A
@@ -164,12 +164,12 @@ check (CPair a b) (VSg _A _B) = do
   b'        <- check b _B'
   return    $  VPair a' b'
 
-check p@(CPair _ _) _T = throwError $
+check' p@(CPair _ _) _T = throwError $
   "Ill-typed!:\n" ++
   "attempt to check pair " ++ prettyPrint p ++
   " at type " ++ prettyPrint _T
 
-check (Infer a) _B = do
+check' (Infer a) _B = do
   (a' , _A) <- infer a
   ctx <- asks ctx
   unifyTypes _A _B $ throwError $
@@ -180,36 +180,32 @@ check (Infer a) _B = do
     "\n\nValue:\n" ++ show a'
   return a'
 
-infer :: Infer -> SpireM (Value , Type)
+infer' ITT    = return (VTT    , VUnit)
+infer' ITrue  = return (VTrue  , VBool)
+infer' IFalse = return (VFalse , VBool)
 
-infer ITT    = return (VTT    , VUnit)
-infer ITrue  = return (VTrue  , VBool)
-infer IFalse = return (VFalse , VBool)
+infer' IUnit  = return (VUnit  , VType)
+infer' IBool  = return (VBool  , VType)
+infer' IType  = return (VType  , VType)
 
-infer IUnit  = return (VUnit  , VType)
-infer IBool  = return (VBool  , VType)
-infer IType  = return (VType  , VType)
-
-infer (ISg _A _B) = do
+infer' (ISg _A _B) = do
   _A' <- check _A VType
   _B' <- checkExtend _A' _B VType
   return (VSg _A' _B' , VType)
 
-infer (IPi _A _B) = do
+infer' (IPi _A _B) = do
   _A' <- check _A VType
   _B' <- checkExtend _A' _B VType
   return (VPi _A' _B' , VType)
 
-infer (IVar nm) = do
-  ctx <- asks ctx
-  lookupCtx nm ctx
+infer' (IVar nm) = lookupValAndType nm
 
-infer (IAnn a _A) = do
+infer' (IAnn a _A) = do
   _A' <- check _A VType
   a'  <- check a _A'
   return (a' , _A')
 
-infer (IProj1 ab) = do
+infer' (IProj1 ab) = do
   (ab' , _AB) <- infer ab
   -- XXX: Another 'forceSig' opportunity; analogous to the use of
   -- 'forcePi' in 'IApp' below?
@@ -222,7 +218,7 @@ infer (IProj1 ab) = do
       "Projected value:\n" ++ show ab ++
       "\nProjected type:\n" ++ show _AB
 
-infer (IProj2 ab) = do
+infer' (IProj2 ab) = do
   (ab' , _AB) <- infer ab
   case _AB of
     VSg _A _B -> do
@@ -235,7 +231,7 @@ infer (IProj2 ab) = do
       "Projected value:\n" ++ show ab ++
       "\nProjected type:\n" ++ show _AB
 
-infer (IApp f a) = do
+infer' (IApp f a) = do
   (f' , _F) <- infer f
   (_A , _B) <- forcePi _F
   a'        <- check a _A
@@ -249,7 +245,7 @@ infer (IApp f a) = do
       "\nApplied type:\n" ++ show _F
 -}
 
-infer (IIf b ct cf) = do
+infer' (IIf b ct cf) = do
   b' <- check b VBool
   (ct' , _C)  <- infer ct
   (cf' , _C') <- infer cf
@@ -260,7 +256,7 @@ infer (IIf b ct cf) = do
   c <- elim b' (eIf _C ct' cf')
   return (c , _C)
 
-infer (ICaseBool _P ct cf b) = do
+infer' (ICaseBool _P ct cf b) = do
   b'  <- check b VBool
   _P' <- checkExtend VBool _P VType
   ct' <- check ct =<< _P' `sub` VTrue

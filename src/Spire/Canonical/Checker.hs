@@ -72,9 +72,7 @@ checkV (VNeut nm fs) _B = do
 ----------------------------------------------------------------------
 
 inferN :: Nom -> Spine -> SpireM Type
-inferN nm Id = do
-  ctx <- asks ctx
-  return snd `ap` lookupCtx nm ctx
+inferN nm Id = lookupType nm
 
 inferN nm (Pipe fs (EApp a)) = do
   _AB <- inferN nm fs

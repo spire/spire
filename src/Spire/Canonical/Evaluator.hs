@@ -1,11 +1,20 @@
-{-# LANGUAGE MultiParamTypeClasses , FlexibleInstances, ViewPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses
+           , FlexibleInstances
+           , ViewPatterns
+           , TupleSections
+           #-}
 
-module Spire.Canonical.Evaluator where
+module Spire.Canonical.Evaluator (lookupValAndType , lookupType , sub , elim) where
+import PatternUnify.Context
 import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Unbound.SubstM
 import Spire.Canonical.Types
+import Spire.Canonical.Unification
+import Spire.Surface.PrettyPrinter
+import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.State
 
 ----------------------------------------------------------------------
 
@@ -42,6 +51,18 @@ elims x (Pipe fs f) = do
   elim x' f
 
 ----------------------------------------------------------------------
+-- Exported lookup functions.
+
+lookupValAndType :: Nom -> SpireM (Value , Type)
+lookupValAndType nm = do
+  ctx <- asks ctx
+  lookupCtx nm ctx
+
+lookupType :: Nom -> SpireM Type
+lookupType nm = snd <$> lookupValAndType nm
+
+----------------------------------------------------------------------
+-- Non-exported lookup functions.
 
 lookupCtx :: Nom -> Tel -> SpireM (Value , Type)
 lookupCtx nm (Extend (unrebind -> ((x , Embed _A) , xs))) =
@@ -52,20 +73,30 @@ lookupCtx nm Empty = do
   env <- asks env
   lookupEnv nm env
 
-----------------------------------------------------------------------
-
 lookupEnv :: Nom -> Env -> SpireM (Value , Type)
 lookupEnv nm (VDef x a _A : xs) =
   if nm == x
   then return (a , _A)
   else lookupEnv nm xs
 lookupEnv nm [] = do
+  uCtx <- gets unifierCtx
+  lookupMV nm uCtx
+
+lookupMV :: Nom -> UnifierCtx -> SpireM (Value , Type)
+lookupMV nm (E x (_T , _) : es) =
+  if nm == (translate x)
+  then (vVar nm , ) <$> tm2Value _T
+  else lookupMV nm es
+lookupMV nm (Q _ _ : es) = lookupMV nm es
+lookupMV nm [] = do
   env <- asks env
   ctx <- asks ctx
+  uCtx <- gets unifierCtx
   throwError $
-    "Variable not in context or environment!\n" ++
-    "Referenced variable:\n" ++ show nm ++
-    "\nCurrent context:\n" ++ show ctx ++
-    "\nCurrent environment:\n" ++ show env
+    "Variable not in context, environment, or unifier context!\n" ++
+    "Referenced variable:\n" ++ prettyPrintError nm ++ "\n" ++
+    "\nCurrent context:\n" ++ prettyPrintError ctx ++ "\n" ++
+    "\nCurrent environment:\n" ++ prettyPrintError env ++ "\n" ++
+    "\nCurrent unifier context:\n" ++ prettyPrintError uCtx
 
 ----------------------------------------------------------------------
