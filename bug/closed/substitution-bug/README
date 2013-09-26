@@ -1,0 +1,6 @@
+Illustrate bug in substitution: it doesn't recurse into application
+args (spines)!!!
+
+Hopefully the problem will be easy to fix now that we understand it,
+but it took me a long time to identify the problem so I'm saving these
+tests.
