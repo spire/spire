@@ -12,8 +12,13 @@ import Control.Monad.Reader
 instance SubstM SpireM Value Spine
 instance SubstM SpireM Value Elim
 instance SubstM SpireM Value Value where
-  isVarM (VNeut nm fs) = Just $ SubstCoerceM nm (\x -> Just (elims x fs))
-  isVarM _ = Nothing
+  substHookM (VNeut nm fs) = Just f
+    where
+    f nm' e = do
+      fs' <- substM nm' e fs
+      let head = if nm == nm' then e else vVar nm
+      elims head fs'
+  substHookM _ = Nothing
 
 ----------------------------------------------------------------------
 
