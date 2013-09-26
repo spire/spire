@@ -1,4 +1,6 @@
+ROOT = $(shell git rev-parse --show-toplevel)
+
 all:
-	ghc -i../../src -outputdir /tmp -o /tmp/a.out SubstitutionBug.hs
+	ghc -i$(ROOT)/src -outputdir /tmp -o /tmp/a.out SubstitutionBug.hs
 	/tmp/a.out
-	../../spire SubstitutionBug.spire
+	$(ROOT)/spire SubstitutionBug.spire
