@@ -6,6 +6,8 @@ import Control.Applicative ((<*>) , (<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
+import Unbound.LocallyNameless hiding ( Spine )
+
 import Common.BwdFwd
 import PatternUnify.Tm
 import PatternUnify.Context
@@ -13,18 +15,24 @@ import qualified PatternUnify.Test
 -- import PatternUnify.Tm hiding (Elim)
 -- import qualified PatternUnify.Tm as T
 import Spire.Canonical.Types
-import Unbound.LocallyNameless hiding ( Spine )
+import Spire.Options
 
 ----------------------------------------------------------------------
 
 unify :: Spire.Canonical.Types.Type -> Value -> Value -> SpireM Bool
 unify _T v1 v2 = do
+  solveMetaVars <- asks (metavars . conf)
+  if solveMetaVars
+  then unify' _T v1 v2
+  else return $ v1 == v2
+
+unify' _T v1 v2 = do
   declareProblem _T v1 v2
   uCtx <- gets unifierCtx
   case PatternUnify.Test.unify uCtx of
     -- XXX: should report this error. What we really need is a stack
     -- of errors?
-    Left _err -> return False -- throwError err
+    Left _err -> throwError _err -- return False
     Right uCtx' -> do modify (\r -> r { unifierCtx = uCtx' })
                       return True
 
@@ -35,7 +43,8 @@ value2Tm v = case v of
   VBool -> return $ C Bool
   -- Using 'C Type' here results in "Type Set does not make Set equal
   -- to Type" error.
-  VType -> return $ C Set
+  -- VType -> return $ C Set
+  VType -> return $ C Type
   VPi _A _B -> Pi <$> value2Tm _A <*> mapBindM value2Tm _B
   VSg _A _B -> Sig <$> value2Tm _A <*> mapBindM value2Tm _B
   VTrue -> return $ C Tt
