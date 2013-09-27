@@ -1,21 +1,23 @@
+{-# LANGUAGE ImplicitParams #-}
 module Spire.CLI where
-import System.Environment
+
+import Spire.Options
+import Spire.Pipeline
 import Spire.Surface.Parser
 import Spire.Surface.PrettyPrinter
-import Spire.Pipeline
 
 ----------------------------------------------------------------------
 
 run :: IO ()
 run = do
-  args <- getArgs
-  if null args
-  then putStrLn "Please enter the name of the file to be checked."
-  else checkFromFile (head args)
+  conf <- getOpts
+  -- http://www.haskell.org/ghc/docs/latest/html/users_guide/other-type-extensions.html#implicit-parameters
+  let ?conf = conf
+  checkFromFile (file conf)
 
 ----------------------------------------------------------------------
 
-checkFromFile :: FilePath -> IO ()
+checkFromFile :: (?conf::Conf) => FilePath -> IO ()
 checkFromFile file = do
   code <- readFile file
   case parseProgram file code of

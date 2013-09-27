@@ -1,3 +1,4 @@
+{-# LANGUAGE ImplicitParams #-}
 module Spire.Pipeline (elabProgram , checkProgram) where
 import Control.Monad.Error
 import Control.Monad.Reader
@@ -12,13 +13,14 @@ import Spire.Expression.Embedder
 import Spire.Expression.Types
 import Spire.Canonical.Embedder
 import Spire.Canonical.Types
+import Spire.Options
 
 ----------------------------------------------------------------------
 
-elabProgram :: SProg -> Either String CProg
+elabProgram :: (?conf::Conf) => SProg -> Either String CProg
 elabProgram = runSpireM . elabProg
 
-checkProgram :: CProg -> Either String VProg
+checkProgram :: (?conf::Conf) => CProg -> Either String VProg
 checkProgram = runSpireM . checkProgramM
 
 checkProgramM :: CProg -> SpireM VProg
@@ -40,10 +42,10 @@ runErrorT :: ErrorT e m a -> m (Either e a)
 runFreshM :: FreshM a -> a
 -}
 
-runSpireM :: SpireM a -> Either String a
+runSpireM :: (?conf::Conf) => SpireM a -> Either String a
 runSpireM = runFreshM 
           . runErrorT
-          . flip runReaderT emptySpireR
+          . flip runReaderT (emptySpireR { conf = ?conf })
           . flip evalStateT emptySpireS
 
 ----------------------------------------------------------------------

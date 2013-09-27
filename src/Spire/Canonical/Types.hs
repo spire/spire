@@ -10,7 +10,7 @@
   #-}
 
 module Spire.Canonical.Types where
-import PatternUnify.Context
+
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
@@ -18,6 +18,9 @@ import Data.Foldable
 import Data.Traversable
 import Data.List (isPrefixOf)
 import Unbound.LocallyNameless hiding ( Spine )
+
+import PatternUnify.Context
+import Spire.Options
 
 ----------------------------------------------------------------------
 
@@ -90,8 +93,11 @@ type VProg = Env
 
 ----------------------------------------------------------------------
 
-data SpireR = SpireR { ctx :: Tel , env :: Env }
-emptySpireR = SpireR { ctx = Empty , env = [] }
+data SpireR = SpireR { ctx :: Tel , env :: Env , conf :: Conf }
+emptySpireR = SpireR { ctx = Empty
+                     , env = []
+                     , conf = error "You need to define 'conf' before using 'emptySpireR'."
+                     }
 data SpireS = SpireS { unifierCtx :: UnifierCtx }
 emptySpireS = SpireS { unifierCtx = [] }
 type UnifierCtx = [Entry]
