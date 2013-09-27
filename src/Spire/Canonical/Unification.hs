@@ -9,10 +9,24 @@ import Control.Monad.State
 import Common.BwdFwd
 import PatternUnify.Tm
 import PatternUnify.Context
+import qualified PatternUnify.Test
 -- import PatternUnify.Tm hiding (Elim)
 -- import qualified PatternUnify.Tm as T
 import Spire.Canonical.Types
 import Unbound.LocallyNameless hiding ( Spine )
+
+----------------------------------------------------------------------
+
+unify :: Spire.Canonical.Types.Type -> Value -> Value -> SpireM Bool
+unify _T v1 v2 = do
+  declareProblem _T v1 v2
+  uCtx <- gets unifierCtx
+  case PatternUnify.Test.unify uCtx of
+    -- XXX: should report this error. What we really need is a stack
+    -- of errors?
+    Left _err -> return False -- throwError err
+    Right uCtx' -> do modify (\r -> r { unifierCtx = uCtx' })
+                      return True
 
 ----------------------------------------------------------------------
 

@@ -14,7 +14,6 @@ import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
-import qualified PatternUnify.Test
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Canonical.Unification
@@ -54,17 +53,6 @@ refine a avs aT = do
   -- XXX: Check unification state
   {- ... -}
   return a'
-
-unify :: Type -> Value -> Value -> SpireM Bool
-unify _T v1 v2 = do
-  declareProblem _T v1 v2
-  uCtx <- gets unifierCtx
-  case PatternUnify.Test.unify uCtx of
-    -- XXX: should report this error. What we really need is a stack
-    -- of errors?
-    Left _err -> return False -- throwError err
-    Right uCtx' -> do modify (\r -> r { unifierCtx = uCtx' })
-                      return True
 
 unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
 unifyTypes t1 t2 m = do
