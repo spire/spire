@@ -92,7 +92,7 @@ forcePi (VPi _A _B) = return (_A , _B)
 --
 -- and return their applications
 --
---   (?A x1 ... xn , ?B x1 ... xn) .
+--   (?A x1 ... xn , \x . ?B x1 ... xn x) .
 --
 -- Could we make the refiner figure out these types for us, instead of
 -- constructing them?
@@ -103,7 +103,7 @@ forcePi _T = do
   argTs <- mapM lookupType args
   declareMV _A (foldPi args argTs VType)
   _A' <- foldApp _A args
-  x <- fresh . s2n $ "x"
+  x <- fresh . s2n $ "_forcePi"
   declareMV _B (foldPi (args ++ [x])  (argTs ++ [_A']) VType)
   _B' <- bind x <$> foldApp _B (args ++ [x])
   unify VType _T (VPi _A' _B')
