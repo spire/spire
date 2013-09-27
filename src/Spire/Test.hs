@@ -5,13 +5,9 @@ import System.Directory
 import System.Environment
 import System.FilePath
 import Test.HUnit
-import Text.Parsec.Error
 import Text.Parsec (parse)
 import Spire.Canonical.Types
-import Spire.Canonical.Evaluator
 import Spire.Surface.Parser
-import Spire.Surface.Elaborator
-import Spire.Expression.Checker
 import Spire.Options
 import Spire.Pipeline
 import Unbound.LocallyNameless

@@ -9,7 +9,6 @@
 
 module Spire.Canonical.Checker where
 import Control.Monad.Error
-import Control.Monad.Reader
 import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
