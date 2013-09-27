@@ -145,6 +145,50 @@ The interface will need to include:
 - translating from Spire =Value= to Gundry =Tm=, and back.
 - maintaining Spire mvar context and unification problems in a Gundry
   =Contextual= context.
+* Features
+** TODO Command line flags to control debug messages
+Add print statements once but fire them selectively.
+
+Not sure what's the best way to do this, but maybe some kind of
+"bracketing" and a logger. E.g.
+: check e _T = do
+:   let msg = <debug msg, e.g. C |- e <= _T>
+:   log $ Open "check" msg
+:   r <- check' e _T
+:   log $ Close "check" ""
+The logger decides whether or not the display the messages based on
+some command line flags (e.g. --log="check infer"), and sets the
+indentation level of msgs using the 'Open' and 'Close'.
+
+E.g.
+
+: Call 1: check
+: []
+: |- \x.(e1,e2)
+: <= S -> T1 * T2
+:   Call 1.1: check
+:   [x:S]
+:   |- (e1,e2)
+:   <= T1 * T2
+:     Call 1.1.1: check
+:     [x:S]
+:     |- e1
+:     <= T1
+:       ...
+:     Call 1.1.2: check
+:     [x:S]
+:     |- e2
+:     <= T2
+:       ...
+
+You can imagine doing weird things now, e.g. specifying that all
+messages below three levels should not be shown, or only call 1.1.2
+and it's sub tree should be shown. Presumably something like this
+already exists...
+   
+** TODO Substitution unit tests
+Add some!
+
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
