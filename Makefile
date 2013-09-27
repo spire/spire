@@ -1,8 +1,10 @@
 all: spire
 
 # This must be run manually whenever the deps change.
-deps: lib-unify-deps lib-unify
-	cabal install wl-pprint parsec mtl syb hunit unbound
+#
+# Try 'make -i deps' if make gives you trouble ...
+deps: lib-unify-deps lib/unify.git
+	cabal install wl-pprint parsec mtl syb hunit unbound cmdargs
 
 .PHONY: spire
 # Compile, putting generated files in ./tmp.
