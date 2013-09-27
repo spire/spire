@@ -1,20 +1,27 @@
+-- This example is not expected to work yet ...
+{-
 wild : Unit
 wild = _
+-}
 
 id : (T:Type) -> T -> T
 id = \ _ -> \ x -> x
 
-idExample : (Unit -> Unit) * Unit
-idExample = (\x -> id _ (id _ x) , tt)
+{-
+idExample : (Bool -> Bool) * Bool
+idExample = (\x -> id _ (id _ x)) , tt
+-}
 
--- A wildcard on may depend on an unnamed argument, and so should be
+-- A wildcard may depend on an unnamed argument, and so should be
 -- applied to all arguments, even the unnamed ones.  Here the wildcard
 -- inside will be exactly the unnamed argument.
 id' : (T:Type) -> T -> T
 id' = \ _ -> \ x -> id _ x
 
-multipleBinders : Unit -> Unit -> Unit -> Unit -> Unit
-multipleBinders = \ x1 -> \ _ -> \ x2 -> \ x3 -> _
+{-
+multipleBinders : Bool -> Bool -> Bool -> Bool -> Bool
+multipleBinders = \ x1 -> \ _ -> \ x2 -> \ x3 -> id _ true
 
-shadowedBinders : Unit -> Unit -> Unit
+shadowedBinders : Bool -> Bool -> Bool
 shadowedBinders = \ x -> \ x -> x
+-}
