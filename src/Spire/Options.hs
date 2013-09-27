@@ -5,7 +5,7 @@
 {-# LANGUAGE DeriveDataTypeable
   , ScopedTypeVariables
   #-}
-module Spire.Options (getOpts , Conf(..)) where
+module Spire.Options (getOpts , Conf(..) , emptyConf) where
 
 import Data.Data
 import Data.List (intercalate)
@@ -18,6 +18,12 @@ data Conf = Conf { metavars :: Bool
 --                 , idirs :: [FilePath] -- "Include" directories
                  , file :: FilePath
                  } deriving (Show, Data, Typeable)
+
+emptyConf = Conf { metavars = False
+                 , file = error "There is no default file."
+                 }
+
+----------------------------------------------------------------------
 
 getOpts :: IO Conf
 getOpts = cmdArgs $ Conf

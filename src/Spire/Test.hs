@@ -1,3 +1,4 @@
+{-# LANGUAGE ImplicitParams #-}
 module Spire.Test where
 import Data.List
 import System.Directory
@@ -11,6 +12,7 @@ import Spire.Canonical.Evaluator
 import Spire.Surface.Parser
 import Spire.Surface.Elaborator
 import Spire.Expression.Checker
+import Spire.Options
 import Spire.Pipeline
 import Unbound.LocallyNameless
 
@@ -60,6 +62,9 @@ assertWellTyped file code = case parseProgram file code of
     Right program -> case checkProgram program of
       Left error  -> assertFailure ("Check error:\n" ++ error)
       Right _     -> return ()
+  where
+  -- XXX: Support command line args for tests?
+  ?conf = emptyConf
 
 ----------------------------------------------------------------------
 
