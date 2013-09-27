@@ -19,7 +19,9 @@ import Unbound.LocallyNameless hiding ( Spine )
 value2Tm :: Value -> SpireM Tm
 value2Tm v = case v of
   VBool -> return $ C Bool
-  VType -> return $ C Type
+  -- Using 'C Type' here results in "Type Set does not make Set equal
+  -- to Type" error.
+  VType -> return $ C Set
   VPi _A _B -> Pi <$> value2Tm _A <*> mapBindM value2Tm _B
   VSg _A _B -> Sig <$> value2Tm _A <*> mapBindM value2Tm _B
   VTrue -> return $ C Tt
@@ -102,4 +104,5 @@ declareProblem _T v1 v2 = do
   pushEntry (Q Active prob)
 
 pushEntry :: Entry -> SpireM ()
-pushEntry e = modify (\r -> r { unifierCtx = e : unifierCtx r })
+-- The order here matters!
+pushEntry e = modify (\r -> r { unifierCtx = unifierCtx r ++ [e] })
