@@ -43,8 +43,8 @@ value2Tm v = case v of
   VBool -> return $ C Bool
   -- Using 'C Type' here results in "Type Set does not make Set equal
   -- to Type" error.
-  -- VType -> return $ C Set
-  VType -> return $ C Type
+  VType -> return $ C Set
+  -- VType -> return $ C Type
   VPi _A _B -> Pi <$> value2Tm _A <*> mapBindM value2Tm _B
   VSg _A _B -> Sig <$> value2Tm _A <*> mapBindM value2Tm _B
   VTrue -> return $ C Tt
