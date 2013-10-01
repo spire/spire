@@ -15,6 +15,18 @@ run = do
   let ?conf = conf
   checkFromFile (file conf)
 
+-- Version of 'run' that does not use cmdargs.
+--
+-- The cmdargs package seems to mess up the ghci debugger; 'runDebug'
+-- can be used instead of 'run' when debugging. E.g.
+--
+--   ghci -fbreak-on-error -isrc src/Spire/CLI.hs
+--   :trace runDebug (emptyConf { file = "examples/MetaVars.spire" , metavars = True })
+runDebug :: Conf -> IO ()
+runDebug conf = do
+  let ?conf = conf
+  checkFromFile (file conf)
+
 ----------------------------------------------------------------------
 
 checkFromFile :: (?conf::Conf) => FilePath -> IO ()
