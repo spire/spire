@@ -4,6 +4,65 @@ implementation and the Matita refinement algorithm.  The Matita
 refinement is the relatively simple part, so we can be more flexible
 there.  But, it would be nice to avoid having to change the
 unification code too drastically if possible.
+** Example
+Consider:
+
+: id : (T:Type) -> T -> T
+: A : Type
+: x : A
+: |-
+: id (?1 A x) x => ???
+
+resulting from the definition
+
+: id = \A.\x. id _ x
+
+where the "=> ???" means we want to infer a type.
+
+Our final judgment is
+
+: id (?1 A x) => (?1 A x) -> (?1 A x)    x <= (?1 A x)
+: ----------------------------------------------------
+: id (?1 A x) x => (?1 A x)
+
+To check
+
+: x <= (?1 A x)
+
+we infer
+
+: x => A
+
+and so we learn
+
+: A =unify= (?1 A x)
+
+which solves for =?1= giving
+
+: ?1 := \A.\x.A
+
+The final judgment comes uses
+
+: id => (A:Type) -> A -> A    (?1 A x) <= Type
+: --------------------------------------------
+: id (?1 A x) x => (?1 A x) -> (?1 A x)
+
+To check
+
+: (?1 A x) <= Type
+
+we use
+
+: ?1  => (A:*)(x:A) -> ?1T A x
+: ?1T => (A:*)(x:A) -> Type
+
+and so we learn that
+
+: ?1T A x =unify= Type
+
+which solves for =?1T= giving
+
+: ?1T := \A.\x.Type
 
 ** MVars
 I was initially inclined to bind mvars in terms as in McBride's thesis
@@ -86,7 +145,6 @@ The simpler version is then something like:
 The Matita refiner uses the type annotations on lambda binders, but
 hopefully we can recover the needed information from the bidirectional
 typing ...
-
 ** Spines and beta redexes
 The Matita refiner and the Gundry unifier expect spine applications. I
 think it's not important to Matita -- only used for refinement of
@@ -189,6 +247,39 @@ already exists...
 ** TODO Substitution unit tests
 Add some!
 
+** TODO Bring Gundry types and Spire types together
+E.g., there is no unit type in the Gundry code.
+** TODO Change annotation structure of lambdas and pairs?
+Currently the pair and lambda are expected to be externally annotated,
+but actually, all we need is RHS annotations on pairs, and domain
+annotations on lambdas. Something like:
+
+: (e1,e2:x.T2)
+
+and
+
+: \x:T1.e
+
+whereas currently, the requirements are
+
+: (e1,e2) : Sigma x:T1,T2
+
+and
+
+: \x.e : Pi x:T1.T2
+
+The point is that T1 for pairs and T2 for lambdas can be inferred when
+the other type is known. Note that it's not quite symmetric: we really
+can't infer the general type of a pair -- there isn't one -- but we
+can infer the general type of a lambda.  E.g.
+
+: (0,0) : Sigma x:Nat. if x == 0 then Nat else Bottom
+:       : Sigma x:Nat. if even x then Nat else Bottom
+
+and those two types are not compatible.
+
+Once we have meta vars and unification this is easy, but before that
+we'll have to update all the examples with the new annotations :P
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
