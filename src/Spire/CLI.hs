@@ -1,6 +1,7 @@
 {-# LANGUAGE ImplicitParams #-}
 module Spire.CLI where
 
+import Spire.Debug
 import Spire.Options
 import Spire.Pipeline
 import Spire.Surface.Parser
@@ -9,11 +10,7 @@ import Spire.Surface.PrettyPrinter
 ----------------------------------------------------------------------
 
 run :: IO ()
-run = do
-  conf <- getOpts
-  -- http://www.haskell.org/ghc/docs/latest/html/users_guide/other-type-extensions.html#implicit-parameters
-  let ?conf = conf
-  checkFromFile (file conf)
+run = runDebug =<< getOpts
 
 -- Version of 'run' that does not use cmdargs.
 --
@@ -24,6 +21,8 @@ run = do
 --   :trace runDebug (emptyConf { file = "examples/MetaVars.spire" , metavars = True })
 runDebug :: Conf -> IO ()
 runDebug conf = do
+  setDebugging . Spire.Options.debug $ conf
+  -- http://www.haskell.org/ghc/docs/latest/html/users_guide/other-type-extensions.html#implicit-parameters
   let ?conf = conf
   checkFromFile (file conf)
 

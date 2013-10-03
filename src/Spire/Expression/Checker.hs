@@ -6,6 +6,7 @@
   , FlexibleContexts
   , UndecidableInstances
   , ViewPatterns
+  , NoMonomorphismRestriction
   #-}
 
 module Spire.Expression.Checker where
@@ -17,6 +18,7 @@ import Control.Monad.State
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Canonical.Unification
+import Spire.Debug
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinter
 
@@ -95,7 +97,7 @@ forcePi _T = do
   declareMV _B (foldPi (args ++ [x])  (argTs ++ [_A']) VType)
   _B' <- bind x <$> foldApp _B (args ++ [x])
   unify VType _T (VPi _A' _B')
-  return (_A' , _B')
+  return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
   where
     foldPi :: [Nom] -> [Type] -> Type -> Type
     foldPi xs xTs _T = foldr mkPi _T (zip xs xTs)
@@ -108,7 +110,7 @@ forcePi _T = do
 
 -- Decompose a type as an mvar applied to a spine of arguments.
 forceMVApp :: Type -> SpireM (Nom , [Nom])
-forceMVApp _T = case _T of
+forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
   VNeut nm s -> do
     args <- unSpine s
     if isMV nm
@@ -126,10 +128,26 @@ forceMVApp _T = case _T of
 -- Debugging shims can be inserted between 'f' and 'f'' here.
 
 check :: Check -> Type -> SpireM Value
-check = check'
+check x _T = do
+  ctx <- asks ctx
+  let p = prettyPrint
+  let msg = p ctx ++ "\n" ++
+            "|-" ++ "\n" ++
+            p x ++ "\n" ++
+            "<=" ++ "\n" ++
+            p _T ++ "\n"
+  check' x _T `debug` msg
 
 infer :: Infer -> SpireM (Value , Type)
-infer = infer'
+infer x = do
+  ctx <- asks ctx
+  let p = prettyPrint
+  let msg = p ctx ++ "\n" ++
+            "|-" ++ "\n" ++
+            p x ++ "\n" ++
+            "=>"
+  r@(_ , _T) <- infer' x `debug` msg ++ "...\n"
+  return r `debug` "..." ++ msg ++ "\n" ++ p _T ++ "\n"
 
 ----------------------------------------------------------------------
 
@@ -225,7 +243,13 @@ infer' (IApp f a) = do
   a'        <- check a _A
   b'        <- elim f' (EApp a')
   _B'       <- _B `sub` a'
-  return    (b' , _B')
+  let p = prettyPrintError
+  let msg = "infer IApp:\n" ++ "f' = " ++ p f' ++ "\n" ++
+            "a' = " ++ p a' ++ "\n" ++
+            "b' = " ++ p b' ++ "\n" ++
+            "_B = " ++ p (VLam _B) ++ "\n" ++
+            "_B' = " ++ p _B' ++ "\n"
+  return (b' , _B') `debug` msg
 {-
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++

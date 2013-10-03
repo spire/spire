@@ -12,8 +12,6 @@ import Common.BwdFwd
 import PatternUnify.Tm
 import PatternUnify.Context
 import qualified PatternUnify.Test
--- import PatternUnify.Tm hiding (Elim)
--- import qualified PatternUnify.Tm as T
 import Spire.Canonical.Types
 import Spire.Options
 
