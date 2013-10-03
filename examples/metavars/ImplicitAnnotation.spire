@@ -1,0 +1,2 @@
+x : Bool
+x = (true : _)
