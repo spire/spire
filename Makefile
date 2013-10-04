@@ -74,6 +74,9 @@ ott: ott
 #
 # - sometimes M-. brings me to a use and not the def, e.g. for
 #   'Entry'.
+#
+# On OSX, install gnu-sed to get this code to run.
+# The TAGS table will be installed in the local tmp directory.
 tags: tmp
 	-rm tmp/TAGS
 	cd tmp \
