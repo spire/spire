@@ -49,7 +49,7 @@ clean:
 	-rm -rf tmp
 	-rm spire
 
-test:
+test: lib-unify
 	runghc -isrc src/Spire/Test.hs examples
 
 ott: ott
