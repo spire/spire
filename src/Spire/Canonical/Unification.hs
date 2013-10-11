@@ -75,7 +75,7 @@ value2Tm v = case v of
 tm2Value :: Tm -> SpireM Value
 tm2Value t = case t of
   L b -> VLam <$> mapBindM tm2Value b
-  C Type -> return VType
+  C Set -> return VType
   C (Pair x y) -> VPair <$> tm2Value x <*> tm2Value y
   C Bool -> return VBool
   C Tt -> return VTrue

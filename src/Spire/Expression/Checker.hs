@@ -15,9 +15,11 @@ import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
+import PatternUnify.Context (Entry(..) , Decl(..))
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Canonical.Unification
+import Spire.Unbound.SubstM (substM)
 import Spire.Debug
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinter
@@ -50,11 +52,46 @@ refine a avs aT = do
   put emptySpireS
   mapM (uncurry declareMV) avs
 
+  -- Update unification state.
   a' <- check a aT
 
-  -- XXX: Check unification state
-  {- ... -}
-  return a'
+  -- Check unification state.
+  --
+  -- Could type check subs, but Gundry essentially already did that.
+  ctx <- gets unifierCtx
+  subs <- ctx2Substitutions ctx
+          `debug` "refine: metactx after refinement: " ++
+                  prettyPrintError ctx
+
+  -- Apply unification state (substitute).
+  foldM (flip $ uncurry substM) a' subs
+
+-- XXX: I'd like to put this function in Spire.Canonical.Unification,
+-- with the other Gundry bridge code, but that creates an import cycle
+-- with Spire.Canonical.Evaluator.
+--
+-- Convert unifier context to substitutions while checking for
+-- errors. Errors are:
+-- - unsolved problems
+-- - unsolved mvars
+--
+-- Assumes the context is well formed, i.e. that all mvars are
+-- declared in it.
+
+ctx2Substitutions :: [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
+ctx2Substitutions ctx = c return ctx where
+  c :: (Value -> SpireM Value) -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
+  c _ [] = return []
+  c _ (Q _ _ : _) =
+    error $ "ctx2Substitutions: meta context contains unsolved problem: " ++
+            prettyPrintError ctx
+  c _ (E _ (_ , HOLE) : _) =
+    error $ "ctx2Substitutions: meta context contains unsolved metavar: " ++
+            prettyPrintError ctx
+  c sub (E x (_ , DEFN v) : es) = do
+    let x' = translate x
+    v' <- sub =<< tm2Value v
+    ((x' , v') :) <$> c (substM x' v' <=< sub) es
 
 unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
 unifyTypes t1 t2 m = do
