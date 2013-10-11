@@ -1,4 +1,4 @@
-{-# GHC_OPTIONS -O0 #-}
+{-# OPTIONS_GHC -O0 #-}
 module Spire.Debug where
 
 import Data.IORef
