@@ -13,7 +13,7 @@ import PatternUnify.Tm
 import PatternUnify.Context
 import qualified PatternUnify.Test
 import Spire.Canonical.Types
-import Spire.Options
+import Spire.Options hiding (debug)
 
 import Spire.Surface.PrettyPrinter
 import Spire.Debug
@@ -24,7 +24,7 @@ unify :: Spire.Canonical.Types.Type -> Value -> Value -> SpireM Bool
 unify _T v1 v2 = do
   let p = prettyPrintError
   solveMetaVars <- asks (metavars . conf)
-    `Spire.Debug.debug` "unify " ++ p _T ++ " " ++ p v1 ++ " " ++ p v2
+    `debug` "unify " ++ p _T ++ " " ++ p v1 ++ " " ++ p v2
   if solveMetaVars
   then unify' _T v1 v2
   else return $ v1 == v2
@@ -37,6 +37,7 @@ unify' _T v1 v2 = do
     -- of errors?
     Left _err -> throwError ("unify': " ++ _err) -- return False
     Right uCtx' -> do modify (\r -> r { unifierCtx = uCtx' })
+                        `debug` ("unify': New context: " ++ prettyPrintError uCtx')
                       return True
 
 ----------------------------------------------------------------------
