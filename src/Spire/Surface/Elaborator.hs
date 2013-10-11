@@ -62,7 +62,15 @@ elabI (SVar nm) = return $ IVar nm
 elabI SWildCard = do
   w <- freshMV
   wT <- freshMV
-  -- I believe the order here is irrelevant, at least for Gundry ...
+  -- The order here matters. Earlier things are bound for later things
+  -- / the context is read from left to right.  Gundry's code checks
+  -- the order later, e.g. if I reverse the order here I get:
+  --
+  --   spire: validate: dependency error: ?1 occurs before its declaration
+  --   when validating
+  --   (? : ??1, ?1 : Set := Set ,)
+  --
+  -- from examples/metavars/ImplicitAnnotation.spire.
   tell [(wT , VType) , (w , vVar wT)]
   vs <- ask
   return $ cApps w vs
