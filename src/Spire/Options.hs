@@ -14,13 +14,15 @@ import System.Console.CmdArgs
 ----------------------------------------------------------------------
 
 data Conf = Conf { metavars :: Bool
+                 , debug :: Bool
 --                 , engine :: ThmProver
 --                 , idirs :: [FilePath] -- "Include" directories
                  , file :: FilePath
                  } deriving (Show, Data, Typeable)
 
 emptyConf = Conf { metavars = False
-                 , file = error "There is no default file."
+                 , debug = False
+                 , file = error "There is no default file in Spire.Options.emptyConf."
                  }
 
 ----------------------------------------------------------------------
@@ -29,6 +31,9 @@ getOpts :: IO Conf
 getOpts = cmdArgs $ Conf
   { metavars = def
     &= help "Use unification to solve for metavars. This will be on by default once implicit solving actually works ..."
+
+  , debug = def
+    &= help "Print debugging messages."
 
   , file = def
     &= argPos 0

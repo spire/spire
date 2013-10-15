@@ -40,7 +40,7 @@ spire: tmp lib-unify
 # `mv ~/.ghc/<ghc-version>/package.conf.d{,.hidden}`
 # I successfully reinstalled the deps with `make deps`).
 debug: GHC_PROF += -prof -fprof-auto -osuf p_o -outputdir tmp/prof
-debug: UNIFY_TARGET = cabal-install-debug
+debug: UNIFY_TARGET = debug
 debug: spire
 
 ######################################################################

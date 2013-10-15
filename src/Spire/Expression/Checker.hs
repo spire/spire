@@ -6,6 +6,7 @@
   , FlexibleContexts
   , UndecidableInstances
   , ViewPatterns
+  , NoMonomorphismRestriction
   #-}
 
 module Spire.Expression.Checker where
@@ -14,9 +15,12 @@ import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
+import PatternUnify.Context (Entry(..) , Decl(..))
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Canonical.Unification
+import Spire.Unbound.SubstM (substM)
+import Spire.Debug
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinter
 
@@ -48,11 +52,46 @@ refine a avs aT = do
   put emptySpireS
   mapM (uncurry declareMV) avs
 
+  -- Update unification state.
   a' <- check a aT
 
-  -- XXX: Check unification state
-  {- ... -}
-  return a'
+  -- Check unification state.
+  --
+  -- Could type check subs, but Gundry essentially already did that.
+  ctx <- gets unifierCtx
+  subs <- ctx2Substitutions ctx
+          `debug` "refine: metactx after refinement: " ++
+                  prettyPrintError ctx
+
+  -- Apply unification state (substitute).
+  foldM (flip $ uncurry substM) a' subs
+
+-- XXX: I'd like to put this function in Spire.Canonical.Unification,
+-- with the other Gundry bridge code, but that creates an import cycle
+-- with Spire.Canonical.Evaluator.
+--
+-- Convert unifier context to substitutions while checking for
+-- errors. Errors are:
+-- - unsolved problems
+-- - unsolved mvars
+--
+-- Assumes the context is well formed, i.e. that all mvars are
+-- declared in it.
+
+ctx2Substitutions :: [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
+ctx2Substitutions ctx = c return ctx where
+  c :: (Value -> SpireM Value) -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
+  c _ [] = return []
+  c _ (Q _ _ : _) =
+    error $ "ctx2Substitutions: meta context contains unsolved problem: " ++
+            prettyPrintError ctx
+  c _ (E _ (_ , HOLE) : _) =
+    error $ "ctx2Substitutions: meta context contains unsolved metavar: " ++
+            prettyPrintError ctx
+  c sub (E x (_ , DEFN v) : es) = do
+    let x' = translate x
+    v' <- sub =<< tm2Value v
+    ((x' , v') :) <$> c (substM x' v' <=< sub) es
 
 unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
 unifyTypes t1 t2 m = do
@@ -95,7 +134,7 @@ forcePi _T = do
   declareMV _B (foldPi (args ++ [x])  (argTs ++ [_A']) VType)
   _B' <- bind x <$> foldApp _B (args ++ [x])
   unify VType _T (VPi _A' _B')
-  return (_A' , _B')
+  return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
   where
     foldPi :: [Nom] -> [Type] -> Type -> Type
     foldPi xs xTs _T = foldr mkPi _T (zip xs xTs)
@@ -108,7 +147,7 @@ forcePi _T = do
 
 -- Decompose a type as an mvar applied to a spine of arguments.
 forceMVApp :: Type -> SpireM (Nom , [Nom])
-forceMVApp _T = case _T of
+forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
   VNeut nm s -> do
     args <- unSpine s
     if isMV nm
@@ -126,10 +165,26 @@ forceMVApp _T = case _T of
 -- Debugging shims can be inserted between 'f' and 'f'' here.
 
 check :: Check -> Type -> SpireM Value
-check = check'
+check x _T = do
+  ctx <- asks ctx
+  let p = prettyPrint
+  let msg = p ctx ++ "\n" ++
+            "|-" ++ "\n" ++
+            p x ++ "\n" ++
+            "<=" ++ "\n" ++
+            p _T ++ "\n"
+  check' x _T `debug` msg
 
 infer :: Infer -> SpireM (Value , Type)
-infer = infer'
+infer x = do
+  ctx <- asks ctx
+  let p = prettyPrint
+  let msg = p ctx ++ "\n" ++
+            "|-" ++ "\n" ++
+            p x ++ "\n" ++
+            "=>"
+  r@(_ , _T) <- infer' x `debug` msg ++ "...\n"
+  return r `debug` "..." ++ msg ++ "\n" ++ p _T ++ "\n"
 
 ----------------------------------------------------------------------
 
@@ -225,7 +280,13 @@ infer' (IApp f a) = do
   a'        <- check a _A
   b'        <- elim f' (EApp a')
   _B'       <- _B `sub` a'
-  return    (b' , _B')
+  let p = prettyPrintError
+  let msg = "infer IApp:\n" ++ "f' = " ++ p f' ++ "\n" ++
+            "a' = " ++ p a' ++ "\n" ++
+            "b' = " ++ p b' ++ "\n" ++
+            "_B = " ++ p (VLam _B) ++ "\n" ++
+            "_B' = " ++ p _B' ++ "\n"
+  return (b' , _B') `debug` msg
 {-
     _ -> throwError $
       "Ill-typed, application of non-function!\n" ++

@@ -1,0 +1,2 @@
+applyId : ((T:Type) -> T -> T) -> (T:Type) -> T -> T
+applyId = \ id -> \ type -> \ x -> id _ x

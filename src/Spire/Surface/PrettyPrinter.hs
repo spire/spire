@@ -27,8 +27,9 @@ prettyPrint t = render $ runFreshM $ runReaderT (display t) emptyDisplayR
   columns = 80
   ribbon = 1.0
 
+-- The raw data is printed in color to make it easier to ignore :P
 prettyPrintError :: (Show t , Display t) => t -> String
-prettyPrintError a  = prettyPrint a ++ "\n(RAW: " ++ show a ++ ")"
+prettyPrintError a  = prettyPrint a ++ "\x1b[35m(" ++ show a ++ ")\x1b[0m"
 
 ----------------------------------------------------------------------
 
