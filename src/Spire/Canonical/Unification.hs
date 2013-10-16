@@ -45,10 +45,7 @@ unify' _T v1 v2 = do
 value2Tm :: Value -> SpireM Tm
 value2Tm v = case v of
   VBool -> return $ C Bool
-  -- Using 'C Type' here results in "Type Set does not make Set equal
-  -- to Type" error.
-  VType -> return $ C Set
-  -- VType -> return $ C Type
+  VType -> return $ C Type
   VPi _A _B -> Pi <$> value2Tm _A <*> mapBindM value2Tm _B
   VSg _A _B -> Sig <$> value2Tm _A <*> mapBindM value2Tm _B
   VTrue -> return $ C Tt
@@ -75,7 +72,7 @@ value2Tm v = case v of
 tm2Value :: Tm -> SpireM Value
 tm2Value t = case t of
   L b -> VLam <$> mapBindM tm2Value b
-  C Set -> return VType
+  C Type -> return VType
   C (Pair x y) -> VPair <$> tm2Value x <*> tm2Value y
   C Bool -> return VBool
   C Tt -> return VTrue
