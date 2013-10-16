@@ -2,5 +2,5 @@
 --
 -- We may want the unifier to eta-expand things of type unit to the
 -- unique value of type unit.
-wild : Bool
+wild : Unit
 wild = _
