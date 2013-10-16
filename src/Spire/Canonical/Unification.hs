@@ -53,8 +53,10 @@ value2Tm v = case v of
   VPair x y -> C <$> (Pair <$> value2Tm x <*> value2Tm y)
   VLam b -> L <$> mapBindM value2Tm b
   VNeut x s -> N (nom2Head x) <$> spine2BwdElim s
-  -- XXX: no support for unit type right now!
-  _ -> throwError $ "Unsupported input in value2Tm: " ++ show v
+  VUnit -> return $ C Unit
+  VTT   -> return $ C Tt
+  -- Un comment when experimenting with new types.
+  -- _ -> throwError $ "Unsupported input in value2Tm: " ++ show v
   where
     nom2Head x = if isMV x
                  then M (translate x)
@@ -77,10 +79,11 @@ tm2Value t = case t of
   C Bool -> return VBool
   C True' -> return VTrue
   C False' -> return VFalse
+  C Unit -> return VUnit
+  C Tt -> return VTT
   Pi t b -> VPi <$> tm2Value t <*> mapBindM tm2Value b
   Sig t b -> VSg <$> tm2Value t <*> mapBindM tm2Value b
   N h es -> VNeut <$> head2Nom h <*> bwdElim2Spine es
-  -- XXX: not sure which of 'Set' and 'Type' we want to translate.
   _ -> throwError $ "Unsupported input in tm2Value: " ++ show t
   where
     head2Nom (V n Only) = return $ translate n
