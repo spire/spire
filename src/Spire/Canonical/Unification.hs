@@ -48,8 +48,8 @@ value2Tm v = case v of
   VType -> return $ C Type
   VPi _A _B -> Pi <$> value2Tm _A <*> mapBindM value2Tm _B
   VSg _A _B -> Sig <$> value2Tm _A <*> mapBindM value2Tm _B
-  VTrue -> return $ C Tt
-  VFalse -> return $ C Ff
+  VTrue -> return $ C True'
+  VFalse -> return $ C False'
   VPair x y -> C <$> (Pair <$> value2Tm x <*> value2Tm y)
   VLam b -> L <$> mapBindM value2Tm b
   VNeut x s -> N (nom2Head x) <$> spine2BwdElim s
@@ -75,8 +75,8 @@ tm2Value t = case t of
   C Type -> return VType
   C (Pair x y) -> VPair <$> tm2Value x <*> tm2Value y
   C Bool -> return VBool
-  C Tt -> return VTrue
-  C Ff -> return VFalse
+  C True' -> return VTrue
+  C False' -> return VFalse
   Pi t b -> VPi <$> tm2Value t <*> mapBindM tm2Value b
   Sig t b -> VSg <$> tm2Value t <*> mapBindM tm2Value b
   N h es -> VNeut <$> head2Nom h <*> bwdElim2Spine es
