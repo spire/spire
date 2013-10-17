@@ -1,3 +1,67 @@
+* Elaboration
+Elaboration is the process of going from the surface language (SL) to
+the intermediate language (IL).  The IL is then translated into the
+core language (CL) of values by refinement.
+
+The elaborator currently does two things:
+1. translate from the unidirectional SL to the bidirectional IL.
+2. expand wildcards in the SL to unsolved mvars in the IL.
+In the future, we also expect it to insert mvars for implicit
+arguments, but we don't don't implicit arguments yet.
+** Elaborating wild cards
+Wild cards become mvars during elaboration.  The introduced mvar
+itself needs a type, which in turn introduces another mvar.  Since
+everything will be skolemized, the elaborator needs to carry a
+context.
+*** For typed binders (which we don't have)
+Something like:
+
+  elab (Lam _T b) = do
+    _T'     <- elab _T
+    (x , e) <- unbind b
+    e'      <- extendCtx (x , _T') $ elab e
+    return $ Lam _T' (bind x e')
+  -- And similar for Pi and Sigma ...
+
+  elab WildCard = do
+    _T  <- fresh $ s2n "WILD_TYPE"
+    w   <- fresh $ s2n "WILD"
+    ctx <- getCtx
+    let vs  = vars ctx
+        w'  = spineApp w vs
+        _T' = spineApp _T vs
+    tell [ (_T , pis ctx Type) , (w ,  pis ctx _T') ]
+    return w'
+*** For untyped binders (which we do have)
+However, unlike the Matita refinement paper, we don't have typed
+lambda binders, But, neither does Gundry, so not having them means
+fewer changes to his unification code.  So, this will introduce more
+imprecision into our wildcard elaboration, in that we will know less
+about the types, but hopefully unification will solve this just as
+well ...
+
+The simpler version is then something like:
+
+  elab (Lam b) = do
+    (x , e) <- unbind b
+    e'      <- extendVars x $ elab e
+    return $ Lam (bind x e')
+  -- And similar for Pi and Sigma ... although now there is a
+  -- distinction, since Pi and Sigma are annotated ...
+
+  elab WildCard = do
+    _T  <- fresh $ s2n "WILD_TYPE"
+    w   <- fresh $ s2n "WILD"
+    tell [ (_T , Type) , (w , _T) ]
+    vs <- getVars
+    return $ spineApp w vs
+
+See Spire.Surface.Elaborator for the actual implementation. Pay
+attention to 'elabI SWildCard' and 'elabBC'.
+
+The Matita refiner uses the type annotations on lambda binders, but
+hopefully we can recover the needed information from the bidirectional
+typing ...
 * Refinement
 We need to bring our implementation together with Gundry's unification
 implementation and the Matita refinement algorithm.  The Matita
@@ -94,57 +158,6 @@ and, unlike Matita, not have explicit mvar contexts and subs, but
 rather, skolemize mvars and apply them to all their free (in scope)
 term vars. In scope mvars for an mvar will be implicit.
 
-*** Elaborating wild cards
-Wild cards become mvars during elaboration.  The introduced mvar
-itself needs a type, which in turn introduces another mvar.  Since
-everything will be skolemized, the elaborator needs to carry a
-context.
-
-Something like:
-
-  elab (Lam _T b) = do
-    _T'     <- elab _T
-    (x , e) <- unbind b
-    e'      <- extendCtx (x , _T') $ elab e
-    return $ Lam _T' (bind x e')
-  -- And similar for Pi and Sigma ...
-
-  elab WildCard = do
-    _T  <- fresh $ s2n "WILD_TYPE"
-    w   <- fresh $ s2n "WILD"
-    ctx <- getCtx
-    let vs  = vars ctx
-        w'  = spineApp w vs
-        _T' = spineApp _T vs
-    tell [ (_T , pis ctx Type) , (w ,  pis ctx _T') ]
-    return w'
-
-However, unlike the Matita refinement paper, we don't have typed
-lambda binders, But, neither does Gundry, so not having them means
-fewer changes to his unification code.  So, this will introduce more
-imprecision into our wildcard elaboration, in that we will know less
-about the types, but hopefully unification will solve this just as
-well ...
-
-The simpler version is then something like:
-
-  elab (Lam b) = do
-    (x , e) <- unbind b
-    e'      <- extendVars x $ elab e
-    return $ Lam (bind x e')
-  -- And similar for Pi and Sigma ... although now there is a
-  -- distinction, since Pi and Sigma are annotated ...
-
-  elab WildCard = do
-    _T  <- fresh $ s2n "WILD_TYPE"
-    w   <- fresh $ s2n "WILD"
-    tell [ (_T , Type) , (w , _T) ]
-    vs <- getVars
-    return $ spineApp w vs
-
-The Matita refiner uses the type annotations on lambda binders, but
-hopefully we can recover the needed information from the bidirectional
-typing ...
 ** Spines and beta redexes
 The Matita refiner and the Gundry unifier expect spine applications. I
 think it's not important to Matita -- only used for refinement of
@@ -204,9 +217,9 @@ The interface will need to include:
 - maintaining Spire mvar context and unification problems in a Gundry
   =Contextual= context.
 * Features
-** TODO Command line flags to control debug messages
+** DONE Command line flags to control debug messages
 Add print statements once but fire them selectively.
-
+** TODO Logger based debug messages
 Not sure what's the best way to do this, but maybe some kind of
 "bracketing" and a logger. E.g.
 : check e _T = do
