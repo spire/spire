@@ -68,7 +68,7 @@ implementation and the Matita refinement algorithm.  The Matita
 refinement is the relatively simple part, so we can be more flexible
 there.  But, it would be nice to avoid having to change the
 unification code too drastically if possible.
-** Example
+** Example: Type argument inference
 Consider:
 
 : id : (T:Type) -> T -> T
@@ -128,7 +128,176 @@ which solves for =?1T= giving
 
 : ?1T := \A.\x.Type
 
-** MVars
+** Algorithm (based on a true story)
+Here we describe what our refinement algorithm would look like if we
+supported lighter weight annotations.  I.e., the ability to domain
+annotate lambdas and range annotate pairs, whereas right now you must
+fully annotate any lambda or pair.  This is motivated by the Matita
+refinement, but is more specialized, since they treat all inductive
+types uniformly, whereas here we treat Sigma specially (but gain a
+(trivial?) extra rule along the way).
+
+The refinement algorithm takes a an intermediate language (IL) term
+and refines it to a core language (CL) term.  In checking mode this is
+done with the aid of a CL type; in inference mode this produced a CL
+type.  The IL has annotated lambda domains and pair "ranges", but the
+CL does not have any internal annotations. Rather, the CL has the
+property that all terms -- which are necessary values -- can be
+checked against their type.  So, the result of refining a module
+should be thought of as a nested chain of type annotated let bindings,
+although we don't describe the dependent let rule here (XXX: describe
+it!).
+
+*** Judgments
+There are three judgment forms, all of which manipulate an implicit
+state consisting of mvars and their solutions. The judgments are
+- Type inference:
+  : C |- e => T' ~> e'
+  The term e is inferred to have type T' in the context C, refining to
+  the term e'.
+
+  Here e is IL, and T' and e' and all types in the context are CL.
+
+- Type checking:
+  : C |- e <= T  ~> e'
+  The term e is checked to have type T in the context C, refining to
+  the term e'.
+
+  Here e is IL, and T and e' and all types in the context are CL.
+
+- Unification
+  : e1 =u= e2
+  The term e1 is unified with the term e2.
+
+  Here e1 and e2 are CL.
+
+- Type forcing
+  : T ~f> T'
+  The type T is forced to have the form T'.  Here T' is pattern that
+  may bind new types.
+
+  Here T and T' are CL.
+
+*** Rules
+Because the judgments have side effects, the premises should be read
+as mutating the state in order, from top to bottom.
+
+**** Flipping the double arrow
+Mode change:
+: C |- e => T'
+: T' =u= T''
+: ----
+: C |- e <= T''
+The mode change rule is a last resort / default: there are special
+case checking rules for some forms of e.
+
+Annotation:
+: C |- T <= Type ~> T'
+: C |- e <= T' ~> e'
+: ----
+: C |- (e : T) => T' ~> e'
+If you like, the annotation rule is another kind of mode change rule.
+
+**** Variables
+: x:T in C
+: ----
+: C |- x => T
+There is no special case checking rule for variables.  I.e., the only
+way to check a variable against a type is to infer and use the mode
+change rule.
+
+**** Pi
+Note about binding: it seems I've chosen to make
+: Pi x:A.B
+mean that x is implicitly potentially free in B, i.e. that
+: C,x:A |- B <= Type
+versus B is a family indexed by A, in which case
+: C |- B <= A -> Type
+Need to be careful to be consistent ...
+
+Pi term introduction:
+: C |- A <= Type ~> A'
+: C,x:A' |- e => B' ~> e'
+: ----
+: C |- \x:A.e => Pi x:A'.B' ~> \x.e'
+Note that the refined lambda has no domain annotation. Practically
+speaking, this choice is motivated by the fact that Gundry's
+unification code does not support domain annotations.
+
+: C |- A <= Type ~> A'
+: A' =u= A''
+: C,x:A'' |- e <= B'' ~> e'
+: ----
+: C |- \x:A.e <= Pi x:A''.B'' ~> \x.e'
+(Note: is there is some question whether we should use C,x:A' or
+C,x:A'' here to check the body? I thought Matita motivates one choice,
+by claiming it may lead to more sensible error messages ...)
+
+Pi term elimination:
+: C |- e1 => T' ~> e1'
+: T' ~f> Pi x:A'.B'
+: C |- e2 <= A' ~> e2'
+: ----
+: C |- e1 e2 => B'[e2'/x] ~> reduce (e1' e2')
+where "reduce e" means beta reduce e to normal form.  Similarly, the
+substitution in B'[e2'/x] is hereditary.
+
+Pi types:
+: C |- A => Type
+: C,x:A |- B
+: ----
+: C |- Pi x:A.B => Type
+
+**** Sigma
+Sigma term introduction:
+: C |- e1 => A' ~> e1'
+: C,x:A' |- B <= Type ~> B'
+: C |- e2 <= B'[e1/x] ~> e'
+: ----
+: C |- (e1,e2:x.B) => Sigma x:A'.B' ~> (e1',e2')
+Note that the refined pair has no range annotation.
+
+: C |- e1 <= A'' ~> e1'
+: C,x:A'' |- B <= Type ~> B'
+: B' =u= B''
+: C |- e2 <= B''[e1'/x] ~> e2'
+: ----
+: C |- (e1,e2:x.B) <= Sigma x:A''.B'' ~> (e1',e2')
+
+Special case for which I don't have an analog in Pi. we can completely
+infer a pair if it's first component is a variable. In some sense,
+this is the only case in lambda, and here we have a free domain
+annotation coming from the context:
+: x:A'' in C
+: C,x:A'' |- e2 => B'' ~> e2'
+: C,x:A'' |- B <= Type ~> B'
+: B' =u= B''
+: ----
+: C |- (x,e2:x.B) <= Sigma x:A''.B'' ~> (x,e2')
+
+Sigma term elimination:
+: C |- p => T' ~> p'
+: C,xy:T' |- P <= Type ~> P'
+: T' ~f> Sigma x:A'.B'
+: C,x:A',y:B' |- b <= P'[(x,y)/xy] ~> b'
+: ----
+: C |- elimSigma xy.P x.y.b p => P'[p'/xy] ~> reduce (elimSigma xy.P' x.y.b' p')
+(XXX: here we may be able to drop the motive xy.P' in the result,
+since it corresponds to a type annotation, which we are not supposed
+to need for CL values. But I need to think about this more ... The
+question is, can we always check
+: elimSigma x.y.b' p' <= T''
+when everything is CL? Intuitively, either p' is abstract, in which
+case T'' will need to explain how it interacts with the type of b', or
+p' is concrete (a pair) in which case?)
+
+Sigma types:
+: C |- A => Type ~> A'
+: C,x:A |- B => Type ~> B'
+: ----
+: C |- Sigma x:A.B => Type ~> Sigma x:A'.B'
+** Implementation notes
+*** MVars
 I was initially inclined to bind mvars in terms as in McBride's thesis
 and Brady's Idris refiner, because it seems more general and simpler
 that way.  But the Matita refinement paper, and McBride and Gundry's
@@ -158,7 +327,7 @@ and, unlike Matita, not have explicit mvar contexts and subs, but
 rather, skolemize mvars and apply them to all their free (in scope)
 term vars. In scope mvars for an mvar will be implicit.
 
-** Spines and beta redexes
+*** Spines and beta redexes
 The Matita refiner and the Gundry unifier expect spine applications. I
 think it's not important to Matita -- only used for refinement of
 vectors of wild cards -- but it might be important to the unifier /
@@ -176,7 +345,7 @@ be well typed).  The Gundry unifier of course unifies arbitrary terms
 annotated and so there may be a general well-typedness assumption
 there too.
 
-** Source and target languages
+*** Source and target languages
 I'm using Expression for the source and Canonical for the target.  I'm
 not completely sure this will work, but it aligns with the canonical
 representation used in Gundry's unification code, and the fact that
@@ -184,7 +353,7 @@ only *checked* (refined) types are used as input to unification.
 
 In particular, this means the metavar env will use canonical types to
 type the mvars it binds.
-** Scope of mvars
+*** Scope of mvars
 We want to process definitions one at a time, so we can stop as soon
 as an unsolved mvar remains.  So, mvars corresponding to wild cards
 should be grouped with the def they correspond to.  This includes
@@ -196,7 +365,7 @@ write
   id _ a = a
 
 as we might in Haskell (with explicit type abstraction).
-** Integrating unification into our code
+*** Integrating unification into our code
 To use Gundry's unification code we have at least three obvious
 choices:
 
