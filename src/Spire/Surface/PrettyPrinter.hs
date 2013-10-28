@@ -184,14 +184,13 @@ instance Display Nom where
         -- The 'nms' is a stack of bindings, so all the bindings after
         -- 'nm' correspond to bindings in scope for 'nm's binding.
         --
-        -- Fnor metavars, whose binding structure is not taken into
-        -- account, we never freshen.  This will not introduce
-        -- ambiguity as long as we don't evaluate terms containing
-        -- mvars ...
+        -- Metavars are always freshened.
     let nms'   = drop 1 . dropWhile (/= nm) $ nms
         suffix = if name2String nm `elem` map name2String nms'
                  then "$" ++ show (name2Integer nm)
-                 else ""
+                 else if isMV nm
+                      then show (name2Integer nm)
+                      else ""
     dt $ name2String nm ++ suffix
 
 ----------------------------------------------------------------------
