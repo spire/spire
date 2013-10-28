@@ -1,5 +1,6 @@
 {-# LANGUAGE ViewPatterns
            , TupleSections
+           , NoMonomorphismRestriction
  #-}
 module Spire.Canonical.Unification where
 import Control.Applicative ((<*>) , (<$>))
@@ -32,12 +33,12 @@ unify _T v1 v2 = do
 unify' _T v1 v2 = do
   declareProblem _T v1 v2
   uCtx <- gets unifierCtx
-  case PatternUnify.Test.unify uCtx of
+  case PatternUnify.Test.unify uCtx `debug` "unify': before: " ++ prettyPrintError uCtx of
     -- XXX: should report this error. What we really need is a stack
     -- of errors?
     Left _err -> throwError ("unify': " ++ _err) -- return False
     Right uCtx' -> do modify (\r -> r { unifierCtx = uCtx' })
-                        `debug` ("unify': New context: " ++ prettyPrintError uCtx')
+                        `debug` ("unify': after: " ++ prettyPrintError uCtx')
                       return True
 
 ----------------------------------------------------------------------
@@ -116,7 +117,10 @@ mapBindM f b = do
 declareMV :: Spire.Canonical.Types.Nom -> Spire.Canonical.Types.Type -> SpireM ()
 declareMV nm _T = do
   _T' <- value2Tm _T
-  pushEntry $ E (translate nm) (_T', HOLE)
+  (pushEntry $ E (translate nm) (_T', HOLE))
+    `debug` "declareMV: " ++ p nm ++ " : " ++ p _T
+  where
+    p = prettyPrintError
 
 declareProblem :: Spire.Canonical.Types.Type -> Value -> Value -> SpireM ()
 declareProblem _T v1 v2 = do

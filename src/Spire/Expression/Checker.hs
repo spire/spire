@@ -167,7 +167,7 @@ forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
 check :: Check -> Type -> SpireM Value
 check x _T = do
   ctx <- asks ctx
-  let p = prettyPrint
+  let p = prettyPrintError
   let msg = p ctx ++ "\n" ++
             "|-" ++ "\n" ++
             p x ++ "\n" ++
@@ -178,13 +178,16 @@ check x _T = do
 infer :: Infer -> SpireM (Value , Type)
 infer x = do
   ctx <- asks ctx
-  let p = prettyPrint
+  let p = prettyPrintError
   let msg = p ctx ++ "\n" ++
             "|-" ++ "\n" ++
             p x ++ "\n" ++
             "=>"
-  r@(_ , _T) <- infer' x `debug` msg ++ "...\n"
-  return r `debug` "..." ++ msg ++ "\n" ++ p _T ++ "\n"
+  r@(x' , _T) <- infer' x `debug` msg ++ "...\n"
+  return r `debug` "..." ++ msg ++ "\n" ++
+                   p _T ++ "\n" ++
+                   "~>\n" ++
+                   p x' ++ "\n"
 
 ----------------------------------------------------------------------
 
