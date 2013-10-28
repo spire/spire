@@ -10,7 +10,8 @@ idExample = (\x -> id _ (id _ x)) , tt
 -- applied to all arguments, even the unnamed ones.  Here the wildcard
 -- inside will be exactly the unnamed argument.
 id' : (T:Type) -> T -> T
-id' = \ _ -> \ x -> id _ x
+-- id' = \ _ -> \ x -> id _ x
+id' = \ T -> \ x -> id _ x
 
 {-
 multipleBinders : Bool -> Bool -> Bool -> Bool -> Bool
