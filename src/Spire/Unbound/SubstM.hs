@@ -6,7 +6,24 @@
            , ScopedTypeVariables
   #-}
 
-module Spire.Unbound.SubstM where
+----------------------------------------------------------------------
+-- |
+-- Module      :  Unbound.LocallyNameless.SubstM
+-- License     :  MIT (see LICENSE)
+-- Author      :  Nathan Collins <nathan.collins@gmail.com>
+--             ,  Larry Diehl <larrytheliquid@gmail.com>
+-- Portability :  GHC only (-XKitchenSink)
+--
+-- The @SubstM@ type class for generic capture-avoiding substitution
+-- in a monad.  Working in a monad is useful e.g. when implementing
+-- hereditary substitution, where substitution must recursively reduce
+-- introduced redexes.
+--
+-- Based on @Unbound.LocallyNameless.Subst@.
+----------------------------------------------------------------------
+
+module Spire.Unbound.SubstM (SubstM(..) , substsM) where
+import Control.Monad (foldM)
 import Generics.RepLib
 import Unbound.LocallyNameless.Types
 import Unbound.LocallyNameless.Alpha
@@ -16,12 +33,13 @@ import Unbound.LocallyNameless.Alpha
 type SubstMType m b a = Name b -> b -> a -> m a
 type SubstHookMType m b a = a -> Maybe (Name b -> b -> m a)
 
--- Substitute 'b's into 'a's in the monad 'm'.
+-- | Substitute 'b's into 'a's in the monad 'm'.
 --
--- The interface is 'substHookM': the user should define it in all
--- cases where a variable is encountered or where the results of a
--- regular substitution needs to be post processed (e.g. in hereditary
--- substitution).
+-- The interface is @substHookM@, which generalizes
+-- @Unbound.LocallyNameless.Subst.isVar@. The user should define
+-- 'substHookM' in all cases where a variable is encountered or where
+-- the results of a regular substitution needs to be post processed
+-- (e.g. in hereditary substitution).
 class (Monad m, Rep1 (SubstDM m b) a) => SubstM m b a where
 
   substHookM :: SubstHookMType m b a
@@ -33,6 +51,16 @@ class (Monad m, Rep1 (SubstDM m b) a) => SubstM m b a where
        Just f -> f n u
        Nothing -> substR1M rep1 n u x
   substM m _ _ = error $ "Cannot substitute for bound variable " ++ show m
+
+----------------------------------------------------------------------
+
+-- | *Iterated* substitution.
+--
+-- Note: this is an *iterated* multi substitution, whereas
+-- @Unbound.LocallyNameless.Subst.substs@ is a *simultaneous* multi
+-- substitution.
+substsM :: SubstM m b a => [(Name b , b)] -> a -> m a
+substsM subs x = foldM (flip . uncurry $ substM) x subs
 
 ----------------------------------------------------------------------
 
