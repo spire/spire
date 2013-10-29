@@ -7,7 +7,7 @@
 module Spire.Canonical.Evaluator (lookupValAndType , lookupType , sub , elim) where
 import PatternUnify.Context
 import Unbound.LocallyNameless hiding ( Spine )
-import Spire.Unbound.SubstM
+import Unbound.LocallyNameless.SubstM
 import Spire.Canonical.Types
 import Spire.Canonical.Unification
 import Spire.Surface.PrettyPrinter

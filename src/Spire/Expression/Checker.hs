@@ -11,6 +11,7 @@
 
 module Spire.Expression.Checker where
 import Unbound.LocallyNameless
+import Unbound.LocallyNameless.SubstM
 import Control.Applicative ((<$>))
 import Control.Monad.Error
 import Control.Monad.Reader
@@ -19,7 +20,6 @@ import PatternUnify.Context (Entry(..) , Decl(..))
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Canonical.Unification
-import Spire.Unbound.SubstM (substM)
 import Spire.Debug
 import Spire.Expression.Types
 import Spire.Surface.PrettyPrinter

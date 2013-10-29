@@ -3,7 +3,7 @@ all: spire
 # This must be run manually whenever the deps change.
 #
 # Try 'make -i deps' if make gives you trouble ...
-deps: lib-unify-deps lib/unify.git
+deps: lib-substM-deps lib-unify-deps
 	cabal install wl-pprint parsec mtl syb hunit unbound cmdargs
 
 .PHONY: spire
@@ -13,7 +13,7 @@ deps: lib-unify-deps lib/unify.git
 # unexported top-level defs, and unused local defs, but not unused
 # pattern bindings.  Those can be disabled with
 # -fno-warn-unused-matches.
-spire: tmp lib-unify
+spire: tmp lib-substM lib-unify
 	ghc \
 	  -W -fno-warn-unused-binds \
 	  -isrc \
@@ -101,7 +101,20 @@ lib/unify.git:
 	git clone git@github.com:spire/type-inference.git lib/unify.git
 
 lib-unify-deps: lib/unify.git
+	cd lib/unify.git && git pull
 	make -C lib/unify.git deps
 
 lib-unify: lib/unify.git
 	make -C lib/unify.git $(UNIFY_TARGET)
+
+######################################################################
+# The substM code is in a separate repo.
+
+lib/substM.git:
+	git clone git@github.com:spire/substM.git lib/substM.git
+
+lib-substM-deps: lib/substM.git
+	cd lib/substM.git && git pull
+
+lib-substM: lib/substM.git
+	cd lib/substM.git && cabal install
