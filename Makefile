@@ -116,5 +116,7 @@ lib/substM.git:
 lib-substM-deps: lib/substM.git
 	cd lib/substM.git && git pull
 
+# This is a broken -- it doesn't reinstall on updates -- but it
+# doesn't matter as long as we aren't updating lib-substm ...
 lib-substM: lib/substM.git
-	cd lib/substM.git && cabal install
+	-cd lib/substM.git && cabal install
