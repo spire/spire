@@ -13,7 +13,7 @@ deps: lib-substM-deps lib-unify-deps
 # unexported top-level defs, and unused local defs, but not unused
 # pattern bindings.  Those can be disabled with
 # -fno-warn-unused-matches.
-spire: tmp lib-substM lib-unify
+spire: tmp lib-unify
 	ghc \
 	  -W -fno-warn-unused-binds \
 	  -isrc \
@@ -115,8 +115,6 @@ lib/substM.git:
 
 lib-substM-deps: lib/substM.git
 	cd lib/substM.git && git pull
-
-# This is a broken -- it doesn't reinstall on updates -- but it
-# doesn't matter as long as we aren't updating lib-substm ...
-lib-substM: lib/substM.git
-	-cd lib/substM.git && cabal install
+  # Force reinstall unbound-substm.
+	-ghc-pkg --force unregister unbound-substm
+	cd lib/substM.git && cabal install
