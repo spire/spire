@@ -22,9 +22,10 @@ data Check =
   deriving Show
 
 data Infer =
-    ITT | ITrue | IFalse
+    ITT | ITrue | IFalse | IZero
+  | ISuc Check
 
-  | IUnit | IBool | IType
+  | IUnit | IBool | INat | IType
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
 
@@ -33,6 +34,7 @@ data Infer =
   | IProj2 Infer
   | IIf Check Infer Infer
   | ICaseBool (Bind Nom Check) Check Check Check
+  | ICaseNat  (Bind Nom Check) Check (Bind (Nom , Nom) Check) Check
   | IApp Infer Check
   | IAnn Check Check
   deriving Show

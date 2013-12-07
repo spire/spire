@@ -36,10 +36,15 @@ sub b x = do
   (nm , f) <- unbind b
   substM nm x f
 
+sub2 :: Bind (Nom , Nom) Value -> (Value , Value) -> SpireM Value
+sub2 b (x1 , x2) = do
+  ((nm1 , nm2) , f) <- unbind b
+  substsM [(nm1 , x1) , (nm2 , x2)] f
+
 elim :: Value -> Elim -> SpireM Value
 elim (VNeut nm fs) f        = return $ VNeut nm (Pipe fs f)
 elim (VLam f)      (EApp a) = f `sub` a
-elim _             (EApp _) = throwError "Ill-typed evaluation of ($)"
+elim _             (EApp _) = throwError "Ill-typed evaluation of function application"
 elim (VPair a _)   EProj1   = return a
 elim _             EProj1   = throwError "Ill-typed evaluation of proj1"
 elim (VPair _ b)   EProj2   = return b
@@ -47,7 +52,13 @@ elim _             EProj2   = throwError "Ill-typed evaluation of proj2"
 
 elim VTrue  (ECaseBool _P ct _) = return ct
 elim VFalse (ECaseBool _P _ cf) = return cf
-elim _      (ECaseBool _P _  _) = throwError "Ill-typed evaluation of if"
+elim _      (ECaseBool _P _  _) = throwError "Ill-typed evaluation of caseBool"
+
+elim VZero    (ECaseNat _P cz _)  = return cz
+elim (VSuc n) (ECaseNat _P cz cs) = do
+  ih <- n `elim` ECaseNat _P cz cs
+  cs `sub2` (n , ih)
+elim _        (ECaseNat _P _  _)  = throwError "Ill-typed evaluation of caseNat"
 
 elims :: Value -> Spine -> SpireM Value
 elims x Id = return x

@@ -290,8 +290,15 @@ infer x = do
 check' (CLam b) (VPi _A _B) = do
   -- XXX: Could do 'forcePi' here, but I'm not sure what we'd gain
   -- ... wait for an example.
-  b' <- checkExtend2 _A b _B
-  return $ VLam b'
+  b' <- checkLam _A b _B
+  return $ VLam b' where
+
+  checkLam :: Type -> Bind Nom Check -> Bind Nom Type -> SpireM (Bind Nom Value)
+  checkLam _A bnd_b bnd_B = do
+    (nm_a ,  b) <- unbind bnd_b
+    _B          <- bnd_B `sub` vVar nm_a
+    b'          <- extendCtx nm_a _A $ check b _B
+    return      $  bind nm_a b'
 
 check' l@(CLam _) _T = throwError $
   "Ill-typed!:\n" ++
@@ -325,10 +332,16 @@ check' (Infer a) _B = do
 infer' ITT    = return (VTT    , VUnit)
 infer' ITrue  = return (VTrue  , VBool)
 infer' IFalse = return (VFalse , VBool)
+infer' IZero  = return (VZero  , VNat)
 
 infer' IUnit  = return (VUnit  , VType)
 infer' IBool  = return (VBool  , VType)
+infer' INat   = return (VNat  , VType)
 infer' IType  = return (VType  , VType)
+
+infer' (ISuc n) = do
+  n' <- check n VNat
+  return (VSuc n' , VNat)
 
 infer' (ISg _A _B) = do
   _A' <- check _A VType
@@ -405,13 +418,30 @@ infer' (IIf b ct cf) = do
   return (c , _C)
 
 infer' (ICaseBool _P ct cf b) = do
-  b'  <- check b VBool
   _P' <- checkExtend VBool _P VType
   ct' <- check ct =<< _P' `sub` VTrue
   cf' <- check cf =<< _P' `sub` VFalse
+  b'  <- check b VBool
   c   <- b' `elim` ECaseBool _P' ct' cf'
   _C  <- _P' `sub` b'
   return (c , _C)
+
+infer' (ICaseNat _P cz cs n) = do
+  _P' <- checkExtend VNat _P VType
+  cz' <- check cz =<< _P' `sub` VZero
+  cs' <- checkPSuc _P' cs
+  n'  <- check n VNat
+  c   <- n' `elim` ECaseNat _P' cz' cs'
+  _C  <- _P' `sub` n'
+  return (c , _C) where
+
+  checkPSuc :: Bind Nom Type -> Bind (Nom , Nom) Check -> SpireM (Bind (Nom , Nom) Value)
+  checkPSuc bnd_P bnd_ps = do
+    ((nm_n , nm_pn) , ps) <- unbind bnd_ps
+    _Pn    <- bnd_P `sub` vVar nm_n
+    _Psucn <- bnd_P `sub` VSuc (vVar nm_n)
+    ps'    <- extendCtx nm_n VNat $ extendCtx nm_pn _Pn $ check ps _Psucn
+    return $  bind (nm_n , nm_pn) ps'
 
 ----------------------------------------------------------------------
 
@@ -420,12 +450,5 @@ checkExtend _A bnd_b _B = do
   (x , b) <- unbind bnd_b
   b'      <- extendCtx x _A $ check b _B
   return  $  bind x b'
-
-checkExtend2 :: Type -> Bind Nom Check -> Bind Nom Type -> SpireM (Bind Nom Value)
-checkExtend2 _A bnd_b bnd_B = do
-  (nm ,  b) <- unbind bnd_b
-  _B        <- bnd_B `sub` vVar nm
-  b'        <- extendCtx nm _A $ check b _B
-  return    $  bind nm b'
 
 ----------------------------------------------------------------------

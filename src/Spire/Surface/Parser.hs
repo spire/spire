@@ -41,15 +41,13 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "=", "++", "==",
-       "|", "#", "=>"]
+ops = ["\\", "->", "*", ",", ":", "$", "="]
 keywords = [
   "if", "then", "else",
-  "Unit", "Bool", "String", "Type",
-  "tt", "true", "false",
-  "caseBool",
+  "Unit", "Bool", "Nat", "String", "Type",
+  "tt", "true", "false", "zero", "suc",
+  "caseBool", "caseNat",
   "proj1", "proj2",
-  "Fix", "Desc" , "Done", "Rec" ,
   wildcard
   ]
 
@@ -108,6 +106,7 @@ parseChoice = try $ choice [
   , parseCaseBool
   , parseProj1
   , parseProj2
+  , parseSuc
   , parseLam
   ]
 
@@ -119,8 +118,10 @@ parseAtom = choice
   , parseTT
   , parseTrue
   , parseFalse
+  , parseZero
   , parseUnit
   , parseBool
+  , parseNat
   , parseType
   , parseWildCard
   ]
@@ -176,6 +177,11 @@ parseProj2 = try $ do
   ab <- parseAtom
   return $ SProj2 ab
 
+parseSuc = try $ do
+  parseKeyword "suc"
+  n <- parseAtom
+  return $ SSuc n
+
 -- \ x -> e
 -- \ _ -> e
 parseLam = try $ do
@@ -197,8 +203,10 @@ parseAnn = parseParens $ do
 parseTT    = parseKeyword "tt"    >> return STT
 parseTrue  = parseKeyword "true"  >> return STrue
 parseFalse = parseKeyword "false" >> return SFalse
+parseZero  = parseKeyword "zero"  >> return SZero
 parseUnit  = parseKeyword "Unit"  >> return SUnit
 parseBool  = parseKeyword "Bool"  >> return SBool
+parseNat   = parseKeyword "Nat"   >> return SNat
 parseType  = parseKeyword "Type"  >> return SType
 parseWildCard = parseKeyword wildcard >> return SWildCard
 

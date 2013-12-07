@@ -56,8 +56,9 @@ value2Tm v = case v of
   VNeut x s -> N (nom2Head x) <$> spine2BwdElim s
   VUnit -> return $ C Unit
   VTT   -> return $ C Tt
-  -- Un comment when experimenting with new types.
-  -- _ -> throwError $ "Unsupported input in value2Tm: " ++ show v
+  VNat   -> unsupported
+  VZero  -> unsupported
+  VSuc _ -> unsupported
   where
     nom2Head x = if isMV x
                  then M (translate x)
@@ -68,9 +69,12 @@ value2Tm v = case v of
       EProj1 -> return Hd
       EProj2 -> return Tl
       ECaseBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
+      ECaseNat _ _ _ -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e
+
+    unsupported = throwError $ "Unsupported input in value2Tm: " ++ show v
 
 tm2Value :: Tm -> SpireM Value
 tm2Value t = case t of

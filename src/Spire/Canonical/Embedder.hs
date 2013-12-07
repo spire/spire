@@ -12,10 +12,13 @@ embedV :: Value -> FreshM Check
 embedV VTT           = return $ Infer ITT
 embedV VTrue         = return $ Infer ITrue
 embedV VFalse        = return $ Infer IFalse
+embedV VZero         = return $ Infer IZero
 embedV VUnit         = return $ Infer IUnit
 embedV VBool         = return $ Infer IBool
+embedV VNat          = return $ Infer INat
 embedV VType         = return $ Infer IType
 
+embedV (VSuc n)      = Infer <$> (ISuc <$> embedV n)
 embedV (VSg _A _B)   = Infer <$> (ISg <$> embedV _A <*> embedVB _B)
 embedV (VPi _A _B)   = Infer <$> (IPi <$> embedV _A <*> embedVB _B)
 embedV (VPair a b)   = CPair <$> embedV a <*> embedV b
@@ -35,10 +38,13 @@ embedN nm (Pipe fs EProj2)   = IProj2 <$> embedN nm fs
 embedN nm (Pipe fs (ECaseBool _P pt pf)) =
   ICaseBool <$> embedVB _P <*>
     embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
+embedN nm (Pipe fs (ECaseNat _P pz ps)) =
+  ICaseNat <$> embedVB _P <*>
+    embedV pz <*> embedVB ps <*> (Infer <$> embedN nm fs)
 
 ----------------------------------------------------------------------
 
-embedVB :: Bind Nom Value -> FreshM (Bind Nom Check)
+embedVB :: Alpha a => Bind a Value -> FreshM (Bind a Check)
 embedVB bnd_a = do
   (nm , a) <- unbind bnd_a
   a'       <- embedV a

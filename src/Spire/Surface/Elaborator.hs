@@ -34,9 +34,12 @@ elabC (SLam b)    = CLam  <$> elabBC b
 elabC x@STT         = elabIC x
 elabC x@STrue       = elabIC x
 elabC x@SFalse      = elabIC x
+elabC x@SZero       = elabIC x
 elabC x@SUnit       = elabIC x
 elabC x@SBool       = elabIC x
+elabC x@SNat        = elabIC x
 elabC x@SType       = elabIC x
+elabC x@(SSuc _)    = elabIC x
 elabC x@(SPi _ _)   = elabIC x
 elabC x@(SSg _ _)   = elabIC x
 elabC x@(SVar _)    = elabIC x
@@ -47,6 +50,7 @@ elabC x@(SApp _ _)  = elabIC x
 elabC x@(SAnn _ _)  = elabIC x
 elabC x@(SWildCard) = elabIC x
 elabC x@(SCaseBool _ _ _ _) = elabIC x
+elabC x@(SCaseNat _ _ _ _)  = elabIC x
 
 ----------------------------------------------------------------------
 
@@ -55,8 +59,10 @@ elabI :: Syntax -> SpireM' Infer
 elabI STT       = return ITT
 elabI STrue     = return ITrue
 elabI SFalse    = return IFalse
+elabI SZero     = return IZero
 elabI SUnit     = return IUnit
 elabI SBool     = return IBool
+elabI SNat      = return INat
 elabI SType     = return IType
 elabI (SVar nm) = return $ IVar nm
 
@@ -74,6 +80,7 @@ elabI SWildCard = do
     where
     args = map (Infer . IVar) $ vs
 
+elabI (SSuc n)  = ISuc <$> elabC n
 elabI (SProj1 ab)   = IProj1 <$> elabI ab
 elabI (SProj2 ab)   = IProj2 <$> elabI ab
 elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
@@ -82,6 +89,8 @@ elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
 elabI (SCaseBool _P ct cf b) =
   ICaseBool <$> elabBC _P <*> elabC ct <*> elabC cf <*> elabC b
+elabI (SCaseNat _P cz cs n) =
+  ICaseNat <$> elabBC _P <*> elabC cz <*> elabBC2 cs <*> elabC n
 
 elabI (SPi _A _B) = IPi <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B) = ISg <$> elabC _A <*> elabBC _B
@@ -102,6 +111,13 @@ elabBC bnd = do
   -- Store names in binding order.
   a'       <- local (++ [nm]) $ elabC a
   return   $  bind nm a'
+
+elabBC2 :: Bind (Nom , Nom) Syntax -> SpireM' (Bind (Nom , Nom) Check)
+elabBC2 bnd = do
+  ((nm1 , nm2) , a) <- unbind bnd
+  -- Store names in binding order.
+  a'       <- local (++ [nm1 , nm2]) $ elabC a
+  return   $  bind (nm1 , nm2) a'
 
 failUnannotated :: Syntax -> SpireM' Infer
 failUnannotated a = throwError $

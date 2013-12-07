@@ -95,8 +95,10 @@ ww = wrapNonAssoc -- Mnemonic: (w)rapped (w)rapped display
 dTT    = dt "tt"
 dTrue  = dt "true"
 dFalse = dt "false"
+dZero  = dt "zero"
 dUnit  = dt "Unit"
 dBool  = dt "Bool"
+dNat   = dt "Nat"
 dType  = dt "Type"
 dWildCard = dt wildcard
 
@@ -117,6 +119,7 @@ dIf o c t f = alignM . sepM $ [ dt "if" <+> w o c
                               , dt "else" <+> w o f ]
 dProj1 o ab = dt "proj1" <+> ww o ab
 dProj2 o ab = dt "proj2" <+> ww o ab
+dSuc   o n  = dt "suc"   <+> ww o n
 dApp o f a = alignM $ w o f </> ww o a
 dAnn _ a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
 
@@ -129,14 +132,17 @@ dCaseBool o bnd t f bool =
 
 instance Display Syntax where
   display s = case s of
-    STT -> dTT
-    STrue -> dTrue
+    STT    -> dTT
+    STrue  -> dTrue
     SFalse -> dFalse
+    SZero  -> dZero
 
     SUnit -> dUnit
     SBool -> dBool
+    SNat  -> dNat
     SType -> dType
 
+    SSuc n    -> dSuc s n
     SPair a b -> dPair s a b
     SLam b    -> dLam s b
 
@@ -151,6 +157,7 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
     SCaseBool bnd t f bool -> dCaseBool s bnd t f bool
+    SCaseNat _ _ _ _ -> error "caseNat not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -231,23 +238,54 @@ instance Display Entry where
 
 instance Precedence Syntax where
   level s = case s of
-    SPair _ _   -> pairLevel
-    SLam _      -> lamLevel
-    SPi _ _     -> piLevel
-    SSg _ _     -> sgLevel
-    SIf _ _ _   -> ifLevel
-    SProj1 _    -> projLevel
-    SProj2 _    -> projLevel
-    SApp _ _    -> appLevel
-    SAnn _ _    -> annLevel
+    SPair _ _         -> pairLevel
+    SLam _            -> lamLevel
+    SPi _ _           -> piLevel
+    SSg _ _           -> sgLevel
+    SIf _ _ _         -> ifLevel
+    SProj1 _          -> projLevel
+    SProj2 _          -> projLevel
+    SSuc _            -> sucLevel
+    SApp _ _          -> appLevel
+    SAnn _ _          -> annLevel
     SCaseBool _ _ _ _ -> caseBoolLevel
-    _           -> atomicLevel
+    SCaseNat  _ _ _ _ -> caseNatLevel
+
+    STT               -> atomicLevel
+    STrue             -> atomicLevel
+    SFalse            -> atomicLevel
+    SZero             -> atomicLevel
+    SUnit             -> atomicLevel
+    SBool             -> atomicLevel
+    SNat              -> atomicLevel
+    SType             -> atomicLevel
+    SWildCard         -> atomicLevel
+    SVar _            -> atomicLevel
+
   assoc s = case s of
-    SPi   _ _ -> piAssoc
-    SSg   _ _ -> sgAssoc
-    SApp  _ _ -> appAssoc
-    SPair _ _ -> pairAssoc
-    _         -> AssocNone
+    SPi   _ _         -> piAssoc
+    SSg   _ _         -> sgAssoc
+    SApp  _ _         -> appAssoc
+    SPair _ _         -> pairAssoc
+
+    SLam _            -> AssocNone
+    SIf _ _ _         -> AssocNone
+    SProj1 _          -> AssocNone
+    SProj2 _          -> AssocNone
+    SSuc _            -> AssocNone
+    SAnn _ _          -> AssocNone
+    SCaseBool _ _ _ _ -> AssocNone
+    SCaseNat  _ _ _ _ -> AssocNone
+    STT               -> AssocNone
+    STrue             -> AssocNone
+    SFalse            -> AssocNone
+    SZero             -> AssocNone
+    SUnit             -> AssocNone
+    SBool             -> AssocNone
+    SNat              -> AssocNone
+    SType             -> AssocNone
+    SWildCard         -> AssocNone
+    SVar _            -> AssocNone
 
 ----------------------------------------------------------------------
 
@@ -289,6 +327,7 @@ annLevel       = atomicLevel
 appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
+sucLevel       = projLevel
 fixLevel       = 0
 inLevel        = 0
 pairLevel      = 3
@@ -299,6 +338,7 @@ piLevel        = 5
 piAssoc        = AssocRight
 ifLevel        = 6
 caseBoolLevel  = 6
+caseNatLevel   = caseBoolLevel
 lamLevel       = 7
 defsLevel      = 9
 defLevel       = 10
