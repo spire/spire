@@ -1,5 +1,6 @@
 module Spire.Canonical.Embedder where
 import Control.Applicative
+import Data.Monoid (mempty)
 import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Canonical.Types
 import Spire.Expression.Types
@@ -44,6 +45,7 @@ embedVB bnd_a = do
   return   $ bind nm a'
 
 embedVDef :: VDef -> FreshM CDef
-embedVDef (VDef nm a _A) = CDef nm <$> embedV a <*> pure [] <*> embedV _A <*> pure []
+embedVDef (VDef nm a _A) = CDef nm <$> embedV a  <*> pure mempty
+                                   <*> embedV _A <*> pure mempty
 
 ----------------------------------------------------------------------

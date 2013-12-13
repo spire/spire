@@ -113,9 +113,36 @@ mapBindM f b = do
 
 ----------------------------------------------------------------------
 
+-- Generate and declare a fresh mvar and its type, and return the
+-- mvar.
+declareFreshMV :: String -> SpireM Spire.Canonical.Types.Nom
+declareFreshMV name = do
+  mv <- freshMV name
+  declareMV mv
+  return mv
+
+----------------------------------------------------------------------
+
+-- Declare an mvar.  A fresh mvar type for the mvar is created, and
+-- pushed into the environment along with the mvar.
+declareMV :: Spire.Canonical.Types.Nom -> SpireM ()
+declareMV mv = do
+  mvT <- freshMV $ mv2String mv ++ "_T"
+  -- The order here matters. Earlier things are bound for later things
+  -- / the context is read from left to right.  Gundry's code checks
+  -- the order later, e.g. if I reverse the order here I get:
+  --
+  --   spire: validate: dependency error: ?1 occurs before its declaration
+  --   when validating
+  --   (? : ??1, ?1 : Set := Set ,)
+  --
+  -- from examples/metavars/ImplicitAnnotation.spire.
+  pushMV mvT VType
+  pushMV mv  (vVar mvT)
+
 -- Push a new mvar decl into the unifier state.
-declareMV :: Spire.Canonical.Types.Nom -> Spire.Canonical.Types.Type -> SpireM ()
-declareMV nm _T = do
+pushMV :: Spire.Canonical.Types.Nom -> Spire.Canonical.Types.Type -> SpireM ()
+pushMV nm _T = do
   _T' <- value2Tm _T
   (pushEntry $ E (translate nm) (_T', HOLE))
     `debug` "declareMV: " ++ p nm ++ " : " ++ p _T

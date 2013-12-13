@@ -50,7 +50,7 @@ refine :: Check -> MVarDecls -> Type -> SpireM Value
 refine a avs aT = do
   -- Initialize unification state
   put emptySpireS
-  mapM (uncurry declareMV) avs
+  sequence_ . unMVarDecls $ avs
 
   -- Update unification state.
   a' <- check a aT
@@ -161,14 +161,12 @@ forcePi (VPi _A _B) = return (_A , _B)
 -- of that.
 
 forcePi _T = do
-  (_ , args) <- forceMVApp _T
-  _A <- freshMV
-  _B <- freshMV
-  argTs <- mapM lookupType args
-  declareMV _A (foldPi args argTs VType)
+  (mv , args) <- forceMVApp _T
+  let prefix = mv2String mv ++ "_forcePi"
+  _A <- declareFreshMV $ prefix ++ "_A"
+  _B <- declareFreshMV $ prefix ++ "_B"
   _A' <- foldApp _A args
-  x <- fresh . s2n $ "_forcePi"
-  declareMV _B (foldPi (args ++ [x])  (argTs ++ [_A']) VType)
+  x <- fresh . s2n $ prefix ++ "_x"
   _B' <- bind x <$> foldApp _B (args ++ [x])
   unify VType _T (VPi _A' _B')
   return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"

@@ -5,9 +5,11 @@
   , FlexibleInstances
   , FlexibleContexts
   , UndecidableInstances
+  , GeneralizedNewtypeDeriving
   #-}
 
 module Spire.Expression.Types where
+import Data.Monoid
 import Unbound.LocallyNameless
 import Spire.Canonical.Types
 
@@ -50,7 +52,15 @@ instance Alpha Infer
 -- elaborates to 'T'' producing mvar bindings 'Tvs'.
 data CDef = CDef Nom Check MVarDecls Check MVarDecls
   deriving Show
-type MVarDecls = [(Nom , Type)]
+
+-- The 'MVarDecls' are delayed mvar declarations that change that
+-- unification state.  We scope mvars to the decl that generated them,
+-- so we don't run these declarations during elaboration, but rather
+-- during elaboration of the associated def.
+newtype MVarDecls = MkMVarDecls { unMVarDecls :: [SpireM ()] }
+  deriving Monoid
+instance Show MVarDecls where
+  show _ = "<mvar decls>"
 
 type CProg = [CDef]
 
