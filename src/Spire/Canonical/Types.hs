@@ -122,11 +122,17 @@ isWildcard nm = name2String nm == wildcard
 
 ----------------------------------------------------------------------
 
-freshMV :: Fresh m => m Nom
-freshMV = fresh . s2n $ "?"
+freshMV :: Fresh m => String -> m Nom
+freshMV suffix = fresh . s2n $ "?" ++ suffix
 
 isMV :: Nom -> Bool
 isMV nm = "?" `isPrefixOf` name2String nm
+
+-- Return the non-'?' part of a mvars string.
+mv2String :: Nom -> String
+mv2String nm = case name2String nm of
+  '?':suffix -> suffix
+  _          -> error $ "mv2String: not an mvar: " ++ show nm
 
 ----------------------------------------------------------------------
 
