@@ -13,6 +13,13 @@ Wild cards become mvars during elaboration.  The introduced mvar
 itself needs a type, which in turn introduces another mvar.  Since
 everything will be skolemized, the elaborator needs to carry a
 context.
+
+In the implementation, the mvars are not pushed into the unification
+state immediately, but bundled up and returned with the current
+definition.  This is because we want to signal errors as early as
+possible, and solving for unification variables is per definition, not
+per module, or per program.  Our choice of mvar scope -- per
+definition -- is arbitrary.
 *** For typed binders (which we don't have)
 Something like:
 
