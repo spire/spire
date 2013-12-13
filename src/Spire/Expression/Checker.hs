@@ -1,13 +1,13 @@
-{-# LANGUAGE
-    MultiParamTypeClasses
-  , TemplateHaskell
-  , ScopedTypeVariables
-  , FlexibleInstances
-  , FlexibleContexts
-  , UndecidableInstances
-  , ViewPatterns
-  , NoMonomorphismRestriction
-  #-}
+{-# LANGUAGE MultiParamTypeClasses
+           , TemplateHaskell
+           , ScopedTypeVariables
+           , FlexibleInstances
+           , FlexibleContexts
+           , UndecidableInstances
+           , ViewPatterns
+           , NoMonomorphismRestriction
+           , CPP
+           #-}
 
 module Spire.Expression.Checker where
 import Unbound.LocallyNameless
@@ -110,19 +110,56 @@ forcePi (VPi _A _B) = return (_A , _B)
 --
 --   forall x : ?A x1...xn . ?B x1...xn x
 --
--- and equate it with the given metavar application.
+-- and equate it with the given metavar application, by introducing
+-- the unification problem
 --
--- We declare the parts
+--   ? x1...xn =u= forall x : ?A x1...xn . ?B x1...xn x .
+--
+-- We return the applications
+--
+--   (?A x1 ... xn , \x . ?B x1 ... xn x) .
+--
+-- ----------------------------------------------------------------------
+--
+-- We used to declare the parts
 --
 --   ?A : forall x1:T1...xn:Tn . Type
 --   ?B : forall x1:T1...xn:Tn x:(?A x1...xn) . Type
 --
 -- and return their applications
 --
---   (?A x1 ... xn , \x . ?B x1 ... xn x) .
+--   (?A x1 ... xn , \x . ?B x1 ... xn x) ,
 --
--- Could we make the refiner figure out these types for us, instead of
--- constructing them?
+-- But I'm going to make the refiner figure out these types for us,
+-- instead of constructing them. This will make life much easier when
+-- adding support for splitting mvars applied to mvars.
+--
+-- E.g., in the 'id _ id _ x' example, we end up with 'forceMVApp' of
+--'?M x (?N x)', and it would be nice to simply split this into
+--
+--   ?M x (?N x) =u= Pi y : ?MA x (?N x) . ?MB x (?N x) y .
+--
+-- Also, the fact that I don't check the variables returned by
+-- 'forceMVApp' for uniqueness (linearity) may be a bug with the
+-- current version, which defines the types, because of shadowing. For
+-- example
+--
+--   forcePi ?M x x
+--
+-- produces
+--
+--   ?M x x =u= ?Pi y : ?MA x x . ?MB x x y
+--
+-- with
+--
+--   ?MA : Pi x : xT . Pi x : xT . Type
+--   ?MB : Pi x : xT . Pi x : xT . (?MA x x) -> Type .
+--
+-- I don't actually see why this is bad, but it makes me a little
+-- uneasy; deserves more thought.  But, in the mean time, I'm just
+-- going to stop constructing the types, and let inference take care
+-- of that.
+
 forcePi _T = do
   (_ , args) <- forceMVApp _T
   _A <- freshMV
