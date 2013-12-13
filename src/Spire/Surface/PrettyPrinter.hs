@@ -187,10 +187,9 @@ instance Display Nom where
         -- Metavars are always freshened.
     let nms'   = drop 1 . dropWhile (/= nm) $ nms
         suffix = if name2String nm `elem` map name2String nms'
+                    || isMV nm
                  then "$" ++ show (name2Integer nm)
-                 else if isMV nm
-                      then show (name2Integer nm)
-                      else ""
+                 else ""
     dt $ name2String nm ++ suffix
 
 ----------------------------------------------------------------------
