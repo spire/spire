@@ -112,6 +112,7 @@ mapBindM f b = do
   bind (translate x) <$> f e
 
 ----------------------------------------------------------------------
+-- XXX: names here and below are confusing.
 
 -- Generate and declare a fresh mvar and its type, and return the
 -- mvar.
@@ -140,12 +141,15 @@ declareMV mv = do
   pushMV mvT VType
   pushMV mv  (vVar mvT)
 
+declareMVOfType :: Spire.Canonical.Types.Type -> Spire.Canonical.Types.Nom -> SpireM ()
+declareMVOfType _T mv = pushMV mv _T
+
 -- Push a new mvar decl into the unifier state.
 pushMV :: Spire.Canonical.Types.Nom -> Spire.Canonical.Types.Type -> SpireM ()
 pushMV nm _T = do
   _T' <- value2Tm _T
   (pushEntry $ E (translate nm) (_T', HOLE))
-    `debug` "declareMV: " ++ p nm ++ " : " ++ p _T
+    `debug` "pushMV: " ++ p nm ++ " : " ++ p _T
   where
     p = prettyPrintError
 

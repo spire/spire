@@ -161,21 +161,47 @@ forcePi (VPi _A _B) = return (_A , _B)
 -- of that.
 
 forcePi _T = do
+  -- Generate mvars for domain and range.
   (mv , args) <- forceMVApp _T
   let prefix = mv2String mv ++ "_forcePi"
-  _A <- declareFreshMV $ prefix ++ "_A"
-  _B <- declareFreshMV $ prefix ++ "_B"
-  _A' <- foldApp _A args
+  _A <- freshMV $ prefix ++ "_A"
+  _B <- freshMV $ prefix ++ "_B"
+
+  -- Declare skeletal types.
   x <- fresh . s2n $ prefix ++ "_x"
+  argVars  <- mapM (fresh . s2n)  [ prefix ++ "_a" ++ show i
+                                  | i <- [1 .. length args] ]
+  argTypes <- mapM declareFreshMV [ prefix ++ "_a" ++ show i ++ "_T"
+                                  | i <- [1 .. length args] ]
+  _AT <- foldAppPi  argVars          argTypes           VType
+  _BT <- foldAppPi (argVars ++ [x]) (argTypes ++ [_A]) VType
+  declareMVOfType _AT _A
+  declareMVOfType _BT _B
+
+  -- Apply mvars to '_T's args and relate them to '_T'.
+  _A' <- foldApp _A args
   _B' <- bind x <$> foldApp _B (args ++ [x])
   unify VType _T (VPi _A' _B')
   return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
   where
+    -- foldAppPi [x1 ... xn] [mv1 ... mvn] range
+    -- ==>
+    -- Pi x1 : mv1 . Pi x2 : mv2 x1 . ... . Pi xn : mvn x1 ... x(n-1) . range
+    foldAppPi :: [Nom] -> [Nom] -> Type -> SpireM Type
+    foldAppPi xs xTMVs _T = do
+      xTs <- forM (zip xTMVs [0..]) $ \ (mv , n) -> do
+               foldApp mv (take n xs)
+      return $ foldPi xs xTs _T
+
+    -- foldPi xs xTs range
+    -- ==>
+    -- Pi x1 : xT1 . Pi x2 : xT2 . ... . Pi xn : xTn . range
     foldPi :: [Nom] -> [Type] -> Type -> Type
     foldPi xs xTs _T = foldr mkPi _T (zip xs xTs)
       where
       mkPi = (\(x , xT) _T -> VPi xT (bind x _T))
 
+    -- foldApp f xs ==> f x1 ... xn
     foldApp :: Nom -> [Nom] -> SpireM Value
     foldApp x xs = foldM elim (vVar x) (map (EApp . vVar) xs)
 -- forcePi _T = throwError $ "Failed to force Pi type: " ++ prettyPrint _T
