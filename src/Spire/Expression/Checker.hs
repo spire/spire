@@ -167,39 +167,47 @@ forcePi _T = do
   _A <- freshMV $ prefix ++ "_A"
   _B <- freshMV $ prefix ++ "_B"
 
-  -- Declare skeletal types.
+  -- Declare types.
+  --
+  -- Note that '_A' and '_T' have the same type, but '_B's type is
+  -- '_T's type with '_A'' inserted as a last domain type.
   x <- fresh . s2n $ prefix ++ "_x"
-  argVars  <- mapM (fresh . s2n)  [ prefix ++ "_a" ++ show i
-                                  | i <- [1 .. length args] ]
-  argTypes <- mapM declareFreshMV [ prefix ++ "_a" ++ show i ++ "_T"
-                                  | i <- [1 .. length args] ]
-  _AT <- foldAppPi  argVars          argTypes           VType
-  _BT <- foldAppPi (argVars ++ [x]) (argTypes ++ [_A]) VType
+  xTs <- unfoldPi =<< lookupType mv
+  _A'' <- foldApp _A (map fst xTs)
+  -- _AT == mvT
+  let _AT = foldPi  xTs                  VType
+  let _BT = foldPi (xTs ++ [(x , _A'')]) VType
   declareMVOfType _AT _A
   declareMVOfType _BT _B
 
-  -- Apply mvars to '_T's args and relate them to '_T'.
-  _A' <- foldApp _A args
+  -- Apply mvars to '_T's args.
+  --
+  -- Note that '_A'' is concrete and '_A''' is abstract.
+  _A' <-            foldApp _A  args
   _B' <- bind x <$> foldApp _B (args ++ [x])
+
+  -- Relate generated mvars to '_T'.
   unify VType _T (VPi _A' _B')
   return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
   where
-    -- foldAppPi [x1 ... xn] [mv1 ... mvn] range
+    -- unfoldPi Pi x1 : T1 . ... . xn : Tn . Type
     -- ==>
-    -- Pi x1 : mv1 . Pi x2 : mv2 x1 . ... . Pi xn : mvn x1 ... x(n-1) . range
-    foldAppPi :: [Nom] -> [Nom] -> Type -> SpireM Type
-    foldAppPi xs xTMVs _T = do
-      xTs <- forM (zip xTMVs [0..]) $ \ (mv , n) -> do
-               foldApp mv (take n xs)
-      return $ foldPi xs xTs _T
+    -- [(x1:T1) ... (xn:Tn)]
+    unfoldPi :: Type -> SpireM [(Nom , Type)]
+    unfoldPi VType = return []
+    unfoldPi (VPi _A _B) = do
+      (x , _B') <- unbind _B
+      ((x , _A) :) <$> unfoldPi _B'
+    unfoldPi _T = error $ "unfoldPi: unexpected: " ++ prettyPrintError _T
+                  ++ ".This could be a type error or a bug ... savor the mystery!"
 
-    -- foldPi xs xTs range
+    -- foldPi [(x1 , T1) ... (xn , Tn)] range
     -- ==>
-    -- Pi x1 : xT1 . Pi x2 : xT2 . ... . Pi xn : xTn . range
-    foldPi :: [Nom] -> [Type] -> Type -> Type
-    foldPi xs xTs _T = foldr mkPi _T (zip xs xTs)
+    -- Pi x1 : T1 . Pi x2 : T2 . ... . Pi xn : Tn . range
+    foldPi :: [(Nom , Type)] -> Type -> Type
+    foldPi xTs _T = foldr mkPi _T xTs
       where
-      mkPi = (\(x , xT) _T -> VPi xT (bind x _T))
+      mkPi = \(x , _A) _B -> VPi _A (bind x _B)
 
     -- foldApp f xs ==> f x1 ... xn
     foldApp :: Nom -> [Nom] -> SpireM Value
