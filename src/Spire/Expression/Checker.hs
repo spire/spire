@@ -159,7 +159,6 @@ forcePi (VPi _A _B) = return (_A , _B)
 -- uneasy; deserves more thought.  But, in the mean time, I'm just
 -- going to stop constructing the types, and let inference take care
 -- of that.
-
 forcePi _T = do
   -- Generate mvars for domain and range.
   (mv , args) <- forceMVApp _T
@@ -173,7 +172,7 @@ forcePi _T = do
   -- '_T's type with '_A'' inserted as a last domain type.
   x <- fresh . s2n $ prefix ++ "_x"
   xTs <- unfoldPi =<< lookupType mv
-  _A'' <- foldApp _A (map fst xTs)
+  _A'' <- foldApp _A (map (vVar . fst) xTs)
   -- _AT == mvT
   let _AT = foldPi  xTs                  VType
   let _BT = foldPi (xTs ++ [(x , _A'')]) VType
@@ -184,7 +183,7 @@ forcePi _T = do
   --
   -- Note that '_A'' is concrete and '_A''' is abstract.
   _A' <-            foldApp _A  args
-  _B' <- bind x <$> foldApp _B (args ++ [x])
+  _B' <- bind x <$> foldApp _B (args ++ [vVar x])
 
   -- Relate generated mvars to '_T'.
   unify VType _T (VPi _A' _B')
@@ -210,12 +209,12 @@ forcePi _T = do
       mkPi = \(x , _A) _B -> VPi _A (bind x _B)
 
     -- foldApp f xs ==> f x1 ... xn
-    foldApp :: Nom -> [Nom] -> SpireM Value
-    foldApp x xs = foldM elim (vVar x) (map (EApp . vVar) xs)
+    foldApp :: Nom -> [Value] -> SpireM Value
+    foldApp x xs = foldM elim (vVar x) (map EApp xs)
 -- forcePi _T = throwError $ "Failed to force Pi type: " ++ prettyPrint _T
 
 -- Decompose a type as an mvar applied to a spine of arguments.
-forceMVApp :: Type -> SpireM (Nom , [Nom])
+forceMVApp :: Type -> SpireM (Nom , [Value])
 forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
   VNeut nm s -> do
     args <- unSpine s
@@ -226,7 +225,7 @@ forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
   where
     -- The 'Spine' is a snoc list, so the list built here is backwards.
     unSpine Id = return []
-    unSpine (Pipe s (EApp (VNeut x Id))) = (x:) <$> unSpine s
+    unSpine (Pipe s (EApp e)) = (e:) <$> unSpine s
     unSpine _ = die
 
     die = throwError $ "Failed to force MV app: " ++ prettyPrint _T
