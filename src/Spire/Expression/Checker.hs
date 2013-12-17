@@ -162,15 +162,15 @@ forcePi (VPi _A _B) = return (_A , _B)
 forcePi _T = do
   -- Generate mvars for domain and range.
   (mv , args) <- forceMVApp _T
-  let prefix = mv2String mv ++ "_forcePi"
-  _A <- freshMV $ prefix ++ "_A"
-  _B <- freshMV $ prefix ++ "_B"
+  let prefix = mv2String mv ++ "_\x03C0" -- Unicode small pi.
+  _A <- freshMV $ prefix ++ "A"
+  _B <- freshMV $ prefix ++ "B"
 
   -- Declare types.
   --
   -- Note that '_A' and '_T' have the same type, but '_B's type is
   -- '_T's type with '_A'' inserted as a last domain type.
-  x <- fresh . s2n $ prefix ++ "_x"
+  x <- fresh . s2n $ prefix ++ "x"
   xTs <- unfoldPi =<< lookupType mv
   _A'' <- foldApp _A (map (vVar . fst) xTs)
   -- _AT == mvT
