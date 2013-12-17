@@ -61,12 +61,11 @@ elabI SType     = return IType
 elabI (SVar nm) = return $ IVar nm
 
 elabI SWildCard = do
+  -- Hack: get fresh integer from 'Fresh' monad.
+  n <- name2Integer <$> fresh (s2n "" :: Name ())
+  w <- freshMV $ show n ++ "_W"
   -- We don't run the declaration yet, because we want the mvars to be
   -- scoped to the current definition.
-  --
-  -- XXX: it would help debugging if we used unique names here,
-  -- e.g. via an counter in the 'State'.
-  w <- freshMV ""
   tell . MkMVarDecls $ [declareMV w]
   vs <- ask
   return $ cApps w vs
