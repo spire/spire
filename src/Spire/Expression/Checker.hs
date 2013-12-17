@@ -220,10 +220,11 @@ forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
   VNeut nm s -> do
     args <- unSpine s
     if isMV nm
-    then return (nm , args)
+    then return (nm , reverse args)
     else die
   _ -> die
   where
+    -- The 'Spine' is a snoc list, so the list built here is backwards.
     unSpine Id = return []
     unSpine (Pipe s (EApp (VNeut x Id))) = (x:) <$> unSpine s
     unSpine _ = die
