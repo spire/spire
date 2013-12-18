@@ -11,6 +11,8 @@ import Spire.Expression.Types
 import Spire.Surface.Types
 
 import Common.PrettyPrint (pp)
+import PatternUnify.Context (Entry)
+
 import Control.Applicative ((<$>))
 import Control.Monad.Reader
 import qualified Text.PrettyPrint.Leijen as PP
@@ -217,8 +219,13 @@ instance Display (Nom , Spine) where
 instance Display Tel where
   display = listM . map (uncurry $ dAnn undefined) . tel2List
 
+----------------------------------------------------------------------
+
 instance Display UnifierCtx where
   display = listM . map (dt . pp)
+
+instance Display Entry where
+  display = dt . pp
 
 ----------------------------------------------------------------------
 
