@@ -82,12 +82,16 @@ ctx2Substitutions :: [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
 ctx2Substitutions ctx = c return ctx where
   c :: (Value -> SpireM Value) -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
   c _ [] = return []
-  c _ (Q _ _ : _) =
-    error $ "ctx2Substitutions: meta context contains unsolved problem: " ++
-            prettyPrintError ctx
-  c _ (E _ (_ , HOLE) : _) =
-    error $ "ctx2Substitutions: meta context contains unsolved metavar: " ++
-            prettyPrintError ctx
+  c _ (p@(Q _ _) : _) =
+    error $ "ctx2Substitutions: meta context:\n" ++
+            prettyPrintError ctx ++ "\n" ++
+            "contains unsolved problem:\n" ++
+            prettyPrintError p
+  c _ (m@(E _ (_ , HOLE)) : _) =
+    error $ "ctx2Substitutions: meta context:\n" ++
+            prettyPrintError ctx ++ "\n" ++
+            "contains unsolved metavar:\n" ++
+            prettyPrintError m
   c sub (E x (_ , DEFN v) : es) = do
     let x' = translate x
     v' <- sub =<< tm2Value v
