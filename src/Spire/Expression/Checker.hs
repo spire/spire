@@ -97,10 +97,17 @@ ctx2Substitutions ctx = c return ctx where
     v' <- sub =<< tm2Value v
     ((x' , v') :) <$> c (substM x' v' <=< sub) es
 
-unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
-unifyTypes t1 t2 m = do
-  b <- unify VType t1 t2
-  unless b m
+unifyTypes :: String -> Type -> Type -> SpireM () -> SpireM ()
+unifyTypes s t1 t2 m =
+  -- XXX: May be better (efficiency or error messages) to check if
+  -- 't1' and 't2' were "pure", i.e. didn't contain any mvars, and in
+  -- that case only use the alpha-equality '=='.  Right now, in the
+  -- case of a type error, we will fire an impossible unification
+  -- problem and then give an error.
+  when (t1 /= t2) $ do
+    let msg = s ++ ": " ++ prettyPrint t1 ++ " =u= " ++ prettyPrint t2
+    b <- unify VType t1 t2 `debug` msg
+    unless b m
 
 -- Turn a type into a pi-type, by expanding it if it's an mvar
 -- application, and failing if it's any other non-pi-type value.
@@ -190,8 +197,9 @@ forcePi _T = do
   _B' <- bind x <$> foldApp _B (args ++ [vVar x])
 
   -- Relate generated mvars to '_T'.
-  unify VType _T (VPi _A' _B')
-  return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
+  unifyTypes "forcePi" _T (VPi _A' _B') $ throwError "Unreachable code!"
+  return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++
+                             "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
   where
     -- unfoldPi Pi x1 : T1 . ... . xn : Tn . Type
     -- ==>
@@ -291,7 +299,7 @@ check' p@(CPair _ _) _T = throwError $
 check' (Infer a) _B = do
   (a' , _A) <- infer a
   ctx <- asks ctx
-  unifyTypes _A _B $ throwError $
+  unifyTypes "check'/Infer" _A _B $ throwError $
     "Ill-typed!\n" ++
     "Expected type:\n" ++ show _B ++
     "\n\nInferred type:\n" ++ show _A ++
@@ -374,7 +382,7 @@ infer' (IIf b ct cf) = do
   b' <- check b VBool
   (ct' , _C)  <- infer ct
   (cf' , _C') <- infer cf
-  unifyTypes _C _C' $ throwError $
+  unifyTypes "infer'/IIf" _C _C' $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
     "First branch:\n" ++ show _C ++
     "\nSecond branch:\n" ++ show _C'
