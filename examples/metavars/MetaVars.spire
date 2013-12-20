@@ -5,23 +5,17 @@ idExample : (Bool -> Bool) * Unit
 idExample = (\x -> id _ (id _ x)) , tt
 
 -- Spire is not currently smart enough to solve this one:
-{-
 idExample' : (Bool -> Bool) * Unit
 idExample' = (\x -> (id _ id) _ x) , tt
--}
 
-{-
 idExample'' : (((T:Type) -> T -> T) -> Bool -> Bool) * Unit
 idExample'' = (\i -> \x -> i _ i _ x) , tt
--}
 
 idExample''' : Bool -> Bool
 idExample''' = \x -> (id _ id) _ x
 
-{-
 idExample'''' : ((T:Type) -> T -> T) -> Bool -> Bool
 idExample'''' = \i -> \x -> i _ i _ x
--}
 
 -- A wildcard may depend on an unnamed argument, and so should be
 -- applied to all arguments, even the unnamed ones.  Here the wildcard
