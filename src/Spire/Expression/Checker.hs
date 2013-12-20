@@ -55,43 +55,43 @@ refine a avs aT = do
   -- Update unification state.
   a' <- check a aT
 
-  -- Check unification state.
-  --
-  -- Could type check subs, but Gundry essentially already did that.
-  ctx <- gets unifierCtx
-  subs <- ctx2Substitutions ctx
-          `debug` "refine: metactx after refinement: " ++
-                  prettyPrintError ctx
-
-  -- Apply unification state (substitute).
-  foldM (flip $ uncurry substM) a' subs
+  -- Check and apply unification state.
+  concretize True a'
 
 -- XXX: I'd like to put this function in Spire.Canonical.Unification,
 -- with the other Gundry bridge code, but that creates an import cycle
 -- with Spire.Canonical.Evaluator.
 --
--- Convert unifier context to substitutions while checking for
--- errors. Errors are:
+-- Convert unifier context to substitutions. Checks for errors if
+-- 'validate' is 'True'.
+--
+-- Errors are:
+--
 -- - unsolved problems
+--
 -- - unsolved mvars
 --
 -- Assumes the context is well formed, i.e. that all mvars are
 -- declared in it.
 
-ctx2Substitutions :: [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
-ctx2Substitutions ctx = c return ctx where
+ctx2Substitutions :: Bool -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
+ctx2Substitutions validate ctx = c return ctx where
   c :: (Value -> SpireM Value) -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
   c _ [] = return []
-  c _ (p@(Q _ _) : _) =
-    error $ "ctx2Substitutions: meta context:\n" ++
-            prettyPrintError ctx ++ "\n" ++
-            "contains unsolved problem:\n" ++
-            prettyPrintError p
-  c _ (m@(E _ (_ , HOLE)) : _) =
-    error $ "ctx2Substitutions: meta context:\n" ++
-            prettyPrintError ctx ++ "\n" ++
-            "contains unsolved metavar:\n" ++
-            prettyPrintError m
+  c sub (p@(Q _ _) : es) =
+    if validate then
+      error $ "ctx2Substitutions: meta context:\n" ++
+              prettyPrintError ctx ++ "\n" ++
+              "contains unsolved problem:\n" ++
+              prettyPrintError p
+    else c sub es
+  c sub (m@(E _ (_ , HOLE)) : es) =
+    if validate then
+      error $ "ctx2Substitutions: meta context:\n" ++
+              prettyPrintError ctx ++ "\n" ++
+              "contains unsolved metavar:\n" ++
+              prettyPrintError m
+    else c sub es
   c sub (E x (_ , DEFN v) : es) = do
     let x' = translate x
     v' <- sub =<< tm2Value v
@@ -109,10 +109,25 @@ unifyTypes s t1 t2 m =
     b <- unify VType t1 t2 `debug` msg
     unless b m
 
+-- Like "zonking" in GHC: substitute mvar values for their uses.
+concretize :: Bool -> Value -> SpireM Value
+concretize validate v = do
+  -- Check unification state.
+  --
+  -- Could type check subs, but Gundry essentially already did that.
+  ctx <- gets unifierCtx
+  subs <- ctx2Substitutions validate ctx
+          `debug` "concretize: metactx: " ++
+                  prettyPrintError ctx
+
+  -- Apply unification state (substitute).
+  foldM (flip $ uncurry substM) v subs
+
 -- Turn a type into a pi-type, by expanding it if it's an mvar
 -- application, and failing if it's any other non-pi-type value.
 forcePi :: Type -> SpireM (Type , Bind Nom Type)
-forcePi (VPi _A _B) = return (_A , _B)
+forcePi = forcePi' <=< concretize False
+forcePi' (VPi _A _B) = return (_A , _B)
 -- Given a metavar application
 --
 --   ? x1...xn
@@ -170,7 +185,7 @@ forcePi (VPi _A _B) = return (_A , _B)
 -- uneasy; deserves more thought.  But, in the mean time, I'm just
 -- going to stop constructing the types, and let inference take care
 -- of that.
-forcePi _T = do
+forcePi' _T = do
   -- Generate mvars for domain and range.
   (mv , args) <- forceMVApp _T
   let prefix = mv2String mv ++ "_\x03C0" -- Unicode small pi.
