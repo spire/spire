@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -O0 #-}
-module Spire.Debug where
+module Spire.Debug (module Spire.Debug , Debug.Trace.trace) where
 
 import Data.IORef
 import Debug.Trace

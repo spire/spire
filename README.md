@@ -19,8 +19,12 @@ make deps
 Build `./spire` executable:
 
 ```
+make    # This will fail with SHE errors
 make
 ```
+
+You have to run `make` twice because the unification library uses SHE
+and SHE is not very smart.
 
 Type checking
 -------------

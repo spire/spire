@@ -1,4 +1,4 @@
-all: spire
+all: production
 
 # This must be run manually whenever the deps change.
 #
@@ -21,6 +21,10 @@ spire: tmp lib-unify
 	  -o spire \
 	  $(GHC_PROF) \
 	  src/Spire.hs
+
+production: UNIFY_TARGET = production
+production: GHC_PROF += -O
+production: spire
 
 # Build spire with profiling enabled, so that e.g. we can see stack
 # traces on exceptions with

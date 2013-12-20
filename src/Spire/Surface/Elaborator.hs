@@ -5,6 +5,7 @@ import Control.Monad.Reader
 import Control.Applicative
 import Unbound.LocallyNameless
 import Spire.Canonical.Types
+import Spire.Canonical.Unification
 import Spire.Surface.Types
 import Spire.Expression.Types
 
@@ -60,18 +61,12 @@ elabI SType     = return IType
 elabI (SVar nm) = return $ IVar nm
 
 elabI SWildCard = do
-  w <- freshMV
-  wT <- freshMV
-  -- The order here matters. Earlier things are bound for later things
-  -- / the context is read from left to right.  Gundry's code checks
-  -- the order later, e.g. if I reverse the order here I get:
-  --
-  --   spire: validate: dependency error: ?1 occurs before its declaration
-  --   when validating
-  --   (? : ??1, ?1 : Set := Set ,)
-  --
-  -- from examples/metavars/ImplicitAnnotation.spire.
-  tell [(wT , VType) , (w , vVar wT)]
+  -- Hack: get fresh integer from 'Fresh' monad.
+  n <- name2Integer <$> fresh (s2n "" :: Name ())
+  w <- freshMV $ "w" ++ show n
+  -- We don't run the declaration yet, because we want the mvars to be
+  -- scoped to the current definition.
+  tell . MkMVarDecls $ [declareMV w]
   vs <- ask
   return $ cApps w vs
   where

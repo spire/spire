@@ -1,10 +1,21 @@
 id : (T:Type) -> T -> T
 id = \ _ -> \ x -> x
 
-{-
-idExample : (Bool -> Bool) * Bool
+idExample : (Bool -> Bool) * Unit
 idExample = (\x -> id _ (id _ x)) , tt
--}
+
+-- Spire is not currently smart enough to solve this one:
+idExample' : (Bool -> Bool) * Unit
+idExample' = (\x -> (id _ id) _ x) , tt
+
+idExample'' : (((T:Type) -> T -> T) -> Bool -> Bool) * Unit
+idExample'' = (\i -> \x -> i _ i _ x) , tt
+
+idExample''' : Bool -> Bool
+idExample''' = \x -> (id _ id) _ x
+
+idExample'''' : ((T:Type) -> T -> T) -> Bool -> Bool
+idExample'''' = \i -> \x -> i _ i _ x
 
 -- A wildcard may depend on an unnamed argument, and so should be
 -- applied to all arguments, even the unnamed ones.  Here the wildcard
@@ -13,10 +24,5 @@ id' : (T:Type) -> T -> T
 -- id' = \ _ -> \ x -> id _ x
 id' = \ T -> \ x -> id _ x
 
-{-
 multipleBinders : Bool -> Bool -> Bool -> Bool -> Bool
 multipleBinders = \ x1 -> \ _ -> \ x2 -> \ x3 -> id _ true
-
-shadowedBinders : Bool -> Bool -> Bool
-shadowedBinders = \ x -> \ x -> x
--}

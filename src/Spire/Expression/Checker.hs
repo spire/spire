@@ -1,13 +1,13 @@
-{-# LANGUAGE
-    MultiParamTypeClasses
-  , TemplateHaskell
-  , ScopedTypeVariables
-  , FlexibleInstances
-  , FlexibleContexts
-  , UndecidableInstances
-  , ViewPatterns
-  , NoMonomorphismRestriction
-  #-}
+{-# LANGUAGE MultiParamTypeClasses
+           , TemplateHaskell
+           , ScopedTypeVariables
+           , FlexibleInstances
+           , FlexibleContexts
+           , UndecidableInstances
+           , ViewPatterns
+           , NoMonomorphismRestriction
+           , CPP
+           #-}
 
 module Spire.Expression.Checker where
 import Unbound.LocallyNameless
@@ -50,58 +50,84 @@ refine :: Check -> MVarDecls -> Type -> SpireM Value
 refine a avs aT = do
   -- Initialize unification state
   put emptySpireS
-  mapM (uncurry declareMV) avs
+  sequence_ . unMVarDecls $ avs
 
   -- Update unification state.
   a' <- check a aT
 
-  -- Check unification state.
-  --
-  -- Could type check subs, but Gundry essentially already did that.
-  ctx <- gets unifierCtx
-  subs <- ctx2Substitutions ctx
-          `debug` "refine: metactx after refinement: " ++
-                  prettyPrintError ctx
-
-  -- Apply unification state (substitute).
-  foldM (flip $ uncurry substM) a' subs
+  -- Check and apply unification state.
+  concretize True a'
 
 -- XXX: I'd like to put this function in Spire.Canonical.Unification,
 -- with the other Gundry bridge code, but that creates an import cycle
 -- with Spire.Canonical.Evaluator.
 --
--- Convert unifier context to substitutions while checking for
--- errors. Errors are:
+-- Convert unifier context to substitutions. Checks for errors if
+-- 'validate' is 'True'.
+--
+-- Errors are:
+--
 -- - unsolved problems
+--
 -- - unsolved mvars
 --
 -- Assumes the context is well formed, i.e. that all mvars are
 -- declared in it.
 
-ctx2Substitutions :: [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
-ctx2Substitutions ctx = c return ctx where
+ctx2Substitutions :: Bool -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
+ctx2Substitutions validate ctx = c return ctx where
   c :: (Value -> SpireM Value) -> [Entry] -> SpireM [(Spire.Canonical.Types.Nom, Value)]
   c _ [] = return []
-  c _ (Q _ _ : _) =
-    error $ "ctx2Substitutions: meta context contains unsolved problem: " ++
-            prettyPrintError ctx
-  c _ (E _ (_ , HOLE) : _) =
-    error $ "ctx2Substitutions: meta context contains unsolved metavar: " ++
-            prettyPrintError ctx
+  c sub (p@(Q _ _) : es) =
+    if validate then
+      error $ "ctx2Substitutions: meta context:\n" ++
+              prettyPrintError ctx ++ "\n" ++
+              "contains unsolved problem:\n" ++
+              prettyPrintError p
+    else c sub es
+  c sub (m@(E _ (_ , HOLE)) : es) =
+    if validate then
+      error $ "ctx2Substitutions: meta context:\n" ++
+              prettyPrintError ctx ++ "\n" ++
+              "contains unsolved metavar:\n" ++
+              prettyPrintError m
+    else c sub es
   c sub (E x (_ , DEFN v) : es) = do
     let x' = translate x
     v' <- sub =<< tm2Value v
     ((x' , v') :) <$> c (substM x' v' <=< sub) es
 
-unifyTypes :: Type -> Type -> SpireM () -> SpireM ()
-unifyTypes t1 t2 m = do
-  b <- unify VType t1 t2
-  unless b m
+unifyTypes :: String -> Type -> Type -> SpireM () -> SpireM ()
+unifyTypes s t1 t2 m =
+  -- XXX: May be better (efficiency or error messages) to check if
+  -- 't1' and 't2' were "pure", i.e. didn't contain any mvars, and in
+  -- that case only use the alpha-equality '=='.  Right now, in the
+  -- case of a type error, we will fire an impossible unification
+  -- problem and then give an error.
+  when (t1 /= t2) $ do
+    let msg = s ++ ": " ++ prettyPrint t1 ++ " =u= " ++ prettyPrint t2
+    b <- unify VType t1 t2 `debug` msg
+    unless b m
+
+-- Like "zonking" in GHC: substitute mvar values for their uses.
+concretize :: Bool -> Value -> SpireM Value
+concretize validate v = do
+  -- Check unification state.
+  --
+  -- Could type check subs, but Gundry essentially already did that.
+  ctx <- gets unifierCtx
+  subs <- ctx2Substitutions validate ctx
+          `debug` "concretize: metactx: " ++
+                  prettyPrintError ctx
+
+  -- Apply unification state (substitute).
+  foldM (flip $ uncurry substM) v subs
 
 -- Turn a type into a pi-type, by expanding it if it's an mvar
 -- application, and failing if it's any other non-pi-type value.
 forcePi :: Type -> SpireM (Type , Bind Nom Type)
-forcePi (VPi _A _B) = return (_A , _B)
+forcePi = forcePi' <=< concretize False
+forcePi' (VPi _A _B) = return (_A , _B)
 -- Given a metavar application
 --
 --   ? x1...xn
@@ -110,53 +136,123 @@ forcePi (VPi _A _B) = return (_A , _B)
 --
 --   forall x : ?A x1...xn . ?B x1...xn x
 --
--- and equate it with the given metavar application.
+-- and equate it with the given metavar application, by introducing
+-- the unification problem
 --
--- We declare the parts
+--   ? x1...xn =u= forall x : ?A x1...xn . ?B x1...xn x .
+--
+-- We return the applications
+--
+--   (?A x1 ... xn , \x . ?B x1 ... xn x) .
+--
+-- ----------------------------------------------------------------------
+--
+-- We used to declare the parts
 --
 --   ?A : forall x1:T1...xn:Tn . Type
 --   ?B : forall x1:T1...xn:Tn x:(?A x1...xn) . Type
 --
 -- and return their applications
 --
---   (?A x1 ... xn , \x . ?B x1 ... xn x) .
+--   (?A x1 ... xn , \x . ?B x1 ... xn x) ,
 --
--- Could we make the refiner figure out these types for us, instead of
--- constructing them?
-forcePi _T = do
-  (_ , args) <- forceMVApp _T
-  _A <- freshMV
-  _B <- freshMV
-  argTs <- mapM lookupType args
-  declareMV _A (foldPi args argTs VType)
-  _A' <- foldApp _A args
-  x <- fresh . s2n $ "_forcePi"
-  declareMV _B (foldPi (args ++ [x])  (argTs ++ [_A']) VType)
-  _B' <- bind x <$> foldApp _B (args ++ [x])
-  unify VType _T (VPi _A' _B')
-  return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++ "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
-  where
-    foldPi :: [Nom] -> [Type] -> Type -> Type
-    foldPi xs xTs _T = foldr mkPi _T (zip xs xTs)
-      where
-      mkPi = (\(x , xT) _T -> VPi xT (bind x _T))
+-- But I'm going to make the refiner figure out these types for us,
+-- instead of constructing them. This will make life much easier when
+-- adding support for splitting mvars applied to mvars.
+--
+-- E.g., in the 'id _ id _ x' example, we end up with 'forceMVApp' of
+--'?M x (?N x)', and it would be nice to simply split this into
+--
+--   ?M x (?N x) =u= Pi y : ?MA x (?N x) . ?MB x (?N x) y .
+--
+-- Also, the fact that I don't check the variables returned by
+-- 'forceMVApp' for uniqueness (linearity) may be a bug with the
+-- current version, which defines the types, because of shadowing. For
+-- example
+--
+--   forcePi ?M x x
+--
+-- produces
+--
+--   ?M x x =u= ?Pi y : ?MA x x . ?MB x x y
+--
+-- with
+--
+--   ?MA : Pi x : xT . Pi x : xT . Type
+--   ?MB : Pi x : xT . Pi x : xT . (?MA x x) -> Type .
+--
+-- I don't actually see why this is bad, but it makes me a little
+-- uneasy; deserves more thought.  But, in the mean time, I'm just
+-- going to stop constructing the types, and let inference take care
+-- of that.
+forcePi' _T = do
+  -- Generate mvars for domain and range.
+  (mv , args) <- forceMVApp _T
+  let prefix = mv2String mv ++ "_\x03C0" -- Unicode small pi.
+  _A <- freshMV $ prefix ++ "A"
+  _B <- freshMV $ prefix ++ "B"
 
-    foldApp :: Nom -> [Nom] -> SpireM Value
-    foldApp x xs = foldM elim (vVar x) (map (EApp . vVar) xs)
+  -- Declare types.
+  --
+  -- Note that '_A' and '_T' have the same type, but '_B's type is
+  -- '_T's type with '_A'' inserted as a last domain type.
+  x <- fresh . s2n $ prefix ++ "x"
+  xTs <- unfoldPi =<< lookupType mv
+  _A'' <- foldApp _A (map (vVar . fst) xTs)
+  -- _AT == mvT
+  let _AT = foldPi  xTs                  VType
+  let _BT = foldPi (xTs ++ [(x , _A'')]) VType
+  declareMVOfType _AT _A
+  declareMVOfType _BT _B
+
+  -- Apply mvars to '_T's args.
+  --
+  -- Note that '_A'' is concrete and '_A''' is abstract.
+  _A' <-            foldApp _A  args
+  _B' <- bind x <$> foldApp _B (args ++ [vVar x])
+
+  -- Relate generated mvars to '_T'.
+  unifyTypes "forcePi" _T (VPi _A' _B') $ throwError "Unreachable code!"
+  return (_A' , _B') `debug` "_A' = " ++ prettyPrintError _A' ++ "\n" ++
+                             "_B' = " ++ prettyPrintError (VLam _B') ++ "\n"
+  where
+    -- unfoldPi Pi x1 : T1 . ... . xn : Tn . Type
+    -- ==>
+    -- [(x1:T1) ... (xn:Tn)]
+    unfoldPi :: Type -> SpireM [(Nom , Type)]
+    unfoldPi VType = return []
+    unfoldPi (VPi _A _B) = do
+      (x , _B') <- unbind _B
+      ((x , _A) :) <$> unfoldPi _B'
+    unfoldPi _T = error $ "unfoldPi: unexpected: " ++ prettyPrintError _T
+                  ++ ".This could be a type error or a bug ... savor the mystery!"
+
+    -- foldPi [(x1 , T1) ... (xn , Tn)] range
+    -- ==>
+    -- Pi x1 : T1 . Pi x2 : T2 . ... . Pi xn : Tn . range
+    foldPi :: [(Nom , Type)] -> Type -> Type
+    foldPi xTs _T = foldr mkPi _T xTs
+      where
+      mkPi = \(x , _A) _B -> VPi _A (bind x _B)
+
+    -- foldApp f xs ==> f x1 ... xn
+    foldApp :: Nom -> [Value] -> SpireM Value
+    foldApp x xs = foldM elim (vVar x) (map EApp xs)
 -- forcePi _T = throwError $ "Failed to force Pi type: " ++ prettyPrint _T
 
 -- Decompose a type as an mvar applied to a spine of arguments.
-forceMVApp :: Type -> SpireM (Nom , [Nom])
+forceMVApp :: Type -> SpireM (Nom , [Value])
 forceMVApp _T = case _T `debug` "forceMVApp " ++ prettyPrintError _T of
   VNeut nm s -> do
     args <- unSpine s
     if isMV nm
-    then return (nm , args)
+    then return (nm , reverse args)
     else die
   _ -> die
   where
+    -- The 'Spine' is a snoc list, so the list built here is backwards.
     unSpine Id = return []
-    unSpine (Pipe s (EApp (VNeut x Id))) = (x:) <$> unSpine s
+    unSpine (Pipe s (EApp e)) = (e:) <$> unSpine s
     unSpine _ = die
 
     die = throwError $ "Failed to force MV app: " ++ prettyPrint _T
@@ -218,7 +314,7 @@ check' p@(CPair _ _) _T = throwError $
 check' (Infer a) _B = do
   (a' , _A) <- infer a
   ctx <- asks ctx
-  unifyTypes _A _B $ throwError $
+  unifyTypes "check'/Infer" _A _B $ throwError $
     "Ill-typed!\n" ++
     "Expected type:\n" ++ show _B ++
     "\n\nInferred type:\n" ++ show _A ++
@@ -301,7 +397,7 @@ infer' (IIf b ct cf) = do
   b' <- check b VBool
   (ct' , _C)  <- infer ct
   (cf' , _C') <- infer cf
-  unifyTypes _C _C' $ throwError $
+  unifyTypes "infer'/IIf" _C _C' $ throwError $
     "Ill-typed, conditional branches have different types!\n" ++
     "First branch:\n" ++ show _C ++
     "\nSecond branch:\n" ++ show _C'

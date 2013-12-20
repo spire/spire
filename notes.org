@@ -13,6 +13,13 @@ Wild cards become mvars during elaboration.  The introduced mvar
 itself needs a type, which in turn introduces another mvar.  Since
 everything will be skolemized, the elaborator needs to carry a
 context.
+
+In the implementation, the mvars are not pushed into the unification
+state immediately, but bundled up and returned with the current
+definition.  This is because we want to signal errors as early as
+possible, and solving for unification variables is per definition, not
+per module, or per program.  Our choice of mvar scope -- per
+definition -- is arbitrary.
 *** For typed binders (which we don't have)
 Something like:
 
@@ -68,7 +75,8 @@ implementation and the Matita refinement algorithm.  The Matita
 refinement is the relatively simple part, so we can be more flexible
 there.  But, it would be nice to avoid having to change the
 unification code too drastically if possible.
-** Example: Type argument inference
+** Examples
+*** Simple type-argument inference ('id _ x')
 Consider:
 
 : id : (T:Type) -> T -> T
@@ -127,6 +135,230 @@ and so we learn that
 which solves for =?1T= giving
 
 : ?1T := \A.\x.Type
+
+*** More complex type-argument inference ('id _ id _ x')
+This is a hand-derived trace (really should implement a nice logger
+...), corresponding to what the code was doing around [2013-12-18
+Wed]. The nearest pushed commits are spire.git/meta-vars/29fe58b and
+unify.git/master/38d0b8d.
+
+The example is
+: eg : Bool -> Bool
+: eg = \x -> id _ id _ x
+where
+: id : Pi T:*. T -> T .
+
+Elaboration results in
+: eg = \x -> id (?w1 x) id (?w2 x) x
+
+**** Lessons learned
+Studying the hand trace and ./spire output below, we notice a few
+things.
+***** Generation of insoluble unification problems
+We generated some unification problems which are not invertible,
+because the mvar not applied to a linear spine of variables.
+
+The trouble starts when we infer the type '(?w1 x)' for 'id (?w1 x)
+id', even though we've already specified
+: Pi T:*. T -> T =u= (?w1 x)
+The solution is to instead infer the *value* of '(?w1 x)'. Let's call
+this "concretizing" (i.e. making more concrete by subbing mvar defs
+for their occurrences; this is called "zonking" in GHC:
+http://www.haskell.org/pipermail/glasgow-haskell-users/2013-August/024209.html).
+
+A few places to concretize come to mind:
+1. at each place we compute a canonical term, before returning it.
+   E.g., we could add concretizing to the 'check' and 'infer'
+   wrappers.
+2. in the shape forcing functions.  E.g., we could concretize before
+   the pattern match in 'forcePi'.
+It seems (1) will be much less efficient than (2), and both are easy
+to implement, so I'll try (2).
+***** Heavy handed recursive typing of mvars
+We type mvars (refine '?wT' the type of '?w') by recursively calling
+'infer' and 'forcePi' for each argument, but we could do this in one
+shot, which might be a lot more efficient.
+
+For example, given '?w x1 ... xn', we infer '?w : ?wT', and then call
+'forcePi ?wT' to split it into a Π-type.  We do this 'n' times, once
+for each argument.  Each of the 'forcePi' calls results in a call to
+the unifier on a trivial equation.
+
+Instead, knowing that any type check of an mvar application must go
+through 'infer' (because 'check' just calls 'infer' for applications),
+we can special case
+: infer (?w x1 ... xn)
+to look up the types of the 'xi', in the context, and then fire a
+single unification
+: Pi x1 : T1 . ... . xn : Tn . T x1 ... xn
+where the 'Ti' are 'lookupVarTy xi'.  This avoids creating 'n' new
+mvars for the 'n' types 'Ti', and avoids 'n - 1' unification calls.
+
+We then return 'T x1 ... xn' for the type of '?w x1 ... xn', and so in
+the case we're inside a
+: check (?w x1 ... xn) <= T
+we immediate solve
+: T x1 ... xn =u= T
+with a second unification call.
+
+***** Gundry code doesn't do congruence?
+Running the example with ./spire produces fails with these equations
+in the unification state:
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (Bool : Type)
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (??w15 x : Type)
+and with '?w15' unsolved.  So, it appears that Gundry's code does not
+do congruence, at least in this case, since the LHSs are the same, and
+the derived equation
+: Bool) =u= (?w15 x)
+is invertible.
+**** Notation
+- The mvars '?w<n> : ?w<n>T : Type' are created for wildcards '_' in
+  the input during the elaboration phase.
+- The 'forcePi' implementation does
+  : forcePi (?m es) ~> Pi xπ : mAπ . mBπ xπ
+- An equality
+  : T1 =u= T2
+  means a unification problem sent to Gundry's unifier.
+
+**** Relevant refinement rules, simplified
+The actual rules have the form
+: check a <= T ~> a'
+: infer a => T ~> a'
+where both rules return an output term 'a'' in the canonical language.
+Here we'll pretend the input and output are equal, because evaluation
+is not relevant in this example.  However, note that all types are
+values.
+
+So, we'll have
+: check a <= T
+: infer a => T .
+
+The rules we care about are:
+
+: check e <= T =
+:   infer x => T'
+:   T' =u= T
+when there is no more specific check rule for 'e'.
+
+: infer x => lookupInCtx x
+
+: infer (f e) =
+:   infer f => T
+:   forcePi T ~> Pi xπ : Aπ . Bπ xπ
+:   check e <= Aπ
+:   => Bπ e
+
+The lambda rule
+: check (\x . e) <= T
+:   forcePi T ~> Pi xπ : Aπ . Bπ xπ
+:   extendCtx (x:Aπ) $
+:     check e <= Bπ x
+would also be used, but it's boring here ('T' is a concrete, given
+type) so we skip it below.
+
+**** Trace (hand calculated :P)
+Assume the lambda is already processed, so that the context is
+: x : Bool
+
+And we're off!
+: check (id (?w1 x) id (?w2 x) x) <= Bool
+: + infer (id (?w1 x) id (?w2 x) x)
+: + | infer (id (?w1 x) id (?w2 x))
+: + | + infer (id (?w1 x) id)
+: + | + | infer (id (?w1 x))
+: + | + | + infer id => Pi T:*. T -> T
+: + | + | + forcePi Pi T:*. T -> T ~>
+: + | + | + check (?w1 x) <= *
+: + | + | + | infer (?w1 x)
+: + | + | + | + infer ?w1 => ?w1T
+: + | + | + | + forcePi ?w1T ~> Pi xπ : ?w1TAπ . ?w1TBπ
+: + | + | + | + check x <= ?w1TAπ
+: + | + | + | + | infer x => Bool
+: + | + | + | + | Bool =u= ?w1TAπ
+: + | + | + | > ?w1TBπ x
+: + | + | + | ?w1TBπ x =u= *
+: + | + | > (?w1 x) -> (?w1 x)         // Via '(T -> T)[T |-> (?w1 x)]'.
+: + | + | forcePi (?w1 x) -> (?w1 x) ~>
+: + | + | check id <= (?w1 x)
+: + | + | + infer id => Pi T:*. T -> T
+: + | + | + Pi T:*. T -> T =u= (?w1 x) // This solves '(?w1 x)' ...
+: + | + > (?w1 x)                      // ... but we don't return the solution! So,
+: + | + forcePi (?w1 x) ~> Pi xπ : ?w1Aπ x . ?w1Bπ x xπ
+: + | + check (?w2 x) <= ?w1Aπ x       // instead of a trivial 'forcePi', we start
+: + | + | infer (?w2 x)                // introducing problems we can't solve ...
+: + | + | + infer ?w2 => ?w2T
+: + | + | + forcePi ?w2T ~> Pi xπ : ?w2TAπ . ?w2TBπ xπ
+: + | + | + check x <= ?w2TAπ
+: + | + | + | infer x => Bool
+: + | + | + | Bool =u= ?w2TAπ
+: + | + | > ?w2TBπ x                   // Via '[xπ |-> x]'.
+: + | + | ?w2TBπ x =u= ?w1Aπ x
+: + | > ?w1Bπ x (?w2 x)                // Not linear!
+: + | forcePi ?w1Bπ x (?w2 x) ~> Pi xπ : ?w1BπAπ x (?w2 x) . ?w1BπBπ x (?w2 x) xπ
+: + | check x <= ?w1BπAπ x (?w2 x)
+: + | + infer x => Bool
+: + | + Bool =u= ?w1BπAπ x (?w2 x)     // Can't solve this!
+: + > ?w1BπBπ x (?w2 x) x              // Via '[xπ |-> x]'.
+: + ?w1BπBπ x (?w2 x) x =u= Bool       // Can't solve this!
+before finally failing due to unsolved equations.
+
+**** Comparison with actual ./spire output
+The example is
+: idExample''' : Bool -> Bool
+: idExample''' = \ x -> id (?w13$14 x) id (?w15$16 x) x
+So, '?w13' corresponds to '?w1' above in the hand trace, and '?w15'
+corresponds to '?w2' above.
+
+The final unifier state (freshening indices elided). The second and
+third blocked equations aren't generated by ./spire!
+: [?w13_T_πA  : Type         := Bool
+: ,?w13_T_πB  : Bool -> Type := \ _ . Type
+: ,?w13_T     : Type         := Bool -> Type
+: ,?w13       : Bool -> Type := \ _ . Pi (T : Type) (T -> T)
+: ,?w15_T_πA  : Type         := Bool
+: ,?w15_T_πB  : Bool -> Type := \ _ . Type
+: ,?w15_T     : Type         := Bool -> Type
+: ,?w15       : Bool -> Type
+: ,?w13_πB_πA : Bool -> Type -> Type
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (Bool : Type)
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (??w15 x : Type)
+: ,?w13_πB_πB : Pi (w13_T_πx : Bool) (Pi (w13_πx : Type) (??w13_πB_πA w13_T_πx w13_πx -> Type))
+: ,?Blocked (x : Bool) -> (??w13_πB_πB x (??w15 x) x : Type) == (Bool : Type)
+: ,?Blocked (x : Bool) -> (x : ??w15 x & ??w13_πB_πA x (??w15 x)) -> (??w15 x : Type) == (??w13_πB_πB x (??w15 x) x^> : Type)
+: ,?w13_πA : Bool -> Type         := \ _ . Type
+: ,?w13_πB : Bool -> Type -> Type := \ _ x . x -> x]
+Looking at them, namely
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (??w15 x : Type)
+: ,?Blocked (x : Bool) -> (x : ??w15 x & ??w13_πB_πA x (??w15 x)) -> (??w15 x : Type) == (??w13_πB_πB x (??w15 x) x^> : Type)
+it appears they would arise from Pi-splitting the equation
+: Pi xπ : (??w13_πB_πA x (??w15 x)) . (??w13_πB_πB x (??w15 x) xπ)
+: =u=
+: (??w15 x) -> (??w15 x)
+(up to an application of symmetry) which in turn is equivalent to
+: ?w13_πB x (?w15 x)
+: =u=
+: (??w15 x) -> (??w15 x)
+(by congruence).  But where did that come from?  It's not generated by
+./spire, as far as I can tell; it doesn't appear in the logging output
+below.  A clue (?): both sides are typings of
+: id (?w13 x) id (?w15 x)
+although I don't see how Gundry would be using that.
+
+The unification problems sent to Gundry's unifier (freshening indices
+elided):
+: forcePi      : ?w13_T                  =u= (w13_T_πx : ?w13_T_πA) -> ?w13_T_πB w13_T_πx
+: check'/Infer : Bool                    =u= ?w13_T_πA
+: check'/Infer : ?w13_T_πB x             =u= Type
+: check'/Infer : (T : Type) -> T -> T    =u= ?w13 x
+: forcePi      : ?w13 x                  =u= (w13_πx : ?w13_πA x) -> ?w13_πB x w13_πx
+: forcePi      : ?w15_T                  =u= (w15_T_πx : ?w15_T_πA) -> ?w15_T_πB w15_T_πx
+: check'/Infer : Bool                    =u= ?w15_T_πA
+: check'/Infer : ?w15_T_πB x             =u= ?w13_πA x
+: forcePi      : ?w13_πB x (?w15 x)      =u= (w13_πB_πx : ?w13_πB_πA x (?w15 x)) -> ?w13_πB_πB x (?w15 x)
+: check'/Infer : Bool                    =u= ?w13_πB_πA x (?w15 x)
+: check'/Infer : ?w13_πB_πB x (?w15 x) x =u= Bool
+These correspond exactly to the hand trace, so the mysterious
+equations are being generated internally by Gundry.
 
 ** Algorithm (based on a true story)
 Here we describe what our refinement algorithm would look like if we
@@ -462,6 +694,15 @@ and those two types are not compatible.
 
 Once we have meta vars and unification this is easy, but before that
 we'll have to update all the examples with the new annotations :P
+** TODO Add 'forcePi' unit tests
+I had a major but inconsequential bug in the implementation for about
+a month. It would have been caught by a single unit test of splitting
+a var with at least two arguments :P
+** TODO Build mvar types (type '?wT' for '?w') directly
+We currently do this recursively in a very expensive way (simple
+examples already take 1/2 a second to type check when ./spire is
+compiled without optimization and 1/10 a second optimized).  See
+[[*Heavy handed recursive typing of mvars]] above for details.
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
