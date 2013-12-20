@@ -151,6 +151,66 @@ where
 Elaboration results in
 : eg = \x -> id (?w1 x) id (?w2 x) x
 
+**** Lessons learned
+Studying the hand trace and ./spire output below, we notice a few
+things.
+***** Generation of insoluble unification problems
+We generated some unification problems which are not invertible,
+because the mvar not applied to a linear spine of variables.
+
+The trouble starts when we infer the type '(?w1 x)' for 'id (?w1 x)
+id', even though we've already specified
+: Pi T:*. T -> T =u= (?w1 x)
+The solution is to instead infer the *value* of '(?w1 x)'. Let's call
+this "concretizing" (i.e. making more concrete by subbing mvar defs
+for their occurrences; this is called "zonking" in GHC:
+http://www.haskell.org/pipermail/glasgow-haskell-users/2013-August/024209.html).
+
+A few places to concretize come to mind:
+1. at each place we compute a canonical term, before returning it.
+   E.g., we could add concretizing to the 'check' and 'infer'
+   wrappers.
+2. in the shape forcing functions.  E.g., we could concretize before
+   the pattern match in 'forcePi'.
+It seems (1) will be much less efficient than (2), and both are easy
+to implement, so I'll try (2).
+***** Heavy handed recursive typing of mvars
+We type mvars (refine '?wT' the type of '?w') by recursively calling
+'infer' and 'forcePi' for each argument, but we could do this in one
+shot, which might be a lot more efficient.
+
+For example, given '?w x1 ... xn', we infer '?w : ?wT', and then call
+'forcePi ?wT' to split it into a Π-type.  We do this 'n' times, once
+for each argument.  Each of the 'forcePi' calls results in a call to
+the unifier on a trivial equation.
+
+Instead, knowing that any type check of an mvar application must go
+through 'infer' (because 'check' just calls 'infer' for applications),
+we can special case
+: infer (?w x1 ... xn)
+to look up the types of the 'xi', in the context, and then fire a
+single unification
+: Pi x1 : T1 . ... . xn : Tn . T x1 ... xn
+where the 'Ti' are 'lookupVarTy xi'.  This avoids creating 'n' new
+mvars for the 'n' types 'Ti', and avoids 'n - 1' unification calls.
+
+We then return 'T x1 ... xn' for the type of '?w x1 ... xn', and so in
+the case we're inside a
+: check (?w x1 ... xn) <= T
+we immediate solve
+: T x1 ... xn =u= T
+with a second unification call.
+
+***** Gundry code doesn't do congruence?
+Running the example with ./spire produces fails with these equations
+in the unification state:
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (Bool : Type)
+: ,?Blocked (x : Bool) -> (??w13_πB_πA x (??w15 x) : Type) == (??w15 x : Type)
+and with '?w15' unsolved.  So, it appears that Gundry's code does not
+do congruence, at least in this case, since the LHSs are the same, and
+the derived equation
+: Bool) =u= (?w15 x)
+is invertible.
 **** Notation
 - The mvars '?w<n> : ?w<n>T : Type' are created for wildcards '_' in
   the input during the elaboration phase.
@@ -638,6 +698,11 @@ we'll have to update all the examples with the new annotations :P
 I had a major but inconsequential bug in the implementation for about
 a month. It would have been caught by a single unit test of splitting
 a var with at least two arguments :P
+** TODO Build mvar types (type '?wT' for '?w') directly
+We currently do this recursively in a very expensive way (simple
+examples already take 1/2 a second to type check when ./spire is
+compiled without optimization and 1/10 a second optimized).  See
+[[*Heavy handed recursive typing of mvars]] above for details.
 * Bugs
 ** DONE Pretty printer doesn't freshen names?
 Or, the wild card to mvar implementation is buggy: the pretty printer
