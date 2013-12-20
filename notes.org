@@ -139,8 +139,8 @@ which solves for =?1T= giving
 *** More complex type-argument inference ('id _ id _ x')
 This is a hand-derived trace (really should implement a nice logger
 ...), corresponding to what the code was doing around [2013-12-18
-Wed]. The nearest pushed commits are spire.git/meta-vars/29fe58b and
-unify.git/master/38d0b8d.
+Wed]. The nearest commits are spire.git/meta-vars/26c94a3 and
+unify.git/master/a5defa0.
 
 The example is
 : eg : Bool -> Bool
