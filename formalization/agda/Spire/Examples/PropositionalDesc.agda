@@ -1,7 +1,7 @@
 open import Data.Unit
 open import Data.Product
 open import Relation.Binary.PropositionalEquality
-module Spire.Examples.FODesc where
+module Spire.Examples.PropositionalDesc where
 
 ----------------------------------------------------------------------
 
@@ -128,6 +128,5 @@ concatC tt A m .(con (`suc , n , refl)) (`cons , n , xs , xss , refl) (ih , tt) 
 
 concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
 concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m)) (concatC tt A m)
-
 
 -------------------------------------------------------------------------------
