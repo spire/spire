@@ -46,7 +46,7 @@ ISet : Set → Set₁
 ISet I = I → Set
 
 El : (I : Set) (D : Desc I) (X : ISet I) → ISet I
-El I (`End j)   X i = i ≡ j
+El I (`End j)   X i = j ≡ i
 El I (`Rec j D) X i = X j × El I D X i
 El I (`Σ A B)   X i = Σ A (λ a → El I (B a) X i)
 El I (`Π A B)   X i = (a : A) → El I (B a) X i
@@ -125,12 +125,15 @@ pattern zero = con (here , refl)
 -- suc : ℕ tt → ℕ tt
 pattern suc n = con (there here , n , refl)
 
-VecD : (A : Set) → Desc (ℕ tt)
-VecD A = `Σ (Tag VecT) (caseD VecT (ℕ tt)
+VecC : (A : Set) → Tag VecT → Desc (ℕ tt)
+VecC A = caseD VecT (ℕ tt)
   ( `End zero
   , `Σ (ℕ tt) (λ n → `Σ A λ _ → `Rec n (`End (suc n)))
   , tt
-  ))
+  )
+
+VecD : (A : Set) → Desc (ℕ tt)
+VecD A = `Σ (Tag VecT) (VecC A)
 
 Vec : (A : Set) (n : ℕ tt) → Set
 Vec A n = μ (ℕ tt) (VecD A) n
@@ -143,53 +146,80 @@ cons A n x xs = con (there here , n , x , xs , refl)
 
 ----------------------------------------------------------------------
 
-addC : (u : ⊤) (xs : El ⊤ ℕD ℕ u)
-  (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u xs)
-  → ℕ u → ℕ u
-addC u xs = case ℕT
-  (λ t → (c : El ⊤ (ℕC t) ℕ u) (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u (t , c)) → ℕ u → ℕ u )
-  ( (λ q ih n → n) 
-  , (λ m,q ih,tt n → suc (proj₁ ih,tt n))
-  , tt
-  )
-  (proj₁ xs)
-  (proj₂ xs)
-
--- addC : (u : ⊤) (xs : El ⊤ ℕD ℕ u)
---   (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u xs)
---   → ℕ u → ℕ u
--- addC tt (here , q) ih n = n
--- addC tt (there here , m , q) (ih , tt) n = suc (ih n)
--- addC tt (there (there ()) , q) ih n
-
 add : ℕ tt → ℕ tt → ℕ tt
-add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) addC tt
+add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
+  (λ u xs → case ℕT
+    (λ t → (c : El ⊤ (ℕC t) ℕ u)
+           (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u (t , c))
+           → ℕ u → ℕ u
+    )
+    ( (λ q ih n → n)
+    , (λ m,q ih,tt n → suc (proj₁ ih,tt n))
+    , tt
+    )
+    (proj₁ xs)
+    (proj₂ xs)
+  )
+  tt
 
--- multC : (u : ⊤) (xs : El ⊤ ℕD ℕ u)
---   (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u xs)
---   → ℕ u → ℕ u
--- multC tt (`zero , q) tt n = zero
--- multC tt (`suc , m , q) (ih , tt) n = add n (ih n)
+mult : ℕ tt → ℕ tt → ℕ tt
+mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
+  (λ u xs → case ℕT
+    (λ t → (c : El ⊤ (ℕC t) ℕ u)
+           (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u (t , c))
+           → ℕ u → ℕ u
+    )
+    ( (λ q ih n → zero)
+    , (λ m,q ih,tt n → add n (proj₁ ih,tt n))
+    , tt
+    )
+    (proj₁ xs)
+    (proj₂ xs)
+  )
+  tt
 
--- mult : ℕ tt → ℕ tt → ℕ tt
--- mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) multC tt
+append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
+append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
+  (λ m xs → case VecT
+    (λ t → (c : El (ℕ tt) (VecC A t) (Vec A) m)
+           (ih : All (ℕ tt) (VecD A) (Vec A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) m (t , c))
+           (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
+    )
+    ( (λ q ih n ys → subst (λ m → Vec A (add m n)) q ys)
+    , (λ m',x,xs,q ih,tt n ys →
+        let m' = proj₁ m',x,xs,q
+            x = proj₁ (proj₂ m',x,xs,q)
+            q = proj₂ (proj₂ (proj₂ m',x,xs,q))
+            ih = proj₁ ih,tt
+        in
+        subst (λ m → Vec A (add m n)) q (cons A (add m' n) x (ih n ys))
+      )
+    , tt
+    )
+    (proj₁ xs)
+    (proj₂ xs)
+  )
 
--- appendC : (u : ⊤) (A : Set) (m : ℕ u) (xs : El (ℕ u) (VecD A) (Vec A) m)
---   (ih : All (ℕ u) (VecD A) (Vec A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) m xs)
---   (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
--- appendC tt A .(con (`zero , refl)) (`nil , refl) ih n ys = ys
--- appendC tt A .(con (`suc , m , refl)) (`cons , m , x , xs , refl) (ih , tt) n ys = cons A (add m n) x (ih n ys)
+concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
+concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m))
+  (λ n xss → case VecT
+    (λ t → (c : El (ℕ tt) (VecC (Vec A m) t) (Vec (Vec A m)) n)
+           (ih : All (ℕ tt) (VecD (Vec A m)) (Vec (Vec A m)) (λ n xss → Vec A (mult n m)) n (t , c))
+           → Vec A (mult n m)
+    )
+    ( (λ q ih → subst (λ n → Vec A (mult n m)) q (nil A))
+    , (λ n',xs,xss,q ih,tt →
+        let n' = proj₁ n',xs,xss,q
+            xs = proj₁ (proj₂ n',xs,xss,q)
+            q = proj₂ (proj₂ (proj₂ n',xs,xss,q))
+            ih = proj₁ ih,tt
+        in
+        subst (λ n → Vec A (mult n m)) q (append A m xs (mult n' m) ih)
+      )
+    , tt
+    )
+    (proj₁ xss)
+    (proj₂ xss)
+  )
 
--- append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
--- append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) (appendC tt A)
-
--- concatC : (u : ⊤) (A : Set) (m n : ℕ u) (xss : El (ℕ u) (VecD (Vec A m)) (Vec (Vec A m)) n)
---   (ih : All (ℕ u) (VecD (Vec A m)) (Vec (Vec A m)) (λ n xss → Vec A (mult n m)) n xss)
---   → Vec A (mult n m)
--- concatC tt A m .(con (`zero , refl)) (`nil , refl) tt = nil A
--- concatC tt A m .(con (`suc , n , refl)) (`cons , n , xs , xss , refl) (ih , tt) = append A m xs (mult n m) ih
-
--- concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
--- concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m)) (concatC tt A m)
-
--- -------------------------------------------------------------------------------
+-------------------------------------------------------------------------------

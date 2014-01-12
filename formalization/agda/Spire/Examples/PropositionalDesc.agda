@@ -14,7 +14,7 @@ ISet : Set → Set₁
 ISet I = I → Set
 
 El : (I : Set) (D : Desc I) (X : ISet I) → ISet I
-El I (`End j)   X i = i ≡ j
+El I (`End j)   X i = j ≡ i
 El I (`Rec j D) X i = X j × El I D X i
 El I (`Σ A B)   X i = Σ A (λ a → El I (B a) X i)
 El I (`Π A B)   X i = (a : A) → El I (B a) X i
@@ -112,10 +112,12 @@ mult : ℕ tt → ℕ tt → ℕ tt
 mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) multC tt
 
 appendC : (u : ⊤) (A : Set) (m : ℕ u) (xs : El (ℕ u) (VecD A) (Vec A) m)
-  (ih : All (ℕ u) (VecD A) (Vec A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) m xs)
+  (ih : All (ℕ u) (VecD A) (Vec A) (λ m xs → (n : ℕ u) (ys : Vec A n) → Vec A (add m n)) m xs)
   (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
 appendC tt A .(con (`zero , refl)) (`nil , refl) ih n ys = ys
 appendC tt A .(con (`suc , m , refl)) (`cons , m , x , xs , refl) (ih , tt) n ys = cons A (add m n) x (ih n ys)
+-- appendC tt A m (`nil , q) ih n ys = subst (λ m → Vec A (add m n)) q ys
+-- appendC tt A m (`cons , m' , x , xs , q) (ih , tt) n ys = subst (λ m → Vec A (add m n)) q (cons A (add m' n) x (ih n ys))
 
 append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
 append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) (appendC tt A)
@@ -125,6 +127,8 @@ concatC : (u : ⊤) (A : Set) (m n : ℕ u) (xss : El (ℕ u) (VecD (Vec A m)) (
   → Vec A (mult n m)
 concatC tt A m .(con (`zero , refl)) (`nil , refl) tt = nil A
 concatC tt A m .(con (`suc , n , refl)) (`cons , n , xs , xss , refl) (ih , tt) = append A m xs (mult n m) ih
+-- concatC tt A m n (`nil , q) tt = subst (λ n → Vec A (mult n m)) q (nil A)
+-- concatC tt A m n (`cons , n' , xs , xss , q) (ih , tt) = subst (λ n → Vec A (mult n m)) q (append A m xs (mult n' m) ih)
 
 concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
 concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m)) (concatC tt A m)
