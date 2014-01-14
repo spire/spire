@@ -89,40 +89,38 @@ cons A n x xs = con (x , xs)
 
 ----------------------------------------------------------------------
 
-addC : (u : ⊤) (xs : El ⊤ (ℕD u) ℕ)
-  (ih : All ⊤ ℕ (ℕD u) xs (λ u n → ℕ u → ℕ u))
-  → ℕ u → ℕ u
-addC tt (`zero , tt) tt n = n
-addC tt (`suc , m) ih n = suc (ih n)
-
 add : ℕ tt → ℕ tt → ℕ tt
-add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) addC tt
-
-multC : (u : ⊤) (xs : El ⊤ (ℕD u) ℕ)
-  (ih : All ⊤ ℕ (ℕD u) xs (λ u n → ℕ u → ℕ u))
-  → ℕ u → ℕ u
-multC tt (`zero , tt) tt n = zero
-multC tt (`suc , m) ih n = add n (ih n)
+add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
+  (λ
+    { tt (`zero , tt) tt n → n
+    ; tt (`suc , m) ih n → suc (ih n)
+    }
+  )
+  tt
 
 mult : ℕ tt → ℕ tt → ℕ tt
-mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) multC tt
-
-appendC : (u : ⊤) (A : Set) (m : ℕ u) (xs : El (ℕ u) (VecD A m) (Vec A))
-  (ih : All (ℕ u) (Vec A) (VecD A m) xs (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)))
-  (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-appendC tt A zero tt tt n ys = ys
-appendC tt A (suc m) (x , xs) ih n ys = cons A (add m n) x (ih n ys)
+mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
+  (λ
+    { tt (`zero , tt) tt n → zero
+    ; tt (`suc , m) ih n → add n (ih n)
+    }
+  )
+  tt
 
 append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
-append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) (appendC tt A)
-
-concatC : (u : ⊤) (A : Set) (m n : ℕ u) (xss : El (ℕ u) (VecD (Vec A m) n) (Vec (Vec A m)))
-  (ih : All (ℕ u) (Vec (Vec A m)) (VecD (Vec A m) n) xss (λ n xss → Vec A (mult n m)))
-  → Vec A (mult n m)
-concatC tt A m zero tt tt = nil A
-concatC tt A m (suc n) (xs , xss) ih = append A m xs (mult n m) ih
+append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
+  (λ
+    { zero tt tt n ys → ys
+    ; (suc m) (x , xs) ih n ys → cons A (add m n) x (ih n ys)
+    }
+  )
 
 concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m)) (concatC tt A m)
+concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m))
+  (λ
+    { zero tt tt → nil A
+    ; (suc n) (xs , xss) ih → append A m xs (mult n m) ih
+    }
+  )
 
 ----------------------------------------------------------------------

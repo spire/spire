@@ -93,44 +93,38 @@ cons A n x xs = con (`cons , n , x , xs , refl)
 
 ----------------------------------------------------------------------
 
-addC : (u : ⊤) (xs : El ⊤ ℕD ℕ u)
-  (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u xs)
-  → ℕ u → ℕ u
-addC tt (`zero , q) tt n = n
-addC tt (`suc , m , q) (ih , tt) n = suc (ih n)
-
 add : ℕ tt → ℕ tt → ℕ tt
-add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) addC tt
-
-multC : (u : ⊤) (xs : El ⊤ ℕD ℕ u)
-  (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u xs)
-  → ℕ u → ℕ u
-multC tt (`zero , q) tt n = zero
-multC tt (`suc , m , q) (ih , tt) n = add n (ih n)
+add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
+  (λ
+    { tt (`zero , q) tt n → n
+    ; tt (`suc , m , q) (ih , tt) n → suc (ih n)
+    }
+  )
+  tt
 
 mult : ℕ tt → ℕ tt → ℕ tt
-mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt) multC tt
-
-appendC : (u : ⊤) (A : Set) (m : ℕ u) (xs : El (ℕ u) (VecD A) (Vec A) m)
-  (ih : All (ℕ u) (VecD A) (Vec A) (λ m xs → (n : ℕ u) (ys : Vec A n) → Vec A (add m n)) m xs)
-  (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-appendC tt A .(con (`zero , refl)) (`nil , refl) ih n ys = ys
-appendC tt A .(con (`suc , m , refl)) (`cons , m , x , xs , refl) (ih , tt) n ys = cons A (add m n) x (ih n ys)
--- appendC tt A m (`nil , q) ih n ys = subst (λ m → Vec A (add m n)) q ys
--- appendC tt A m (`cons , m' , x , xs , q) (ih , tt) n ys = subst (λ m → Vec A (add m n)) q (cons A (add m' n) x (ih n ys))
+mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
+  (λ
+    { tt (`zero , q) tt n → zero
+    ; tt (`suc , m , q) (ih , tt) n → add n (ih n)
+    }
+  )
+  tt
 
 append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
-append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) (appendC tt A)
-
-concatC : (u : ⊤) (A : Set) (m n : ℕ u) (xss : El (ℕ u) (VecD (Vec A m)) (Vec (Vec A m)) n)
-  (ih : All (ℕ u) (VecD (Vec A m)) (Vec (Vec A m)) (λ n xss → Vec A (mult n m)) n xss)
-  → Vec A (mult n m)
-concatC tt A m .(con (`zero , refl)) (`nil , refl) tt = nil A
-concatC tt A m .(con (`suc , n , refl)) (`cons , n , xs , xss , refl) (ih , tt) = append A m xs (mult n m) ih
--- concatC tt A m n (`nil , q) tt = subst (λ n → Vec A (mult n m)) q (nil A)
--- concatC tt A m n (`cons , n' , xs , xss , q) (ih , tt) = subst (λ n → Vec A (mult n m)) q (append A m xs (mult n' m) ih)
+append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
+  (λ
+    { .(con (`zero , refl)) (`nil , refl) ih n ys → ys
+    ; .(con (`suc , m , refl)) (`cons , m , x , xs , refl) (ih , tt) n ys → cons A (add m n) x (ih n ys)
+    }
+  )
 
 concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m)) (concatC tt A m)
+concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m))
+  (λ
+    { .(con (`zero , refl)) (`nil , refl) tt → nil A
+    ; .(con (`suc , n , refl)) (`cons , n , xs , xss , refl) (ih , tt) → append A m xs (mult n m) ih
+    }
+  )
 
 -------------------------------------------------------------------------------
