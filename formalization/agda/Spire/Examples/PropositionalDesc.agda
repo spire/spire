@@ -1,6 +1,6 @@
 {-# OPTIONS --type-in-type #-}
 open import Data.Unit
-open import Data.Product
+open import Data.Product hiding ( curry ; uncurry )
 open import Data.List hiding ( concat )
 open import Data.String
 open import Relation.Binary.PropositionalEquality
@@ -89,6 +89,34 @@ hyps I D P pcon (`End j) i q = tt
 hyps I D P pcon (`Rec j A) i (x , xs) = ind I D P pcon j x , hyps I D P pcon A i xs
 hyps I D P pcon (`Arg A B) i (a , b) = hyps I D P pcon (B a) i b
 hyps I D P pcon (`RecFun A B E) i (f , xs) = (λ a → ind I D P pcon (B a) (f a)) , hyps I D P pcon E i xs
+
+----------------------------------------------------------------------
+
+Uncurried : (I : Set) (D : Desc I) (X : I → Set) → Set
+Uncurried I D X = {i : I} → El I D X i → X i
+
+Curried : (I : Set) (D : Desc I) (X : I → Set) → Set
+Curried I (`End i) X = X i
+Curried I (`Rec j D) X = (x : X j) → Curried I D X
+Curried I (`Arg A B) X = (a : A) → Curried I (B a) X
+Curried I (`RecFun A B D) X = ((a : A) → X (B a)) → Curried I D X
+
+curry : (I : Set) (D : Desc I) (X : I → Set)
+  (cn : Uncurried I D X) → Curried I D X
+curry I (`End i) X cn = cn refl
+curry I (`Rec i D) X cn = λ x → curry I D X (λ xs → cn (x , xs))
+curry I (`Arg A B) X cn = λ a → curry I (B a) X (λ xs → cn (a , xs))
+curry I (`RecFun A B D) X cn = λ f → curry I D X (λ xs → cn (f , xs))
+
+uncurry : (I : Set) (D : Desc I) (X : I → Set)
+  (cn : Curried I D X) → Uncurried I D X
+uncurry I (`End i) X cn refl = cn
+uncurry I (`Rec i D) X cn (x , xs) = uncurry I D X (cn x) xs
+uncurry I (`Arg A B) X cn (a , xs) = uncurry I (B a) X (cn a) xs
+uncurry I (`RecFun A B D) X cn (f , xs) = uncurry I D X (cn f) xs
+
+con2 : (I : Set) (D : Desc I) → Curried I D (μ I D)
+con2 I D = curry I D (μ I D) con
 
 ----------------------------------------------------------------------
 
@@ -192,6 +220,12 @@ module Desugared where
   suc : ℕ tt → ℕ tt
   suc n = con (there here , n , refl)
   
+  zero2 : ℕ tt
+  zero2 = con2 ⊤ ℕD here
+
+  suc2 : ℕ tt → ℕ tt
+  suc2 = con2 ⊤ ℕD (there here)
+
   VecC : (A : Set) → Tag VecT → Desc (ℕ tt)
   VecC A = caseD VecT (ℕ tt)
     ( `End zero
@@ -211,6 +245,12 @@ module Desugared where
   cons : (A : Set) (n : ℕ tt) (x : A) (xs : Vec A n) → Vec A (suc n)
   cons A n x xs = con (there here , n , x , xs , refl)
  
+  nil2 : (A : Set) → Vec A zero
+  nil2 A = con2 (ℕ tt) (VecD A) here
+
+  cons2 : (A : Set) (n : ℕ tt) (x : A) (xs : Vec A n) → Vec A (suc n)
+  cons2 A = con2 (ℕ tt) (VecD A) (there here)
+
 ----------------------------------------------------------------------
 
   module Induction where
