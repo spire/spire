@@ -482,3 +482,45 @@ module Desugared where
       (λ n xs xss ih → append A m xs (mult n m) ih)
     
 ----------------------------------------------------------------------
+
+  module GenericEliminator where
+
+    add : ℕ tt → ℕ tt → ℕ tt
+    add = ind2 ⊤ ℕD _
+      (case ℕT _
+        ( (λ n → n)
+        , (λ m ih n → suc (ih n))
+        , tt
+        )
+      )
+      tt
+
+    mult : ℕ tt → ℕ tt → ℕ tt
+    mult = ind2 ⊤ ℕD _
+      (case ℕT _
+        ( (λ n → zero)
+        , (λ m ih n → add n (ih n))
+        , tt
+        )
+      )
+      tt
+
+    append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
+    append A = ind2 (ℕ tt) (VecD A) _
+      (case VecT _
+        ( (λ n ys → ys)
+        , (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
+        , tt
+        )
+      )
+
+    concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
+    concat A m = ind2 (ℕ tt) (VecD (Vec A m)) _
+      (case VecT _
+        ( (nil A)
+        , (λ n xs xss ih → append A m xs (mult n m) ih)
+        , tt
+        )
+      )
+
+----------------------------------------------------------------------
