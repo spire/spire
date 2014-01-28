@@ -64,11 +64,89 @@ caseD E I cs t = case E (λ _ → Desc I) cs t
 
 ----------------------------------------------------------------------
 
+UncurriedEl : (I : Set) (D : Desc I) (X : ISet I) → Set
+UncurriedEl I D X = {i : I} → El I D X i → X i
+
+CurriedEl : (I : Set) (D : Desc I) (X : ISet I) → Set
+CurriedEl I (`End i) X = X i
+CurriedEl I (`Rec j D) X = (x : X j) → CurriedEl I D X
+CurriedEl I (`Arg A B) X = (a : A) → CurriedEl I (B a) X
+CurriedEl I (`RecFun A B D) X = ((a : A) → X (B a)) → CurriedEl I D X
+
+curryEl : (I : Set) (D : Desc I) (X : ISet I)
+  (cn : UncurriedEl I D X) → CurriedEl I D X
+curryEl I (`End i) X cn = cn refl
+curryEl I (`Rec i D) X cn = λ x → curryEl I D X (λ xs → cn (x , xs))
+curryEl I (`Arg A B) X cn = λ a → curryEl I (B a) X (λ xs → cn (a , xs))
+curryEl I (`RecFun A B D) X cn = λ f → curryEl I D X (λ xs → cn (f , xs))
+
+uncurryEl : (I : Set) (D : Desc I) (X : ISet I)
+  (cn : CurriedEl I D X) → UncurriedEl I D X
+uncurryEl I (`End i) X cn refl = cn
+uncurryEl I (`Rec i D) X cn (x , xs) = uncurryEl I D X (cn x) xs
+uncurryEl I (`Arg A B) X cn (a , xs) = uncurryEl I (B a) X (cn a) xs
+uncurryEl I (`RecFun A B D) X cn (f , xs) = uncurryEl I D X (cn f) xs
+
+con2 : (I : Set) (D : Desc I) → CurriedEl I D (μ I D)
+con2 I D = curryEl I D (μ I D) con
+
+----------------------------------------------------------------------
+
+UncurriedAll : (I : Set) (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : {i : I} → El I D X i → X i)
+  → Set
+UncurriedAll I D X P cn =
+  (i : I) (xs : El I D X i) → All I D X P i xs → P i (cn xs)
+
+CurriedAll : (I : Set) (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedEl I D X)
+  → Set
+CurriedAll I (`End i) X P cn =
+  P i (cn refl)
+CurriedAll I (`Rec i D) X P cn =
+  (x : X i) → P i x → CurriedAll I D X P (λ xs → cn (x , xs))
+CurriedAll I (`Arg A B) X P cn =
+  (a : A) → CurriedAll I (B a) X P (λ xs → cn (a , xs))
+CurriedAll I (`RecFun A B D) X P cn =
+  (f : (a : A) → X (B a)) (ihf : (a : A) → P (B a) (f a)) → CurriedAll I D X P (λ xs → cn (f , xs))
+
+curryAll : (I : Set) (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedEl I D X)
+  (pf : UncurriedAll I D X P cn)
+  → CurriedAll I D X P cn
+curryAll I (`End i) X P cn pf =
+  pf i refl tt
+curryAll I (`Rec i D) X P cn pf =
+  λ x ih → curryAll I D X P (λ xs → cn (x , xs)) (λ i xs ihs → pf i (x , xs) (ih , ihs))
+curryAll I (`Arg A B) X P cn pf =
+  λ a → curryAll I (B a) X P (λ xs → cn (a , xs)) (λ i xs ihs → pf i (a , xs) ihs)
+curryAll I (`RecFun A B D) X P cn pf =
+  λ f ihf → curryAll I D X P (λ xs → cn (f , xs)) (λ i xs ihs → pf i (f , xs) (ihf , ihs))
+
+uncurryAll : (I : Set) (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedEl I D X)
+  (pf : CurriedAll I D X P cn)
+  → UncurriedAll I D X P cn
+uncurryAll I (`End .i) X P cn pf i refl tt =
+  pf
+uncurryAll I (`Rec j D) X P cn pf i (x , xs) (ih , ihs) =
+  uncurryAll I D X P (λ ys → cn (x , ys)) (pf x ih) i xs ihs
+uncurryAll I (`Arg A B) X P cn pf i (a , xs) ihs =
+  uncurryAll I (B a) X P (λ ys → cn (a , ys)) (pf a) i xs ihs
+uncurryAll I (`RecFun A B D) X P cn pf i (f , xs) (ihf , ihs) =
+  uncurryAll I D X P (λ ys → cn (f , ys)) (pf f ihf) i xs ihs
+
+----------------------------------------------------------------------
+
 ind :
   (I : Set)
   (D : Desc I)
   (P : (i : I) → μ I D i → Set)
-  (pcon : (i : I) (xs : El I D (μ I D) i) → All I D (μ I D) P i xs → P i (con xs))
+  (pcon : UncurriedAll I D (μ I D) P con)
   (i : I)
   (x : μ I D i)
   → P i x
@@ -77,7 +155,7 @@ hyps :
   (I : Set)
   (D₁ : Desc I)
   (P : (i : I) → μ I D₁ i → Set)
-  (pcon : (i : I) (xs : El I D₁ (μ I D₁) i) → All I D₁ (μ I D₁) P i xs → P i (con xs))
+  (pcon : UncurriedAll I D₁ (μ I D₁) P con)
   (D₂ : Desc I)
   (i : I)
   (xs : El I D₂ (μ I D₁) i)
@@ -92,31 +170,15 @@ hyps I D P pcon (`RecFun A B E) i (f , xs) = (λ a → ind I D P pcon (B a) (f a
 
 ----------------------------------------------------------------------
 
-Uncurried : (I : Set) (D : Desc I) (X : I → Set) → Set
-Uncurried I D X = {i : I} → El I D X i → X i
-
-Curried : (I : Set) (D : Desc I) (X : I → Set) → Set
-Curried I (`End i) X = X i
-Curried I (`Rec j D) X = (x : X j) → Curried I D X
-Curried I (`Arg A B) X = (a : A) → Curried I (B a) X
-Curried I (`RecFun A B D) X = ((a : A) → X (B a)) → Curried I D X
-
-curry : (I : Set) (D : Desc I) (X : I → Set)
-  (cn : Uncurried I D X) → Curried I D X
-curry I (`End i) X cn = cn refl
-curry I (`Rec i D) X cn = λ x → curry I D X (λ xs → cn (x , xs))
-curry I (`Arg A B) X cn = λ a → curry I (B a) X (λ xs → cn (a , xs))
-curry I (`RecFun A B D) X cn = λ f → curry I D X (λ xs → cn (f , xs))
-
-uncurry : (I : Set) (D : Desc I) (X : I → Set)
-  (cn : Curried I D X) → Uncurried I D X
-uncurry I (`End i) X cn refl = cn
-uncurry I (`Rec i D) X cn (x , xs) = uncurry I D X (cn x) xs
-uncurry I (`Arg A B) X cn (a , xs) = uncurry I (B a) X (cn a) xs
-uncurry I (`RecFun A B D) X cn (f , xs) = uncurry I D X (cn f) xs
-
-con2 : (I : Set) (D : Desc I) → Curried I D (μ I D)
-con2 I D = curry I D (μ I D) con
+ind2 :
+  (I : Set)
+  (D : Desc I)
+  (P : (i : I) → μ I D i → Set)
+  (pcon : CurriedAll I D (μ I D) P con)
+  (i : I)
+  (x : μ I D i)
+  → P i x
+ind2 I D P pcon i x = ind I D P (uncurryAll I D (μ I D) P con pcon) i x
 
 ----------------------------------------------------------------------
 
