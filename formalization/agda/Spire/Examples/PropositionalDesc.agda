@@ -69,9 +69,6 @@ El I (`Rec j D) X i = X j × El I D X i
 El I (`Arg A B) X i = Σ A (λ a → El I (B a) X i)
 El I (`RecFun A B D) X i = ((a : A) → X (B a)) × El I D X i
 
-data μ (I : Set) (D : Desc I) (i : I) : Set where
-  con : El I D (μ I D) i → μ I D i
-
 All : (I : Set) (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : El I D X i) → Set
 All I (`End j) X P i q = ⊤
 All I (`Rec j D) X P i (x , xs) = P j x × All I D X P i xs
@@ -105,6 +102,10 @@ uncurryEl I (`End i) X cn refl = cn
 uncurryEl I (`Rec i D) X cn (x , xs) = uncurryEl I D X (cn x) xs
 uncurryEl I (`Arg A B) X cn (a , xs) = uncurryEl I (B a) X (cn a) xs
 uncurryEl I (`RecFun A B D) X cn (f , xs) = uncurryEl I D X (cn f) xs
+
+data μ (I : Set) (D : Desc I) (i : I) : Set where
+  -- this equals UncurriedEl I D (μ I D)
+  con : El I D (μ I D) i → μ I D i
 
 con2 : (I : Set) (D : Desc I) → CurriedEl I D (μ I D)
 con2 I D = curryEl I D (μ I D) con
@@ -527,7 +528,7 @@ module Desugared where
     concat A m = elimVec (Vec A m) (λ n xss → Vec A (mult n m))
       (nil A)
       (λ n xs xss ih → append A m xs (mult n m) ih)
-    
+
 ----------------------------------------------------------------------
 
   module GenericEliminator where
