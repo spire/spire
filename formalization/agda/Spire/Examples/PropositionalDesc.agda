@@ -180,6 +180,20 @@ ind2 :
   → P i x
 ind2 I D P pcon i x = ind I D P (uncurryAll I D (μ I D) P con pcon) i x
 
+elim :
+  (I : Set)
+  (E : Enum)
+  (Cs : Tag E → Desc I)
+  → let D = `Arg (Tag E) Cs in
+  (P : (i : I) → μ I D i → Set)
+  (cs : Cases E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))))
+  (i : I)
+  (x : μ I D i)
+  → P i x
+elim I E Cs P cs i x =
+  let D = `Arg (Tag E) Cs in
+  ind2 I D P (case E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) cs) i x
+
 ----------------------------------------------------------------------
 
 module Sugared where
@@ -486,41 +500,33 @@ module Desugared where
   module GenericEliminator where
 
     add : ℕ tt → ℕ tt → ℕ tt
-    add = ind2 ⊤ ℕD _
-      (case ℕT _
-        ( (λ n → n)
-        , (λ m ih n → suc (ih n))
-        , tt
-        )
+    add = elim ⊤ ℕT ℕC _
+      ( (λ n → n)
+      , (λ m ih n → suc (ih n))
+      , tt
       )
       tt
 
     mult : ℕ tt → ℕ tt → ℕ tt
-    mult = ind2 ⊤ ℕD _
-      (case ℕT _
-        ( (λ n → zero)
-        , (λ m ih n → add n (ih n))
-        , tt
-        )
+    mult = elim ⊤ ℕT ℕC _
+      ( (λ n → zero)
+      , (λ m ih n → add n (ih n))
+      , tt
       )
       tt
 
     append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-    append A = ind2 (ℕ tt) (VecD A) _
-      (case VecT _
-        ( (λ n ys → ys)
-        , (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
-        , tt
-        )
+    append A = elim (ℕ tt) VecT (VecC A) _
+      ( (λ n ys → ys)
+      , (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
+      , tt
       )
 
     concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-    concat A m = ind2 (ℕ tt) (VecD (Vec A m)) _
-      (case VecT _
-        ( (nil A)
-        , (λ n xs xss ih → append A m xs (mult n m) ih)
-        , tt
-        )
+    concat A m = elim (ℕ tt) VecT (VecC (Vec A m)) _
+      ( (nil A)
+      , (λ n xs xss ih → append A m xs (mult n m) ih)
+      , tt
       )
 
 ----------------------------------------------------------------------
