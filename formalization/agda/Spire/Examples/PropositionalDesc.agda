@@ -103,9 +103,8 @@ uncurryEl I (`Rec i D) X cn (x , xs) = uncurryEl I D X (cn x) xs
 uncurryEl I (`Arg A B) X cn (a , xs) = uncurryEl I (B a) X (cn a) xs
 uncurryEl I (`RecFun A B D) X cn (f , xs) = uncurryEl I D X (cn f) xs
 
-data μ (I : Set) (D : Desc I) (i : I) : Set where
-  -- this equals UncurriedEl I D (μ I D)
-  con : El I D (μ I D) i → μ I D i
+data μ (I : Set) (D : Desc I) : I → Set where
+  con : UncurriedEl I D (μ I D)
 
 con2 : (I : Set) (D : Desc I) → CurriedEl I D (μ I D)
 con2 I D = curryEl I D (μ I D) con
