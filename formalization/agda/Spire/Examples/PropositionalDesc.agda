@@ -33,6 +33,25 @@ case : (E : Enum) (P : Tag E → Set) (cs : Cases E P) (t : Tag E) → P t
 case (l ∷ E) P (c , cs) here = c
 case (l ∷ E) P (c , cs) (there t) = case E (λ t → P (there t)) cs t
 
+UncurriedCases : (E : Enum) (P : Tag E → Set) (X : Set)
+  → Set
+UncurriedCases E P X = Cases E P → X
+
+CurriedCases : (E : Enum) (P : Tag E → Set) (X : Set)
+  → Set
+CurriedCases [] P X = X
+CurriedCases (l ∷ E) P X = P here → CurriedCases E (λ t → P (there t)) X
+
+curryCases : (E : Enum) (P : Tag E → Set) (X : Set)
+  (f : UncurriedCases E P X) → CurriedCases E P X
+curryCases [] P X f = f tt
+curryCases (l ∷ E) P X f = λ c → curryCases E (λ t → P (there t)) X (λ cs → f (c , cs))
+
+uncurryCases : (E : Enum) (P : Tag E → Set) (X : Set)
+  (f : CurriedCases E P X) → UncurriedCases E P X
+uncurryCases [] P X x tt = x
+uncurryCases (l ∷ E) P X f (c , cs) = uncurryCases E (λ t → P (there t)) X (f c) cs
+
 ----------------------------------------------------------------------
 
 data Desc (I : Set) : Set₁ where
@@ -186,13 +205,27 @@ elim :
   (Cs : Tag E → Desc I)
   → let D = `Arg (Tag E) Cs in
   (P : (i : I) → μ I D i → Set)
-  (cs : Cases E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))))
-  (i : I)
-  (x : μ I D i)
-  → P i x
+  → UncurriedCases E
+    (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) 
+    ((i : I) (x : μ I D i) → P i x)
 elim I E Cs P cs i x =
   let D = `Arg (Tag E) Cs in
   ind2 I D P (case E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) cs) i x
+
+elim2 :
+  (I : Set)
+  (E : Enum)
+  (Cs : Tag E → Desc I)
+  → let D = `Arg (Tag E) Cs in
+  (P : (i : I) → μ I D i → Set)
+  → let Q = (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs)))
+        X = ((i : I) (x : μ I D i) → P i x)
+  in CurriedCases E Q X
+elim2 I E Cs P =
+  let D = `Arg (Tag E) Cs
+      Q = (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs)))
+      X = ((i : I) (x : μ I D i) → P i x)
+  in curryCases E Q X (elim I E Cs P)
 
 ----------------------------------------------------------------------
 
@@ -500,33 +533,25 @@ module Desugared where
   module GenericEliminator where
 
     add : ℕ tt → ℕ tt → ℕ tt
-    add = elim ⊤ ℕT ℕC _
-      ( (λ n → n)
-      , (λ m ih n → suc (ih n))
-      , tt
-      )
+    add = elim2 ⊤ ℕT ℕC _
+      (λ n → n)
+      (λ m ih n → suc (ih n))
       tt
 
     mult : ℕ tt → ℕ tt → ℕ tt
-    mult = elim ⊤ ℕT ℕC _
-      ( (λ n → zero)
-      , (λ m ih n → add n (ih n))
-      , tt
-      )
+    mult = elim2 ⊤ ℕT ℕC _
+      (λ n → zero)
+      (λ m ih n → add n (ih n))
       tt
 
     append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-    append A = elim (ℕ tt) VecT (VecC A) _
-      ( (λ n ys → ys)
-      , (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
-      , tt
-      )
+    append A = elim2 (ℕ tt) VecT (VecC A) _
+      (λ n ys → ys)
+      (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
 
     concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-    concat A m = elim (ℕ tt) VecT (VecC (Vec A m)) _
-      ( (nil A)
-      , (λ n xs xss ih → append A m xs (mult n m) ih)
-      , tt
-      )
+    concat A m = elim2 (ℕ tt) VecT (VecC (Vec A m)) _
+      (nil A)
+      (λ n xs xss ih → append A m xs (mult n m) ih)
 
 ----------------------------------------------------------------------
