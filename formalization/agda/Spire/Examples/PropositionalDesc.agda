@@ -340,8 +340,8 @@ module Desugared where
     , `Rec tt (`End tt)
     , tt
   
-  ℕC : Tag ℕT → Desc ⊤
-  ℕC = toCase ⊤ ℕTD
+  ℕCs : Tag ℕT → Desc ⊤
+  ℕCs = toCase ⊤ ℕTD
   
   ℕD : Desc ⊤
   ℕD = toDesc ⊤ ℕTD
@@ -367,8 +367,8 @@ module Desugared where
     , `Arg (ℕ tt) (λ n → `Arg A λ _ → `Rec n (`End (suc n)))
     , tt
 
-  VecC : (A : Set) → Tag VecT → Desc (ℕ tt)
-  VecC A = toCase (ℕ tt) (VecTD A)
+  VecCs : (A : Set) → Tag VecT → Desc (ℕ tt)
+  VecCs A = toCase (ℕ tt) (VecTD A)
   
   VecD : (A : Set) → Desc (ℕ tt)
   VecD A = toDesc (ℕ tt) (VecTD A)
@@ -395,7 +395,7 @@ module Desugared where
     add : ℕ tt → ℕ tt → ℕ tt
     add = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
       (λ u t,c → case ℕT
-        (λ t → (c : El ⊤ (ℕC t) ℕ u)
+        (λ t → (c : El ⊤ (ℕCs t) ℕ u)
                (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u (t , c))
                → ℕ u → ℕ u
         )
@@ -411,7 +411,7 @@ module Desugared where
     mult : ℕ tt → ℕ tt → ℕ tt
     mult = ind ⊤ ℕD (λ _ _ → ℕ tt → ℕ tt)
       (λ u t,c → case ℕT
-        (λ t → (c : El ⊤ (ℕC t) ℕ u)
+        (λ t → (c : El ⊤ (ℕCs t) ℕ u)
                (ih : All ⊤ ℕD ℕ (λ u n → ℕ u → ℕ u) u (t , c))
                → ℕ u → ℕ u
         )
@@ -427,7 +427,7 @@ module Desugared where
     append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
     append A = ind (ℕ tt) (VecD A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
       (λ m t,c → case VecT
-        (λ t → (c : El (ℕ tt) (VecC A t) (Vec A) m)
+        (λ t → (c : El (ℕ tt) (VecCs A t) (Vec A) m)
                (ih : All (ℕ tt) (VecD A) (Vec A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)) m (t , c))
                (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
         )
@@ -449,7 +449,7 @@ module Desugared where
     concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
     concat A m = ind (ℕ tt) (VecD (Vec A m)) (λ n xss → Vec A (mult n m))
       (λ n t,c → case VecT
-        (λ t → (c : El (ℕ tt) (VecC (Vec A m) t) (Vec (Vec A m)) n)
+        (λ t → (c : El (ℕ tt) (VecCs (Vec A m) t) (Vec (Vec A m)) n)
                (ih : All (ℕ tt) (VecD (Vec A m)) (Vec (Vec A m)) (λ n xss → Vec A (mult n m)) n (t , c))
                → Vec A (mult n m)
         )
@@ -479,7 +479,7 @@ module Desugared where
       → P n
     elimℕ P pzero psuc = ind ⊤ ℕD (λ u n → P n)
       (λ u t,c → case ℕT
-        (λ t → (c : El ⊤ (ℕC t) ℕ u)
+        (λ t → (c : El ⊤ (ℕCs t) ℕ u)
                (ih : All ⊤ ℕD ℕ (λ u n → P n) u (t , c))
                → P (con (t , c))
         )
@@ -508,7 +508,7 @@ module Desugared where
       → P n xs
     elimVec A P pnil pcons = ind (ℕ tt) (VecD A) (λ n xs → P n xs)
       (λ n t,c → case VecT
-        (λ t → (c : El (ℕ tt) (VecC A t) (Vec A) n)
+        (λ t → (c : El (ℕ tt) (VecCs A t) (Vec A) n)
                (ih : All (ℕ tt) (VecD A) (Vec A) (λ n xs → P n xs) n (t , c))
                → P n (con (t , c))
         )
