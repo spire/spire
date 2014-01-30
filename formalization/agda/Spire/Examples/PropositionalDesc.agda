@@ -80,6 +80,17 @@ caseD E I cs t = case E (λ _ → Desc I) cs t
 
 ----------------------------------------------------------------------
 
+TagDesc : (I : Set) → Set
+TagDesc I = Σ Enum (λ E → Cases E (λ _ → Desc I))
+
+toCase : (I : Set) (E,cs : TagDesc I) → Tag (proj₁ E,cs) → Desc I
+toCase I (E , cs) = case E (λ _ → Desc I) cs
+
+toDesc : (I : Set) → TagDesc I → Desc I
+toDesc I (E , cs) = `Arg (Tag E) (toCase I (E , cs))
+
+----------------------------------------------------------------------
+
 UncurriedEl : (I : Set) (D : Desc I) (X : ISet I) → Set
 UncurriedEl I D X = {i : I} → El I D X i → X i
 
@@ -201,31 +212,44 @@ ind2 I D P pcon i x = ind I D P (uncurryAll I D (μ I D) P con pcon) i x
 
 elim :
   (I : Set)
-  (E : Enum)
-  (Cs : Tag E → Desc I)
-  → let D = `Arg (Tag E) Cs in
-  (P : (i : I) → μ I D i → Set)
-  → UncurriedCases E
-    (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) 
-    ((i : I) (x : μ I D i) → P i x)
-elim I E Cs P cs i x =
-  let D = `Arg (Tag E) Cs in
-  ind2 I D P (case E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) cs) i x
+  (TD : TagDesc I)
+  → let
+    D = toDesc I TD
+    E = proj₁ TD
+    Cs = toCase I TD
+  in (P : (i : I) → μ I D i → Set)
+  → let
+    Q = λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))
+    X = (i : I) (x : μ I D i) → P i x
+  in UncurriedCases E Q X
+elim I TD P cs i x =
+  let
+    D = toDesc I TD
+    E = proj₁ TD
+    Cs = toCase I TD
+    p = case E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) cs
+  in ind2 I D P p i x
 
 elim2 :
   (I : Set)
-  (E : Enum)
-  (Cs : Tag E → Desc I)
-  → let D = `Arg (Tag E) Cs in
-  (P : (i : I) → μ I D i → Set)
-  → let Q = (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs)))
-        X = ((i : I) (x : μ I D i) → P i x)
+  (TD : TagDesc I)
+  → let
+    D = toDesc I TD
+    E = proj₁ TD
+    Cs = toCase I TD
+  in (P : (i : I) → μ I D i → Set)
+  → let
+    Q = λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))
+    X = (i : I) (x : μ I D i) → P i x
   in CurriedCases E Q X
-elim2 I E Cs P =
-  let D = `Arg (Tag E) Cs
-      Q = (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs)))
-      X = ((i : I) (x : μ I D i) → P i x)
-  in curryCases E Q X (elim I E Cs P)
+elim2 I TD P =
+  let
+    D = toDesc I TD
+    E = proj₁ TD
+    Cs = toCase I TD
+    Q = λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))
+    X = (i : I) (x : μ I D i) → P i x
+  in curryCases E Q X (elim I TD P)
 
 ----------------------------------------------------------------------
 
@@ -309,16 +333,18 @@ module Desugared where
   
   VecT : Enum
   VecT = "nil" ∷ "cons" ∷ []
-  
-  ℕC : Tag ℕT → Desc ⊤
-  ℕC = caseD ℕT ⊤
-    ( `End tt
+
+  ℕTD : TagDesc ⊤
+  ℕTD = ℕT
+    , `End tt
     , `Rec tt (`End tt)
     , tt
-    )
+  
+  ℕC : Tag ℕT → Desc ⊤
+  ℕC = toCase ⊤ ℕTD
   
   ℕD : Desc ⊤
-  ℕD = `Arg (Tag ℕT) ℕC
+  ℕD = toDesc ⊤ ℕTD
   
   ℕ : ⊤ → Set
   ℕ = μ ⊤ ℕD
@@ -335,15 +361,17 @@ module Desugared where
   suc2 : ℕ tt → ℕ tt
   suc2 = con2 ⊤ ℕD (there here)
 
-  VecC : (A : Set) → Tag VecT → Desc (ℕ tt)
-  VecC A = caseD VecT (ℕ tt)
-    ( `End zero
+  VecTD : (A : Set) → TagDesc (ℕ tt)
+  VecTD A = VecT
+    , `End zero
     , `Arg (ℕ tt) (λ n → `Arg A λ _ → `Rec n (`End (suc n)))
     , tt
-    )
+
+  VecC : (A : Set) → Tag VecT → Desc (ℕ tt)
+  VecC A = toCase (ℕ tt) (VecTD A)
   
   VecD : (A : Set) → Desc (ℕ tt)
-  VecD A = `Arg (Tag VecT) (VecC A)
+  VecD A = toDesc (ℕ tt) (VecTD A)
   
   Vec : (A : Set) (n : ℕ tt) → Set
   Vec A n = μ (ℕ tt) (VecD A) n
@@ -533,24 +561,24 @@ module Desugared where
   module GenericEliminator where
 
     add : ℕ tt → ℕ tt → ℕ tt
-    add = elim2 ⊤ ℕT ℕC _
+    add = elim2 ⊤ ℕTD _
       (λ n → n)
       (λ m ih n → suc (ih n))
       tt
 
     mult : ℕ tt → ℕ tt → ℕ tt
-    mult = elim2 ⊤ ℕT ℕC _
+    mult = elim2 ⊤ ℕTD _
       (λ n → zero)
       (λ m ih n → add n (ih n))
       tt
 
     append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-    append A = elim2 (ℕ tt) VecT (VecC A) _
+    append A = elim2 (ℕ tt) (VecTD A) _
       (λ n ys → ys)
       (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
 
     concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-    concat A m = elim2 (ℕ tt) VecT (VecC (Vec A m)) _
+    concat A m = elim2 (ℕ tt) (VecTD (Vec A m)) _
       (nil A)
       (λ n xs xss ih → append A m xs (mult n m) ih)
 
