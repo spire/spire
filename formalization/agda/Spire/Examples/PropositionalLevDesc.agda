@@ -62,11 +62,11 @@ El I (`Rec j D) X i = X j × El I D X i
 El I (`Arg A B) X i = Σ A (λ a → El I (B a) X i)
 El I (`RecFun A B D) X i = ((a : A) → X (B a)) × El I D X i
 
-All : (I : Set) (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : El I D X i) → Set
-All I (`End j) X P i q = ⊤
-All I (`Rec j D) X P i (x , xs) = P j x × All I D X P i xs
-All I (`Arg A B) X P i (a , b) = All I (B a) X P i b
-All I (`RecFun A B D) X P i (f , xs) = ((a : A) → P (B a) (f a)) × All I D X P i xs
+Hyps : (I : Set) (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : El I D X i) → Set
+Hyps I (`End j) X P i q = ⊤
+Hyps I (`Rec j D) X P i (x , xs) = P j x × Hyps I D X P i xs
+Hyps I (`Arg A B) X P i (a , b) = Hyps I (B a) X P i b
+Hyps I (`RecFun A B D) X P i (f , xs) = ((a : A) → P (B a) (f a)) × Hyps I D X P i xs
 
 ----------------------------------------------------------------------
 
@@ -123,53 +123,53 @@ con2 I E cs t = curryEl I (Args I E t cs) (μ I E cs) (con t)
 
 ----------------------------------------------------------------------
 
-UncurriedAll : (I : Set) (D : Desc I) (X : ISet I)
+UncurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : {i : I} → El I D X i → X i)
   → Set
-UncurriedAll I D X P cn =
-  (i : I) (xs : El I D X i) → All I D X P i xs → P i (cn xs)
+UncurriedHyps I D X P cn =
+  (i : I) (xs : El I D X i) → Hyps I D X P i xs → P i (cn xs)
 
-CurriedAll : (I : Set) (D : Desc I) (X : ISet I)
+CurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : UncurriedEl I D X)
   → Set
-CurriedAll I (`End i) X P cn =
+CurriedHyps I (`End i) X P cn =
   P i (cn refl)
-CurriedAll I (`Rec i D) X P cn =
-  (x : X i) → P i x → CurriedAll I D X P (λ xs → cn (x , xs))
-CurriedAll I (`Arg A B) X P cn =
-  (a : A) → CurriedAll I (B a) X P (λ xs → cn (a , xs))
-CurriedAll I (`RecFun A B D) X P cn =
-  (f : (a : A) → X (B a)) (ihf : (a : A) → P (B a) (f a)) → CurriedAll I D X P (λ xs → cn (f , xs))
+CurriedHyps I (`Rec i D) X P cn =
+  (x : X i) → P i x → CurriedHyps I D X P (λ xs → cn (x , xs))
+CurriedHyps I (`Arg A B) X P cn =
+  (a : A) → CurriedHyps I (B a) X P (λ xs → cn (a , xs))
+CurriedHyps I (`RecFun A B D) X P cn =
+  (f : (a : A) → X (B a)) (ihf : (a : A) → P (B a) (f a)) → CurriedHyps I D X P (λ xs → cn (f , xs))
 
-curryAll : (I : Set) (D : Desc I) (X : ISet I)
+curryHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : UncurriedEl I D X)
-  (pf : UncurriedAll I D X P cn)
-  → CurriedAll I D X P cn
-curryAll I (`End i) X P cn pf =
+  (pf : UncurriedHyps I D X P cn)
+  → CurriedHyps I D X P cn
+curryHyps I (`End i) X P cn pf =
   pf i refl tt
-curryAll I (`Rec i D) X P cn pf =
-  λ x ih → curryAll I D X P (λ xs → cn (x , xs)) (λ i xs ihs → pf i (x , xs) (ih , ihs))
-curryAll I (`Arg A B) X P cn pf =
-  λ a → curryAll I (B a) X P (λ xs → cn (a , xs)) (λ i xs ihs → pf i (a , xs) ihs)
-curryAll I (`RecFun A B D) X P cn pf =
-  λ f ihf → curryAll I D X P (λ xs → cn (f , xs)) (λ i xs ihs → pf i (f , xs) (ihf , ihs))
+curryHyps I (`Rec i D) X P cn pf =
+  λ x ih → curryHyps I D X P (λ xs → cn (x , xs)) (λ i xs ihs → pf i (x , xs) (ih , ihs))
+curryHyps I (`Arg A B) X P cn pf =
+  λ a → curryHyps I (B a) X P (λ xs → cn (a , xs)) (λ i xs ihs → pf i (a , xs) ihs)
+curryHyps I (`RecFun A B D) X P cn pf =
+  λ f ihf → curryHyps I D X P (λ xs → cn (f , xs)) (λ i xs ihs → pf i (f , xs) (ihf , ihs))
 
-uncurryAll : (I : Set) (D : Desc I) (X : ISet I)
+uncurryHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : UncurriedEl I D X)
-  (pf : CurriedAll I D X P cn)
-  → UncurriedAll I D X P cn
-uncurryAll I (`End .i) X P cn pf i refl tt =
+  (pf : CurriedHyps I D X P cn)
+  → UncurriedHyps I D X P cn
+uncurryHyps I (`End .i) X P cn pf i refl tt =
   pf
-uncurryAll I (`Rec j D) X P cn pf i (x , xs) (ih , ihs) =
-  uncurryAll I D X P (λ ys → cn (x , ys)) (pf x ih) i xs ihs
-uncurryAll I (`Arg A B) X P cn pf i (a , xs) ihs =
-  uncurryAll I (B a) X P (λ ys → cn (a , ys)) (pf a) i xs ihs
-uncurryAll I (`RecFun A B D) X P cn pf i (f , xs) (ihf , ihs) =
-  uncurryAll I D X P (λ ys → cn (f , ys)) (pf f ihf) i xs ihs
+uncurryHyps I (`Rec j D) X P cn pf i (x , xs) (ih , ihs) =
+  uncurryHyps I D X P (λ ys → cn (x , ys)) (pf x ih) i xs ihs
+uncurryHyps I (`Arg A B) X P cn pf i (a , xs) ihs =
+  uncurryHyps I (B a) X P (λ ys → cn (a , ys)) (pf a) i xs ihs
+uncurryHyps I (`RecFun A B D) X P cn pf i (f , xs) (ihf , ihs) =
+  uncurryHyps I D X P (λ ys → cn (f , ys)) (pf f ihf) i xs ihs
 
 ----------------------------------------------------------------------
 
@@ -178,7 +178,7 @@ ind :
   (E : Enum)
   (cs : CasesD I E)
   (P : (i : I) → μ I E cs i → Set)
-  (pcon : (t : Tag E) → UncurriedAll I (Args I E t cs) (μ I E cs) P (con t))
+  (pcon : (t : Tag E) → UncurriedHyps I (Args I E t cs) (μ I E cs) P (con t))
   (i : I)
   (x : μ I E cs i)
   → P i x
@@ -188,11 +188,11 @@ hyps :
   (E : Enum)
   (cs : CasesD I E)
   (P : (i : I) → μ I E cs i → Set)
-  (pcon : (t : Tag E) → UncurriedAll I (Args I E t cs) (μ I E cs) P (con t))
+  (pcon : (t : Tag E) → UncurriedHyps I (Args I E t cs) (μ I E cs) P (con t))
   (D : Desc I)
   (i : I)
   (xs : El I D (μ I E cs) i)
-  → All I D (μ I E cs) P i xs
+  → Hyps I D (μ I E cs) P i xs
 
 ind I E cs P pcon i (con t as) = pcon t i as (hyps I E cs P pcon (Args I E t cs) i as)
 
@@ -208,12 +208,12 @@ ind2 :
   (E : Enum)
   (cs : CasesD I E)
   (P : (i : I) → μ I E cs i → Set)
-  (pcon : (t : Tag E) → CurriedAll I (Args I E t cs) (μ I E cs) P (con t))
+  (pcon : (t : Tag E) → CurriedHyps I (Args I E t cs) (μ I E cs) P (con t))
   (i : I)
   (x : μ I E cs i)
   → P i x
 ind2 I E cs P pcon i x =
-  ind I E cs P (λ t → uncurryAll I (Args I E t cs) (μ I E cs) P (con t) (pcon t)) i x
+  ind I E cs P (λ t → uncurryHyps I (Args I E t cs) (μ I E cs) P (con t) (pcon t)) i x
 
 elim :
   (I : Set)
@@ -221,11 +221,11 @@ elim :
   (cs : CasesD I E)
   (P : (i : I) → μ I E cs i → Set)
   → let
-    Q = λ t → CurriedAll I (Args I E t cs) (μ I E cs) P (con t)
+    Q = λ t → CurriedHyps I (Args I E t cs) (μ I E cs) P (con t)
     X = (i : I) (x : μ I E cs i) → P i x
   in UncurriedCases E Q X
 elim I E cs P ds i x =
-  let Q = λ t → CurriedAll I (Args I E t cs) (μ I E cs) P (con t)
+  let Q = λ t → CurriedHyps I (Args I E t cs) (μ I E cs) P (con t)
   in ind2 I E cs P (case E Q ds) i x
 
 elim2 :
@@ -234,12 +234,12 @@ elim2 :
   (cs : CasesD I E)
   (P : (i : I) → μ I E cs i → Set)
   → let
-    Q = λ t → CurriedAll I (Args I E t cs) (μ I E cs) P (con t)
+    Q = λ t → CurriedHyps I (Args I E t cs) (μ I E cs) P (con t)
     X = (i : I) (x : μ I E cs i) → P i x
   in CurriedCases E Q X
 elim2 I E cs P =
   let
-    Q = λ t → CurriedAll I (Args I E t cs) (μ I E cs) P (con t)
+    Q = λ t → CurriedHyps I (Args I E t cs) (μ I E cs) P (con t)
     X = (i : I) (x : μ I E cs i) → P i x
   in curryCases E Q X (elim I E cs P)
 
