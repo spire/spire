@@ -124,7 +124,7 @@ con2 I D = curryEl I D (μ I D) con
 
 UncurriedAll : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
-  (cn : {i : I} → El I D X i → X i)
+  (cn : UncurriedEl I D X)
   → Set
 UncurriedAll I D X P cn =
   (i : I) (xs : El I D X i) → All I D X P i xs → P i (cn xs)
@@ -227,7 +227,8 @@ elim I TD P cs i x =
     D = toDesc I TD
     E = proj₁ TD
     Cs = toCase I TD
-    p = case E (λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))) cs
+    Q = λ t → CurriedAll I (Cs t) (μ I D) P (λ xs → con (t , xs))
+    p = case E Q cs
   in ind2 I D P p i x
 
 elim2 :
