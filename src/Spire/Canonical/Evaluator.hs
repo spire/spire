@@ -50,15 +50,15 @@ elim _             EProj1   = throwError "Ill-typed evaluation of proj1"
 elim (VPair _ b)   EProj2   = return b
 elim _             EProj2   = throwError "Ill-typed evaluation of proj2"
 
-elim VTrue  (ECaseBool _P ct _) = return ct
-elim VFalse (ECaseBool _P _ cf) = return cf
-elim _      (ECaseBool _P _  _) = throwError "Ill-typed evaluation of caseBool"
+elim VTrue  (EElimBool _P ct _) = return ct
+elim VFalse (EElimBool _P _ cf) = return cf
+elim _      (EElimBool _P _  _) = throwError "Ill-typed evaluation of elimBool"
 
-elim VZero    (ECaseNat _P cz _)  = return cz
-elim (VSuc n) (ECaseNat _P cz cs) = do
-  ih <- n `elim` ECaseNat _P cz cs
+elim VZero    (EElimNat _P cz _)  = return cz
+elim (VSuc n) (EElimNat _P cz cs) = do
+  ih <- n `elim` EElimNat _P cz cs
   cs `sub2` (n , ih)
-elim _        (ECaseNat _P _  _)  = throwError "Ill-typed evaluation of caseNat"
+elim _        (EElimNat _P _  _)  = throwError "Ill-typed evaluation of elimNat"
 
 elims :: Value -> Spine -> SpireM Value
 elims x Id = return x

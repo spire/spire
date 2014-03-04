@@ -35,11 +35,11 @@ embedN nm (Pipe fs (EApp a)) = IApp   <$> embedN nm fs <*> embedV a
 embedN nm (Pipe fs EProj1)   = IProj1 <$> embedN nm fs
 embedN nm (Pipe fs EProj2)   = IProj2 <$> embedN nm fs
 
-embedN nm (Pipe fs (ECaseBool _P pt pf)) =
-  ICaseBool <$> embedVB _P <*>
+embedN nm (Pipe fs (EElimBool _P pt pf)) =
+  IElimBool <$> embedVB _P <*>
     embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
-embedN nm (Pipe fs (ECaseNat _P pz ps)) =
-  ICaseNat <$> embedVB _P <*>
+embedN nm (Pipe fs (EElimNat _P pz ps)) =
+  IElimNat <$> embedVB _P <*>
     embedV pz <*> embedVB ps <*> (Infer <$> embedN nm fs)
 
 ----------------------------------------------------------------------

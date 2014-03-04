@@ -49,8 +49,8 @@ elabC x@(SIf _ _ _) = elabIC x
 elabC x@(SApp _ _)  = elabIC x
 elabC x@(SAnn _ _)  = elabIC x
 elabC x@(SWildCard) = elabIC x
-elabC x@(SCaseBool _ _ _ _) = elabIC x
-elabC x@(SCaseNat _ _ _ _)  = elabIC x
+elabC x@(SElimBool _ _ _ _) = elabIC x
+elabC x@(SElimNat _ _ _ _)  = elabIC x
 
 ----------------------------------------------------------------------
 
@@ -87,10 +87,10 @@ elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
 elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf
 elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
-elabI (SCaseBool _P ct cf b) =
-  ICaseBool <$> elabBC _P <*> elabC ct <*> elabC cf <*> elabC b
-elabI (SCaseNat _P cz cs n) =
-  ICaseNat <$> elabBC _P <*> elabC cz <*> elabBC2 cs <*> elabC n
+elabI (SElimBool _P ct cf b) =
+  IElimBool <$> elabBC _P <*> elabC ct <*> elabC cf <*> elabC b
+elabI (SElimNat _P cz cs n) =
+  IElimNat <$> elabBC _P <*> elabC cz <*> elabBC2 cs <*> elabC n
 
 elabI (SPi _A _B) = IPi <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B) = ISg <$> elabC _A <*> elabBC _B

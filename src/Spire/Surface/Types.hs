@@ -30,8 +30,8 @@ data Syntax =
   | SProj2 Syntax
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
-  | SCaseBool (Bind Nom Syntax) Syntax Syntax Syntax
-  | SCaseNat (Bind Nom Syntax) Syntax (Bind (Nom , Nom) Syntax) Syntax
+  | SElimBool (Bind Nom Syntax) Syntax Syntax Syntax
+  | SElimNat (Bind Nom Syntax) Syntax (Bind (Nom , Nom) Syntax) Syntax
   | SAnn Syntax Syntax
  deriving Show
 

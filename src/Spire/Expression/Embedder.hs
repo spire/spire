@@ -22,8 +22,8 @@ embedI (ISg _A _B) = SSg <$> embedC _A <*> embedCB _B
 
 embedI (IVar v) = return $ SVar v
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
-embedI (ICaseBool _P ct cf b) = SCaseBool <$> embedCB _P <*> embedC ct <*> embedC cf <*> embedC b
-embedI (ICaseNat _P cz cs n) = SCaseNat <$> embedCB _P <*> embedC cz <*> embedCB cs <*> embedC n
+embedI (IElimBool _P ct cf b) = SElimBool <$> embedCB _P <*> embedC ct <*> embedC cf <*> embedC b
+embedI (IElimNat _P cz cs n) = SElimNat <$> embedCB _P <*> embedC cz <*> embedCB cs <*> embedC n
 embedI (IProj1 ab) = SProj1 <$> embedI ab
 embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a

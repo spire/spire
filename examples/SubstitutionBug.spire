@@ -1,1 +1,7 @@
-../bug/closed/substitution-bug/SubstitutionBug.spire
+-- App that works
+app : (Unit -> Unit) -> Unit -> Unit
+app = \ f -> \ x -> f x
+
+-- App that does not work
+sillyApp : (Unit -> Unit) -> Unit -> Unit
+sillyApp = \ f -> \ x -> ((\ y -> f y) : Unit -> Unit) x

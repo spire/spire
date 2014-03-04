@@ -68,8 +68,8 @@ value2Tm v = case v of
       EApp v -> A <$> value2Tm v
       EProj1 -> return Hd
       EProj2 -> return Tl
-      ECaseBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
-      ECaseNat _ _ _ -> unsupported
+      EElimBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
+      EElimNat _ _ _ -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e
@@ -99,7 +99,7 @@ tm2Value t = case t of
       A t -> EApp <$> tm2Value t
       Hd -> return EProj1
       Tl -> return EProj2
-      If b x y -> ECaseBool <$> mapBindM tm2Value b <*> tm2Value x <*> tm2Value y
+      If b x y -> EElimBool <$> mapBindM tm2Value b <*> tm2Value x <*> tm2Value y
       _ -> throwError $ "Unsupported input in elim2Elim: " ++ show e
 
     bwdElim2Spine B0 = return Id

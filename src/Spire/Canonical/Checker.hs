@@ -105,7 +105,7 @@ inferN nm (Pipe fs EProj2) = do
     VSg _A _B -> _B `sub` VNeut nm (Pipe fs EProj1)
     _         -> throwError "Ill-typed!"
 
-inferN nm (Pipe fs (ECaseBool _P ct cf)) = do
+inferN nm (Pipe fs (EElimBool _P ct cf)) = do
   checkVExtend VBool _P VType
   checkV ct =<< _P `sub` VTrue
   checkV cf =<< _P `sub` VFalse
@@ -113,7 +113,7 @@ inferN nm (Pipe fs (ECaseBool _P ct cf)) = do
   checkV b VBool
   _P `sub` b
 
-inferN nm (Pipe fs (ECaseNat _P cz cs)) = do
+inferN nm (Pipe fs (EElimNat _P cz cs)) = do
   checkVExtend VNat _P VType
   checkV cz =<< _P `sub` VZero
   checkVPSuc _P cs

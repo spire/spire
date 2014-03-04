@@ -123,8 +123,8 @@ dSuc   o n  = dt "suc"   <+> ww o n
 dApp o f a = alignM $ w o f </> ww o a
 dAnn _ a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
 
-dCaseBool o bnd t f bool =
-  dt "caseBool" <+> (alignM . sepM)
+dElimBool o bnd t f bool =
+  dt "elimBool" <+> (alignM . sepM)
     [ parensM $ dLam o bnd
       , ww o t , ww o f , ww o bool ]
 
@@ -156,8 +156,8 @@ instance Display Syntax where
     SProj2 ab -> dProj2 s ab
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
-    SCaseBool bnd t f bool -> dCaseBool s bnd t f bool
-    SCaseNat _ _ _ _ -> error "caseNat not supported"
+    SElimBool bnd t f bool -> dElimBool s bnd t f bool
+    SElimNat _ _ _ _ -> error "elimNat not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -248,8 +248,8 @@ instance Precedence Syntax where
     SSuc _            -> sucLevel
     SApp _ _          -> appLevel
     SAnn _ _          -> annLevel
-    SCaseBool _ _ _ _ -> caseBoolLevel
-    SCaseNat  _ _ _ _ -> caseNatLevel
+    SElimBool _ _ _ _ -> elimBoolLevel
+    SElimNat  _ _ _ _ -> elimNatLevel
 
     STT               -> atomicLevel
     STrue             -> atomicLevel
@@ -274,8 +274,8 @@ instance Precedence Syntax where
     SProj2 _          -> AssocNone
     SSuc _            -> AssocNone
     SAnn _ _          -> AssocNone
-    SCaseBool _ _ _ _ -> AssocNone
-    SCaseNat  _ _ _ _ -> AssocNone
+    SElimBool _ _ _ _ -> AssocNone
+    SElimNat  _ _ _ _ -> AssocNone
     STT               -> AssocNone
     STrue             -> AssocNone
     SFalse            -> AssocNone
@@ -337,8 +337,8 @@ sgAssoc        = AssocRight
 piLevel        = 5
 piAssoc        = AssocRight
 ifLevel        = 6
-caseBoolLevel  = 6
-caseNatLevel   = caseBoolLevel
+elimBoolLevel  = 6
+elimNatLevel   = elimBoolLevel
 lamLevel       = 7
 defsLevel      = 9
 defLevel       = 10

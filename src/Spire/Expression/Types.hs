@@ -33,8 +33,8 @@ data Infer =
   | IProj1 Infer
   | IProj2 Infer
   | IIf Check Infer Infer
-  | ICaseBool (Bind Nom Check) Check Check Check
-  | ICaseNat  (Bind Nom Check) Check (Bind (Nom , Nom) Check) Check
+  | IElimBool (Bind Nom Check) Check Check Check
+  | IElimNat  (Bind Nom Check) Check (Bind (Nom , Nom) Check) Check
   | IApp Infer Check
   | IAnn Check Check
   deriving Show

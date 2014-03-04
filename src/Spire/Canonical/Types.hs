@@ -45,8 +45,8 @@ data Elim =
     EApp Value
   | EProj1
   | EProj2
-  | ECaseBool (Bind Nom Value) Value Value
-  | ECaseNat (Bind Nom Value) Value (Bind (Nom , Nom) Value)
+  | EElimBool (Bind Nom Value) Value Value
+  | EElimNat (Bind Nom Value) Value (Bind (Nom , Nom) Value)
   deriving Show
 
 type Spine = SpineFunctor Elim
@@ -142,6 +142,6 @@ vVar :: Nom -> Value
 vVar nm = VNeut nm Id
 
 eIf :: Value -> Value -> Value -> Elim
-eIf _C ct cf = ECaseBool (bind (s2n wildcard) _C) ct cf
+eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
 
 ----------------------------------------------------------------------

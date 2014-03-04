@@ -417,21 +417,21 @@ infer' (IIf b ct cf) = do
   c <- elim b' (eIf _C ct' cf')
   return (c , _C)
 
-infer' (ICaseBool _P ct cf b) = do
+infer' (IElimBool _P ct cf b) = do
   _P' <- checkExtend VBool _P VType
   ct' <- check ct =<< _P' `sub` VTrue
   cf' <- check cf =<< _P' `sub` VFalse
   b'  <- check b VBool
-  c   <- b' `elim` ECaseBool _P' ct' cf'
+  c   <- b' `elim` EElimBool _P' ct' cf'
   _C  <- _P' `sub` b'
   return (c , _C)
 
-infer' (ICaseNat _P cz cs n) = do
+infer' (IElimNat _P cz cs n) = do
   _P' <- checkExtend VNat _P VType
   cz' <- check cz =<< _P' `sub` VZero
   cs' <- checkPSuc _P' cs
   n'  <- check n VNat
-  c   <- n' `elim` ECaseNat _P' cz' cs'
+  c   <- n' `elim` EElimNat _P' cz' cs'
   _C  <- _P' `sub` n'
   return (c , _C) where
 

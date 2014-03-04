@@ -46,7 +46,7 @@ keywords = [
   "if", "then", "else",
   "Unit", "Bool", "Nat", "String", "Type",
   "tt", "true", "false", "zero", "suc",
-  "caseBool", "caseNat",
+  "elimBool", "elimNat",
   "proj1", "proj2",
   wildcard
   ]
@@ -103,7 +103,7 @@ parseChoice :: ParserM Syntax
 parseChoice = try $ choice [
     parseAtom
   , parseIf
-  , parseCaseBool
+  , parseElimBool
   , parseProj1
   , parseProj2
   , parseSuc
@@ -159,13 +159,13 @@ parseIf = do
   c2 <- parseSyntax
   return $ SIf b c1 c2
 
-parseCaseBool = do
-  parseKeyword "caseBool"
+parseElimBool = do
+  parseKeyword "elimBool"
   SLam m <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
   pt <- parseAtom
   pf <- parseAtom
   b <- parseAtom
-  return $ SCaseBool m pt pf b
+  return $ SElimBool m pt pf b
 
 parseProj1 = try $ do
   parseKeyword "proj1"
