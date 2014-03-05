@@ -56,9 +56,12 @@ value2Tm v = case v of
   VNeut x s -> N (nom2Head x) <$> spine2BwdElim s
   VUnit -> return $ C Unit
   VTT   -> return $ C Tt
-  VNat   -> unsupported
-  VZero  -> unsupported
-  VSuc _ -> unsupported
+
+  VString     -> unsupported
+  (VQuotes _) -> unsupported
+  (VList _)   -> unsupported
+  VNil        -> unsupported
+  VCons _ _   -> unsupported
   where
     nom2Head x = if isMV x
                  then M (translate x)
@@ -69,7 +72,8 @@ value2Tm v = case v of
       EProj1 -> return Hd
       EProj2 -> return Tl
       EElimBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
-      EElimNat _ _ _ -> unsupported
+
+      EElimList _ _ _ _ -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e

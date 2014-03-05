@@ -8,31 +8,34 @@ import Spire.Surface.Types
 ----------------------------------------------------------------------
 
 embedI :: Infer -> FreshM Syntax
-embedI ITT    = return STT
-embedI ITrue  = return STrue
-embedI IFalse = return SFalse
-embedI IZero  = return SZero
-embedI IUnit  = return SUnit
-embedI IBool  = return SBool
-embedI INat   = return SNat
-embedI IType  = return SType
-embedI (ISuc n)    = SSuc <$> embedC n
-embedI (IPi _A _B) = SPi <$> embedC _A <*> embedCB _B
-embedI (ISg _A _B) = SSg <$> embedC _A <*> embedCB _B
+embedI ITT     = return STT
+embedI ITrue   = return STrue
+embedI IFalse  = return SFalse
+embedI IUnit   = return SUnit
+embedI IBool   = return SBool
+embedI IString = return SString
+embedI IType   = return SType
+embedI (IList _A)  = SList <$> embedC _A
+embedI (IPi _A _B) = SPi   <$> embedC _A <*> embedCB _B
+embedI (ISg _A _B) = SSg   <$> embedC _A <*> embedCB _B
 
-embedI (IVar v) = return $ SVar v
+embedI (IVar v)    = return $ SVar v
+embedI (IQuotes s) = return $ SQuotes s
+
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
 embedI (IElimBool _P ct cf b) = SElimBool <$> embedCB _P <*> embedC ct <*> embedC cf <*> embedC b
-embedI (IElimNat _P cz cs n) = SElimNat <$> embedCB _P <*> embedC cz <*> embedCB cs <*> embedC n
+embedI (IElimList _A _P pn pc as) = SElimList <$> embedC _A <*> embedCB _P <*> embedC pn <*> embedCB pc <*> embedC as
 embedI (IProj1 ab) = SProj1 <$> embedI ab
 embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a
 embedI (IAnn a _A) = SAnn <$> embedC a <*> embedC _A
 
 embedC :: Check -> FreshM Syntax
-embedC (CPair a b) = SPair <$> embedC a <*> embedC b
-embedC (CLam b) = SLam <$> embedCB b
-embedC (Infer i) = embedI i
+embedC CNil         = return SNil
+embedC (CCons a as) = SCons <$> embedC a <*> embedC as
+embedC (CPair a b)  = SPair <$> embedC a <*> embedC b
+embedC (CLam b)     = SLam <$> embedCB b
+embedC (Infer i)    = embedI i
 
 ----------------------------------------------------------------------
 

@@ -318,6 +318,24 @@ check' p@(CPair _ _) _T = throwError $
   "attempt to check pair " ++ prettyPrint p ++
   " at type " ++ prettyPrint _T
 
+check' CNil (VList _A) = do
+  return $  VNil
+
+check' as@CNil _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check nil " ++
+  " at type " ++ prettyPrint _T
+
+check' (CCons a as) (VList _A) = do
+  a'     <- check a _A
+  as'    <- check as (VList _A)
+  return $  VCons a' as'
+
+check' as@(CCons _ _) _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check list " ++ prettyPrint as ++
+  " at type " ++ prettyPrint _T
+
 check' (Infer a) _B = do
   (a' , _A) <- infer a
   ctx <- asks ctx
@@ -329,19 +347,19 @@ check' (Infer a) _B = do
     "\n\nValue:\n" ++ show a'
   return a'
 
-infer' ITT    = return (VTT    , VUnit)
-infer' ITrue  = return (VTrue  , VBool)
-infer' IFalse = return (VFalse , VBool)
-infer' IZero  = return (VZero  , VNat)
+infer' ITT         = return (VTT       , VUnit)
+infer' ITrue       = return (VTrue     , VBool)
+infer' IFalse      = return (VFalse    , VBool)
+infer' (IQuotes s) = return (VQuotes s , VString)
+                                 
+infer' IUnit   = return (VUnit   , VType)
+infer' IBool   = return (VBool   , VType)
+infer' IString = return (VString , VType)
+infer' IType   = return (VType   , VType)
 
-infer' IUnit  = return (VUnit  , VType)
-infer' IBool  = return (VBool  , VType)
-infer' INat   = return (VNat  , VType)
-infer' IType  = return (VType  , VType)
-
-infer' (ISuc n) = do
-  n' <- check n VNat
-  return (VSuc n' , VNat)
+infer' (IList _A) = do
+  _A' <- check _A VType
+  return (VList _A' , VType)
 
 infer' (ISg _A _B) = do
   _A' <- check _A VType
@@ -426,22 +444,23 @@ infer' (IElimBool _P ct cf b) = do
   _C  <- _P' `sub` b'
   return (c , _C)
 
-infer' (IElimNat _P cz cs n) = do
-  _P' <- checkExtend VNat _P VType
-  cz' <- check cz =<< _P' `sub` VZero
-  cs' <- checkPSuc _P' cs
-  n'  <- check n VNat
-  c   <- n' `elim` EElimNat _P' cz' cs'
-  _C  <- _P' `sub` n'
-  return (c , _C) where
+infer' (IElimList _A _P pnil pcons as) = do
+  _A'    <- check _A VType
+  _P'    <- checkExtend (VList _A') _P VType
+  pnil'  <- check pnil =<< _P' `sub` VNil
+  pcons' <- checkPCons _A' _P' pcons
+  as'    <- check as (VList _A')
+  pas'   <- as' `elim` EElimList _A' _P' pnil' pcons'
+  _Pas'  <- _P' `sub` as'
+  return (pas' , _Pas') where
 
-  checkPSuc :: Bind Nom Type -> Bind (Nom , Nom) Check -> SpireM (Bind (Nom , Nom) Value)
-  checkPSuc bnd_P bnd_ps = do
-    ((nm_n , nm_pn) , ps) <- unbind bnd_ps
-    _Pn    <- bnd_P `sub` vVar nm_n
-    _Psucn <- bnd_P `sub` VSuc (vVar nm_n)
-    ps'    <- extendCtx nm_n VNat $ extendCtx nm_pn _Pn $ check ps _Psucn
-    return $  bind (nm_n , nm_pn) ps'
+  checkPCons :: Type -> Bind Nom Type -> Bind (Nom , Nom , Nom) Check -> SpireM (Bind (Nom , Nom , Nom) Value)
+  checkPCons _A bnd_P bnd_pcons = do
+    ((nm_a , nm_as , nm_pas) , pcons) <- unbind bnd_pcons
+    _Pas    <- bnd_P `sub` vVar nm_as
+    _Pcons  <- bnd_P `sub` VCons (vVar nm_a) (vVar nm_as)
+    pcons'  <- extendCtx nm_a _A $ extendCtx nm_as (VList _A) $ extendCtx nm_pas _Pas $ check pcons _Pcons
+    return  $  bind (nm_a , nm_as , nm_pas) pcons'
 
 ----------------------------------------------------------------------
 

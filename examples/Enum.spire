@@ -1,0 +1,13 @@
+
+Label : Type
+Label = String
+
+Enum : Type
+Enum = List Label
+
+NatE : Enum
+NatE = "zero" :: "suc" :: []
+
+VecE : Enum
+VecE = "nil" :: "cons" :: []
+

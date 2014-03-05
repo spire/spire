@@ -166,32 +166,23 @@ inj E C t = curryEl (C t) (μ E C) (init t)
 
 ----------------------------------------------------------------------
 
-ind :
-  {I : Set}
-  (E : Enum)
-  (C : Tag E → Desc I)
+hyps : {I : Set} (D : Desc I) (X : I → Set)
+  (P : (i : I) → X i → Set)
+  (α : (i : I) (x : X i) → P i x)
+  (i : I) (xs : El D X i) → Hyps D X P i xs
+hyps (End j) X P α i xs = tt
+hyps (Rec j D) X P α i (x , xs) = α j x , hyps D X P α i xs
+hyps (Arg A B) X P α i (a , xs) = hyps (B a) X P α i xs
+
+{-# NO_TERMINATION_CHECK #-}
+ind : {I : Set} (E : Enum) (C : Tag E → Desc I)
   (P : (i : I) → μ E C i → Set)
   (α : (t : Tag E) → UncurriedHyps (C t) (μ E C) P (init t))
   (i : I)
   (x : μ E C i)
   → P i x
-
-hyps :
-  {I : Set}
-  (E : Enum)
-  (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) (μ E C) P (init t))
-  (D : Desc I)
-  (i : I)
-  (xs : El D (μ E C) i)
-  → Hyps D (μ E C) P i xs
-
-ind E C P α i (init t xs) = α t i xs (hyps E C P α (Arg (Tag E) C) i (t , xs))
-
-hyps E C P α (End j) i q = tt
-hyps E C P α (Rec j A) i (x , xs) = ind E C P α j x , hyps E C P α A i xs
-hyps E C P α (Arg A B) i (a , b) = hyps E C P α (B a) i b
+ind E C P α i (init t xs) = α t i xs $
+  hyps (C t) (μ E C) P (ind  E C P α) i xs
 
 ----------------------------------------------------------------------
 

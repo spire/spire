@@ -41,12 +41,12 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "="]
+ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]"]
 keywords = [
   "if", "then", "else",
-  "Unit", "Bool", "Nat", "String", "Type",
-  "tt", "true", "false", "zero", "suc",
-  "elimBool", "elimNat",
+  "Unit", "Bool", "List", "String", "Type",
+  "tt", "true", "false",
+  "elimBool", "elimList",
   "proj1", "proj2",
   wildcard
   ]
@@ -106,7 +106,7 @@ parseChoice = try $ choice [
   , parseElimBool
   , parseProj1
   , parseProj2
-  , parseSuc
+  , parseList
   , parseLam
   ]
 
@@ -115,13 +115,14 @@ parseAtom = choice
   , parseVar
   , parseAnn
 
+  , parseQuotes
   , parseTT
   , parseTrue
   , parseFalse
-  , parseZero
+  , parseNil
   , parseUnit
   , parseBool
-  , parseNat
+  , parseString
   , parseType
   , parseWildCard
   ]
@@ -132,6 +133,7 @@ failIfStmt =
 
 table = [
     [Infix parseSpaceApp AssocLeft]
+  , [Infix (parseInfix "::" SCons) AssocRight]
   , [Infix (parseInfix "," SPair) AssocRight]
   , [Infix (parseInfix "$" SApp) AssocRight]
   , [Infix (parseInfix "*" infixSg) AssocRight]
@@ -177,10 +179,10 @@ parseProj2 = try $ do
   ab <- parseAtom
   return $ SProj2 ab
 
-parseSuc = try $ do
-  parseKeyword "suc"
-  n <- parseAtom
-  return $ SSuc n
+parseList = try $ do
+  parseKeyword "List"
+  _A <- parseAtom
+  return $ SList _A
 
 -- \ x -> e
 -- \ _ -> e
@@ -200,16 +202,18 @@ parseAnn = parseParens $ do
 
 ----------------------------------------------------------------------
 
-parseTT    = parseKeyword "tt"    >> return STT
-parseTrue  = parseKeyword "true"  >> return STrue
-parseFalse = parseKeyword "false" >> return SFalse
-parseZero  = parseKeyword "zero"  >> return SZero
-parseUnit  = parseKeyword "Unit"  >> return SUnit
-parseBool  = parseKeyword "Bool"  >> return SBool
-parseNat   = parseKeyword "Nat"   >> return SNat
-parseType  = parseKeyword "Type"  >> return SType
+parseNil      = parseOp      "[]"     >> return SNil
+                                      
+parseTT       = parseKeyword "tt"     >> return STT
+parseTrue     = parseKeyword "true"   >> return STrue
+parseFalse    = parseKeyword "false"  >> return SFalse
+parseUnit     = parseKeyword "Unit"   >> return SUnit
+parseBool     = parseKeyword "Bool"   >> return SBool
+parseString   = parseKeyword "String" >> return SString
+parseType     = parseKeyword "Type"   >> return SType
 parseWildCard = parseKeyword wildcard >> return SWildCard
 
-parseVar = return . sVar =<< parseIdent
+parseQuotes = return . SQuotes =<< parseStringLit
+parseVar    = return . sVar =<< parseIdent
 
 ----------------------------------------------------------------------

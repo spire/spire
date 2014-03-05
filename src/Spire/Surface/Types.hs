@@ -14,12 +14,14 @@ import Unbound.LocallyNameless
 ----------------------------------------------------------------------
 
 data Syntax =
-    STT | STrue | SFalse | SZero
-  | SSuc Syntax
+    STT | STrue | SFalse | SNil
+  | SQuotes String
+  | SCons Syntax Syntax
   | SPair Syntax Syntax
   | SLam (Bind Nom Syntax)
 
-  | SUnit | SBool | SNat | SType
+  | SUnit | SBool | SString | SType
+  | SList Syntax
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
 
@@ -31,7 +33,7 @@ data Syntax =
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
   | SElimBool (Bind Nom Syntax) Syntax Syntax Syntax
-  | SElimNat (Bind Nom Syntax) Syntax (Bind (Nom , Nom) Syntax) Syntax
+  | SElimList Syntax (Bind Nom Syntax) Syntax (Bind (Nom , Nom , Nom) Syntax) Syntax
   | SAnn Syntax Syntax
  deriving Show
 

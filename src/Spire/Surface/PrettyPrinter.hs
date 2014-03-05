@@ -92,19 +92,25 @@ ww = wrapNonAssoc -- Mnemonic: (w)rapped (w)rapped display
 -- ... except now all but one printer is defined by embedding.
 
 -- Constructors with no arguments have printers with no arguments.
-dTT    = dt "tt"
-dTrue  = dt "true"
-dFalse = dt "false"
-dZero  = dt "zero"
-dUnit  = dt "Unit"
-dBool  = dt "Bool"
-dNat   = dt "Nat"
-dType  = dt "Type"
+dTT       = dt "tt"
+dTrue     = dt "true"
+dFalse    = dt "false"
+dNil      = dt "[]"
+dUnit     = dt "Unit"
+dBool     = dt "Bool"
+dString   = dt "String"
+dType     = dt "Type"
 dWildCard = dt wildcard
+
+dQuotes :: String -> DisplayM Doc
+dQuotes = return . PP.dquotes . PP.text
 
 -- Constructors with arguments pass *themselves* and their args to
 -- their printers.
-dPair o x y = ww o x <+> dt "," <+> w o y
+
+dCons o x y = ww o x <+> dt "::" <+> w o y
+dPair o x y = ww o x <+> dt ","  <+> w o y
+
 dLam o bnd_b = do
   (nm , b) <- unbind bnd_b
   fsepM [ dt "\\" <+> pushName nm (d nm) <+> dt "->" , pushName nm (w o b) ]
@@ -117,9 +123,10 @@ dSg o _A bnd_B = do
 dIf o c t f = alignM . sepM $ [ dt "if" <+> w o c
                               , dt "then" <+> w o t
                               , dt "else" <+> w o f ]
+
+dList o _A  = dt "List" <+> ww o _A
 dProj1 o ab = dt "proj1" <+> ww o ab
 dProj2 o ab = dt "proj2" <+> ww o ab
-dSuc   o n  = dt "suc"   <+> ww o n
 dApp o f a = alignM $ w o f </> ww o a
 dAnn _ a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
 
@@ -135,14 +142,15 @@ instance Display Syntax where
     STT    -> dTT
     STrue  -> dTrue
     SFalse -> dFalse
-    SZero  -> dZero
+    SNil  -> dNil
 
-    SUnit -> dUnit
-    SBool -> dBool
-    SNat  -> dNat
-    SType -> dType
+    SUnit   -> dUnit
+    SBool   -> dBool
+    SString -> dString
+    SType   -> dType
 
-    SSuc n    -> dSuc s n
+    SList _A  -> dList s _A
+    SCons a as -> dCons s a as
     SPair a b -> dPair s a b
     SLam b    -> dLam s b
 
@@ -150,6 +158,7 @@ instance Display Syntax where
     SSg _A _B -> dSg s _A _B
 
     SVar nm   -> d nm
+    SQuotes s -> dQuotes s
     SWildCard -> dWildCard
     SIf c t f -> dIf s c t f
     SProj1 ab -> dProj1 s ab
@@ -157,7 +166,7 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
     SElimBool bnd t f bool -> dElimBool s bnd t f bool
-    SElimNat _ _ _ _ -> error "elimNat not supported"
+    SElimList _ _ _ _ _ -> error "elimList not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -238,54 +247,58 @@ instance Display Entry where
 
 instance Precedence Syntax where
   level s = case s of
-    SPair _ _         -> pairLevel
-    SLam _            -> lamLevel
-    SPi _ _           -> piLevel
-    SSg _ _           -> sgLevel
-    SIf _ _ _         -> ifLevel
-    SProj1 _          -> projLevel
-    SProj2 _          -> projLevel
-    SSuc _            -> sucLevel
-    SApp _ _          -> appLevel
-    SAnn _ _          -> annLevel
-    SElimBool _ _ _ _ -> elimBoolLevel
-    SElimNat  _ _ _ _ -> elimNatLevel
+    SPair _ _           -> pairLevel
+    SCons _ _           -> consLevel
+    SLam _              -> lamLevel
+    SPi _ _             -> piLevel
+    SSg _ _             -> sgLevel
+    SIf _ _ _           -> ifLevel
+    SProj1 _            -> projLevel
+    SProj2 _            -> projLevel
+    SList _             -> listLevel
+    SApp _ _            -> appLevel
+    SAnn _ _            -> annLevel
+    SElimBool _ _ _ _   -> elimBoolLevel
+    SElimList _ _ _ _ _ -> elimListLevel
 
     STT               -> atomicLevel
     STrue             -> atomicLevel
     SFalse            -> atomicLevel
-    SZero             -> atomicLevel
+    SNil              -> atomicLevel
     SUnit             -> atomicLevel
     SBool             -> atomicLevel
-    SNat              -> atomicLevel
+    SString           -> atomicLevel
     SType             -> atomicLevel
     SWildCard         -> atomicLevel
     SVar _            -> atomicLevel
+    SQuotes _         -> atomicLevel
 
   assoc s = case s of
     SPi   _ _         -> piAssoc
     SSg   _ _         -> sgAssoc
     SApp  _ _         -> appAssoc
     SPair _ _         -> pairAssoc
+    SCons _ _         -> consAssoc
 
-    SLam _            -> AssocNone
-    SIf _ _ _         -> AssocNone
-    SProj1 _          -> AssocNone
-    SProj2 _          -> AssocNone
-    SSuc _            -> AssocNone
-    SAnn _ _          -> AssocNone
-    SElimBool _ _ _ _ -> AssocNone
-    SElimNat  _ _ _ _ -> AssocNone
-    STT               -> AssocNone
-    STrue             -> AssocNone
-    SFalse            -> AssocNone
-    SZero             -> AssocNone
-    SUnit             -> AssocNone
-    SBool             -> AssocNone
-    SNat              -> AssocNone
-    SType             -> AssocNone
-    SWildCard         -> AssocNone
-    SVar _            -> AssocNone
+    SLam _               -> AssocNone
+    SIf _ _ _            -> AssocNone
+    SList _              -> AssocNone
+    SProj1 _             -> AssocNone
+    SProj2 _             -> AssocNone
+    SAnn _ _             -> AssocNone
+    SElimBool _ _ _ _    -> AssocNone
+    SElimList _  _ _ _ _ -> AssocNone
+    STT                  -> AssocNone
+    STrue                -> AssocNone
+    SFalse               -> AssocNone
+    SNil                 -> AssocNone
+    SUnit                -> AssocNone
+    SBool                -> AssocNone
+    SString              -> AssocNone
+    SType                -> AssocNone
+    SWildCard            -> AssocNone
+    SVar _               -> AssocNone
+    SQuotes _            -> AssocNone
 
 ----------------------------------------------------------------------
 
@@ -327,10 +340,12 @@ annLevel       = atomicLevel
 appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
-sucLevel       = projLevel
+listLevel      = projLevel
 fixLevel       = 0
 inLevel        = 0
+consLevel      = 2
 pairLevel      = 3
+consAssoc      = AssocRight
 pairAssoc      = AssocRight
 sgLevel        = 4
 sgAssoc        = AssocRight
@@ -338,7 +353,7 @@ piLevel        = 5
 piAssoc        = AssocRight
 ifLevel        = 6
 elimBoolLevel  = 6
-elimNatLevel   = elimBoolLevel
+elimListLevel  = elimBoolLevel
 lamLevel       = 7
 defsLevel      = 9
 defLevel       = 10

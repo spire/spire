@@ -12,17 +12,19 @@ embedV :: Value -> FreshM Check
 embedV VTT           = return $ Infer ITT
 embedV VTrue         = return $ Infer ITrue
 embedV VFalse        = return $ Infer IFalse
-embedV VZero         = return $ Infer IZero
+embedV VNil          = return $ CNil
+embedV (VQuotes s)   = return $ Infer (IQuotes s)
 embedV VUnit         = return $ Infer IUnit
 embedV VBool         = return $ Infer IBool
-embedV VNat          = return $ Infer INat
+embedV VString       = return $ Infer IString
 embedV VType         = return $ Infer IType
 
-embedV (VSuc n)      = Infer <$> (ISuc <$> embedV n)
+embedV (VList _A)    = Infer <$> (IList <$> embedV _A)
 embedV (VSg _A _B)   = Infer <$> (ISg <$> embedV _A <*> embedVB _B)
 embedV (VPi _A _B)   = Infer <$> (IPi <$> embedV _A <*> embedVB _B)
+embedV (VCons a as)  = CCons <$> embedV a <*> embedV as
 embedV (VPair a b)   = CPair <$> embedV a <*> embedV b
-embedV (VLam b)      = CLam <$> embedVB b
+embedV (VLam b)      = CLam  <$> embedVB b
 
 embedV (VNeut nm fs) = Infer <$> embedN nm fs
 
@@ -38,9 +40,9 @@ embedN nm (Pipe fs EProj2)   = IProj2 <$> embedN nm fs
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   IElimBool <$> embedVB _P <*>
     embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
-embedN nm (Pipe fs (EElimNat _P pz ps)) =
-  IElimNat <$> embedVB _P <*>
-    embedV pz <*> embedVB ps <*> (Infer <$> embedN nm fs)
+embedN nm (Pipe fs (EElimList _A _P pn pc)) =
+  IElimList <$> embedV _A <*> embedVB _P <*>
+    embedV pn <*> embedVB pc <*> (Infer <$> embedN nm fs)
 
 ----------------------------------------------------------------------
 

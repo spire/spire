@@ -29,12 +29,14 @@ type Nom = Name Value
 type NomType = (Nom , Embed Type)
 
 data Value =
-    VUnit | VBool | VNat | VType
+    VUnit | VBool | VString | VType
+  | VList Value
   | VPi Value (Bind Nom Value)
   | VSg Value (Bind Nom Value)
 
-  | VTT | VTrue | VFalse | VZero
-  | VSuc Value
+  | VTT | VTrue | VFalse | VNil
+  | VQuotes String
+  | VCons Value Value
   | VPair Value Value
   | VLam (Bind Nom Value)
 
@@ -46,7 +48,7 @@ data Elim =
   | EProj1
   | EProj2
   | EElimBool (Bind Nom Value) Value Value
-  | EElimNat (Bind Nom Value) Value (Bind (Nom , Nom) Value)
+  | EElimList Value (Bind Nom Value) Value (Bind (Nom , Nom , Nom) Value)
   deriving Show
 
 type Spine = SpineFunctor Elim

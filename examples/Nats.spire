@@ -1,9 +1,0 @@
-
-one : Nat
-one = suc zero
-
-two : Nat
-two = suc (suc zero)
-
-three : Nat
-three = suc two

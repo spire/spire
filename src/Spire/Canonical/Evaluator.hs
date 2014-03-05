@@ -36,10 +36,10 @@ sub b x = do
   (nm , f) <- unbind b
   substM nm x f
 
-sub2 :: Bind (Nom , Nom) Value -> (Value , Value) -> SpireM Value
-sub2 b (x1 , x2) = do
-  ((nm1 , nm2) , f) <- unbind b
-  substsM [(nm1 , x1) , (nm2 , x2)] f
+sub3 :: Bind (Nom , Nom , Nom) Value -> (Value , Value , Value) -> SpireM Value
+sub3 b (x1 , x2 , x3) = do
+  ((nm1 , nm2 , nm3) , f) <- unbind b
+  substsM [(nm1 , x1) , (nm2 , x2) , (nm3 , x3)] f
 
 elim :: Value -> Elim -> SpireM Value
 elim (VNeut nm fs) f        = return $ VNeut nm (Pipe fs f)
@@ -50,15 +50,15 @@ elim _             EProj1   = throwError "Ill-typed evaluation of proj1"
 elim (VPair _ b)   EProj2   = return b
 elim _             EProj2   = throwError "Ill-typed evaluation of proj2"
 
-elim VTrue  (EElimBool _P ct _) = return ct
-elim VFalse (EElimBool _P _ cf) = return cf
+elim VTrue  (EElimBool _P pt _) = return pt
+elim VFalse (EElimBool _P _ pf) = return pf
 elim _      (EElimBool _P _  _) = throwError "Ill-typed evaluation of elimBool"
 
-elim VZero    (EElimNat _P cz _)  = return cz
-elim (VSuc n) (EElimNat _P cz cs) = do
-  ih <- n `elim` EElimNat _P cz cs
-  cs `sub2` (n , ih)
-elim _        (EElimNat _P _  _)  = throwError "Ill-typed evaluation of elimNat"
+elim VNil         (EElimList _A _P pn _)  = return pn
+elim (VCons a as) (EElimList _A _P pn pc) = do
+  ih <- as `elim` EElimList _A _P pn pc
+  pc `sub3` (a , as , ih)
+elim _            (EElimList _A _P _ _)  = throwError "Ill-typed evaluation of elimList"
 
 elims :: Value -> Spine -> SpireM Value
 elims x Id = return x

@@ -24,8 +24,8 @@
 (define-generic-mode 'spire-mode
   '("--") ;; comments
   '("in") ;; keywords
-  '(("\\<\\(Unit\\|Bool\\|Nat\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
-    ("\\<\\(if\\|then\\|else\\|caseBool\\|caseNat\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
+  '(("\\<\\(Unit\\|Bool\\|List\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
+    ("\\<\\(if\\|then\\|else\\|elimBool\\|elimList\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
     ("\\<\\(tt\\|true\\|false\\|false\\|zero\\|suc\\|Done\\|Rec\\)\\>" . 'font-lock-constant-face) ;; constants
     )
   '("\\.spire$") ;; file extension
