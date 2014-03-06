@@ -24,8 +24,8 @@ Branches [] P = ⊤
 Branches (l ∷ E) P = P here × Branches E (λ t → P (there t))
 
 case : {E : Enum} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
-case P (c , cs) here = c
-case P (c , cs) (there t) = case (λ t → P (there t)) cs t
+case P c,cs here = proj₁ c,cs
+case P c,cs (there t) = case (λ t → P (there t)) (proj₂ c,cs) t
 
 UncurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → Set
@@ -63,8 +63,8 @@ El (Arg A B) X i = Σ A (λ a → El (B a) X i)
 
 Hyps : {I : Set} (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : El D X i) → Set
 Hyps (End j) X P i q = ⊤
-Hyps (Rec j D) X P i (x , xs) = P j x × Hyps D X P i xs
-Hyps (Arg A B) X P i (a , b) = Hyps (B a) X P i b
+Hyps (Rec j D) X P i x,xs = P j (proj₁ x,xs) × Hyps D X P i (proj₂ x,xs)
+Hyps (Arg A B) X P i a,b = Hyps (B (proj₁ a,b)) X P i (proj₂ a,b)
 
 ----------------------------------------------------------------------
 
@@ -171,8 +171,8 @@ hyps : {I : Set} (D : Desc I) (X : I → Set)
   (α : (i : I) (x : X i) → P i x)
   (i : I) (xs : El D X i) → Hyps D X P i xs
 hyps (End j) X P α i xs = tt
-hyps (Rec j D) X P α i (x , xs) = α j x , hyps D X P α i xs
-hyps (Arg A B) X P α i (a , xs) = hyps (B a) X P α i xs
+hyps (Rec j D) X P α i x,xs = α j (proj₁ x,xs) , hyps D X P α i (proj₂ x,xs)
+hyps (Arg A B) X P α i a,xs = hyps (B (proj₁ a,xs)) X P α i (proj₂ a,xs)
 
 {-# NO_TERMINATION_CHECK #-}
 ind : {I : Set} (E : Enum) (C : Tag E → Desc I)
@@ -182,7 +182,7 @@ ind : {I : Set} (E : Enum) (C : Tag E → Desc I)
   (x : μ E C i)
   → P i x
 ind E C P α i (init t xs) = α t i xs $
-  hyps (C t) (μ E C) P (ind  E C P α) i xs
+  hyps (C t) (μ E C) P (ind E C P α) i xs
 
 ----------------------------------------------------------------------
 
