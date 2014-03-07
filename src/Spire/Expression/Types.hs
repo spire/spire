@@ -37,7 +37,7 @@ data Infer =
   | IProj2 Infer
   | IIf Check Infer Infer
   | IElimBool (Bind Nom Check) Check Check Check
-  | IElimList Check  (Bind Nom Check) Check (Bind (Nom , Nom , Nom) Check) Check
+  | IElimList (Bind Nom Check) Check (Bind (Nom , Nom , Nom) Check) Infer
   | IApp Infer Check
   | IAnn Check Check
   deriving Show

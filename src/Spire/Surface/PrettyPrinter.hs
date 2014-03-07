@@ -166,7 +166,7 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
     SElimBool bnd t f bool -> dElimBool s bnd t f bool
-    SElimList _ _ _ _ _ -> error "elimList not supported"
+    SElimList _ _ _ _ -> error "elimList not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -259,7 +259,7 @@ instance Precedence Syntax where
     SApp _ _            -> appLevel
     SAnn _ _            -> annLevel
     SElimBool _ _ _ _   -> elimBoolLevel
-    SElimList _ _ _ _ _ -> elimListLevel
+    SElimList _ _ _ _ -> elimListLevel
 
     STT               -> atomicLevel
     STrue             -> atomicLevel
@@ -287,7 +287,7 @@ instance Precedence Syntax where
     SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
     SElimBool _ _ _ _    -> AssocNone
-    SElimList _  _ _ _ _ -> AssocNone
+    SElimList _ _ _ _ -> AssocNone
     STT                  -> AssocNone
     STrue                -> AssocNone
     SFalse               -> AssocNone
@@ -345,8 +345,8 @@ fixLevel       = 0
 inLevel        = 0
 consLevel      = 2
 pairLevel      = 3
-consAssoc      = AssocRight
 pairAssoc      = AssocRight
+consAssoc      = AssocRight
 sgLevel        = 4
 sgAssoc        = AssocRight
 piLevel        = 5

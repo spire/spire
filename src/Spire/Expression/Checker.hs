@@ -444,15 +444,22 @@ infer' (IElimBool _P ct cf b) = do
   _C  <- _P' `sub` b'
   return (c , _C)
 
-infer' (IElimList _A _P pnil pcons as) = do
-  _A'    <- check _A VType
-  _P'    <- checkExtend (VList _A') _P VType
-  pnil'  <- check pnil =<< _P' `sub` VNil
-  pcons' <- checkPCons _A' _P' pcons
-  as'    <- check as (VList _A')
-  pas'   <- as' `elim` EElimList _A' _P' pnil' pcons'
-  _Pas'  <- _P' `sub` as'
-  return (pas' , _Pas') where
+infer' (IElimList _P pnil pcons as) = do
+  (as' , _As') <- infer as
+  case _As' of
+    VList _A' -> do
+      _P'    <- checkExtend (VList _A') _P VType
+      pnil'  <- check pnil =<< _P' `sub` VNil
+      pcons' <- checkPCons _A' _P' pcons
+      pas'   <- as' `elim` EElimList _A' _P' pnil' pcons'
+      _Pas'  <- _P' `sub` as'
+      return (pas' , _Pas')
+    _ -> throwError $
+      "Ill-typed, elimination of non-list!\n" ++
+      "Eliminated value:\n" ++ show as' ++
+      "\nEliminated type:\n" ++ show _As'
+
+  where
 
   checkPCons :: Type -> Bind Nom Type -> Bind (Nom , Nom , Nom) Check -> SpireM (Bind (Nom , Nom , Nom) Value)
   checkPCons _A bnd_P bnd_pcons = do

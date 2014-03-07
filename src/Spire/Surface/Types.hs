@@ -33,7 +33,7 @@ data Syntax =
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
   | SElimBool (Bind Nom Syntax) Syntax Syntax Syntax
-  | SElimList Syntax (Bind Nom Syntax) Syntax (Bind (Nom , Nom , Nom) Syntax) Syntax
+  | SElimList (Bind Nom Syntax) Syntax (Bind (Nom , Nom , Nom) Syntax) Syntax
   | SAnn Syntax Syntax
  deriving Show
 

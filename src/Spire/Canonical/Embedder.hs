@@ -41,8 +41,8 @@ embedN nm (Pipe fs (EElimBool _P pt pf)) =
   IElimBool <$> embedVB _P <*>
     embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
 embedN nm (Pipe fs (EElimList _A _P pn pc)) =
-  IElimList <$> embedV _A <*> embedVB _P <*>
-    embedV pn <*> embedVB pc <*> (Infer <$> embedN nm fs)
+  IElimList <$> embedVB _P <*>
+    embedV pn <*> embedVB pc <*> (embedN nm fs)
 
 ----------------------------------------------------------------------
 

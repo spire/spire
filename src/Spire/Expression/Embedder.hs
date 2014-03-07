@@ -24,7 +24,7 @@ embedI (IQuotes s) = return $ SQuotes s
 
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
 embedI (IElimBool _P ct cf b) = SElimBool <$> embedCB _P <*> embedC ct <*> embedC cf <*> embedC b
-embedI (IElimList _A _P pn pc as) = SElimList <$> embedC _A <*> embedCB _P <*> embedC pn <*> embedCB pc <*> embedC as
+embedI (IElimList _P pn pc as) = SElimList <$> embedCB _P <*> embedC pn <*> embedCB pc <*> embedI as
 embedI (IProj1 ab) = SProj1 <$> embedI ab
 embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a

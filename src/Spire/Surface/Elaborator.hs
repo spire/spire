@@ -52,7 +52,7 @@ elabC x@(SApp _ _)  = elabIC x
 elabC x@(SAnn _ _)  = elabIC x
 elabC x@(SWildCard) = elabIC x
 elabC x@(SElimBool _ _ _ _)   = elabIC x
-elabC x@(SElimList _ _ _ _ _) = elabIC x
+elabC x@(SElimList _ _ _ _) = elabIC x
 
 ----------------------------------------------------------------------
 
@@ -61,11 +61,12 @@ elabI :: Syntax -> SpireM' Infer
 elabI STT         = return ITT
 elabI STrue       = return ITrue
 elabI SFalse      = return IFalse
-elabI (SQuotes s) = return $ IQuotes s
 elabI SUnit       = return IUnit
 elabI SBool       = return IBool
 elabI SString     = return IString
 elabI SType       = return IType
+
+elabI (SQuotes s) = return $ IQuotes s
 elabI (SVar nm)   = return $ IVar nm
 
 elabI SWildCard = do
@@ -90,8 +91,8 @@ elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
 elabI (SElimBool _P ct cf b) =
   IElimBool <$> elabBC _P <*> elabC ct <*> elabC cf <*> elabC b
-elabI (SElimList _A _P pnil pcons as) =
-  IElimList <$> elabC _A <*> elabBC _P <*> elabC pnil <*> elabBC3 pcons <*> elabC as
+elabI (SElimList _P pnil pcons as) =
+  IElimList <$> elabBC _P <*> elabC pnil <*> elabBC3 pcons <*> elabI as
 
 elabI (SList _A)  = IList <$> elabC _A
 elabI (SPi _A _B) = IPi   <$> elabC _A <*> elabBC _B
