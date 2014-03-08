@@ -49,6 +49,14 @@ checkV VType   _     = throwError "Ill-typed!"
 checkV (VList _A) VType = checkV _A VType
 checkV (VList _A) _     = throwError "Ill-typed!"
 
+checkV (VEq _A a _B b) VType = do
+  checkV _A VType
+  checkV a _A
+  checkV _B VType
+  checkV b _B
+checkV (VEq _ _ _ _) _ =
+  throwError "Ill-typed!"
+
 checkV (VSg _A _B) VType = do
   checkV _A VType
   checkVExtend _A _B VType
@@ -71,7 +79,6 @@ checkV (VLam bnd_b) (VPi _A bnd_B) = do
   (nm_a , b) <- unbind bnd_b
   _B         <- bnd_B `sub` vVar nm_a
   extendCtx nm_a _A $ checkV b _B
-
 checkV (VLam _) _ =
   throwError "Ill-typed!"
 
@@ -79,6 +86,14 @@ checkV (VPair a b) (VSg _A _B) = do
   checkV a _A
   checkV b =<< _B `sub` a
 checkV (VPair _ _) _ =
+  throwError "Ill-typed!"
+
+checkV VRefl (VEq _A a _B b) = do
+  unless (_A == _B) $
+    throwError "Ill-typed!"
+  unless (a == b) $
+    throwError "Ill-typed!"
+checkV VRefl _ =
   throwError "Ill-typed!"
 
 checkV (VNeut nm fs) _B = do
@@ -134,6 +149,16 @@ inferN nm (Pipe fs (EElimList _A _P pnil pcons)) = do
     _Pas   <- bnd_P `sub` vVar nm_as
     _Pcons <- bnd_P `sub` VCons (vVar nm_a) (vVar nm_as)
     extendCtx nm_a _A $ extendCtx nm_as (VList _A) $ extendCtx nm_pas _Pas $ checkV pcons _Pcons
+
+inferN nm (Pipe fs (ESubst _A _P x y px)) = do
+  checkV _A VType
+  checkVExtend _A _P VType
+  checkV x _A
+  checkV y _A
+  let q = VNeut nm fs
+  checkV q (VEq _A x _A y)
+  checkV px  =<< _P `sub` x
+  _P `sub` y
 
 ----------------------------------------------------------------------
 

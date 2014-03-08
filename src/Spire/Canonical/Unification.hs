@@ -57,10 +57,12 @@ value2Tm v = case v of
   VUnit -> return $ C Unit
   VTT   -> return $ C Tt
 
+  VEq _ _ _ _ -> unsupported
   VString     -> unsupported
   (VQuotes _) -> unsupported
   (VList _)   -> unsupported
   VNil        -> unsupported
+  VRefl       -> unsupported
   VCons _ _   -> unsupported
   where
     nom2Head x = if isMV x
@@ -74,6 +76,7 @@ value2Tm v = case v of
       EElimBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
 
       EElimList _ _ _ _ -> unsupported
+      ESubst _ _ _ _ _  -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e

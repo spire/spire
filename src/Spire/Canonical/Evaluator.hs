@@ -60,6 +60,9 @@ elim (VCons a as) (EElimList _A _P pn pc) = do
   pc `sub3` (a , as , ih)
 elim _            (EElimList _A _P _ _)  = throwError "Ill-typed evaluation of elimList"
 
+elim VRefl         (ESubst _A _P x y px) = return px
+elim _             (ESubst _A _P x y px) = throwError "Ill-typed evaluation of subst"
+
 elims :: Value -> Spine -> SpireM Value
 elims x Id = return x
 elims x (Pipe fs f) = do

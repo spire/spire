@@ -318,8 +318,26 @@ check' p@(CPair _ _) _T = throwError $
   "attempt to check pair " ++ prettyPrint p ++
   " at type " ++ prettyPrint _T
 
+check' CRefl (VEq _A a _B b) = do
+  unless (_A == _B) $
+    throwError $
+      "Ill-typed!:\n" ++
+      "equality domain type " ++ prettyPrint _A ++
+      " does not match codomain type " ++ prettyPrint _B
+  unless (a == b) $
+    throwError $
+      "Ill-typed!:\n" ++
+      "equality domain value " ++ prettyPrint a ++
+      " does not match codomain value " ++ prettyPrint b
+  return VRefl
+
+check' as@CRefl _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check refl " ++
+  " at type " ++ prettyPrint _T
+
 check' CNil (VList _A) = do
-  return $  VNil
+  return VNil
 
 check' as@CNil _T = throwError $
   "Ill-typed!:\n" ++
@@ -370,6 +388,11 @@ infer' (IPi _A _B) = do
   _A' <- check _A VType
   _B' <- checkExtend _A' _B VType
   return (VPi _A' _B' , VType)
+
+infer' (IEq a b) = do
+  (a' , _A') <- infer a
+  (b' , _B') <- infer b
+  return (VEq _A' a' _B' b' , VType)
 
 infer' (IVar nm) = lookupValAndType nm
 
@@ -468,6 +491,26 @@ infer' (IElimList _P pnil pcons as) = do
     _Pcons  <- bnd_P `sub` VCons (vVar nm_a) (vVar nm_as)
     pcons'  <- extendCtx nm_a _A $ extendCtx nm_as (VList _A) $ extendCtx nm_pas _Pas $ check pcons _Pcons
     return  $  bind (nm_a , nm_as , nm_pas) pcons'
+
+infer' (ISubst _P q px) = do
+  (q' , _Q') <- infer q
+  case _Q' of
+    VEq _A x _B y -> do
+      _P' <- checkExtend _A _P VType
+      unless (_A == _B) $
+        throwError $
+          "Ill-typed!:\n" ++
+          "using subst when equality domain type " ++ prettyPrint _A ++
+          " does not match codomain type " ++ prettyPrint _B
+      px' <- check px =<< _P' `sub` x
+      py  <- q' `elim` ESubst _A _P' x y px'
+      _Py <- _P' `sub` y
+      return (py , _Py)
+
+    _ -> throwError $
+      "Ill-typed, substitution of non-equality!\n" ++
+      "Eliminated value:\n" ++ show q' ++
+      "\nEliminated type:\n" ++ show _Q'
 
 ----------------------------------------------------------------------
 

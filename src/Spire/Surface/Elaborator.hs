@@ -29,6 +29,7 @@ type SpireM' = ReaderT [Nom] (WriterT MVarDecls SpireM)
 elabC :: Syntax -> SpireM' Check
 
 elabC SNil         = return CNil
+elabC SRefl        = return CRefl
 elabC (SCons a as) = CCons <$> elabC  a <*> elabC as
 elabC (SPair a b)  = CPair <$> elabC  a <*> elabC b
 elabC (SLam b)     = CLam  <$> elabBC b
@@ -44,6 +45,7 @@ elabC x@(SQuotes _) = elabIC x
 elabC x@(SList _)   = elabIC x
 elabC x@(SPi _ _)   = elabIC x
 elabC x@(SSg _ _)   = elabIC x
+elabC x@(SEq _ _)   = elabIC x
 elabC x@(SVar _)    = elabIC x
 elabC x@(SProj1 _)  = elabIC x
 elabC x@(SProj2 _)  = elabIC x
@@ -51,8 +53,9 @@ elabC x@(SIf _ _ _) = elabIC x
 elabC x@(SApp _ _)  = elabIC x
 elabC x@(SAnn _ _)  = elabIC x
 elabC x@(SWildCard) = elabIC x
-elabC x@(SElimBool _ _ _ _)   = elabIC x
+elabC x@(SElimBool _ _ _ _) = elabIC x
 elabC x@(SElimList _ _ _ _) = elabIC x
+elabC x@(SSubst _ _ _)      = elabIC x
 
 ----------------------------------------------------------------------
 
@@ -89,14 +92,17 @@ elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
 elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf
 elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
-elabI (SElimBool _P ct cf b) =
-  IElimBool <$> elabBC _P <*> elabC ct <*> elabC cf <*> elabC b
+elabI (SElimBool _P ptrue pfalse b) =
+  IElimBool <$> elabBC _P <*> elabC ptrue <*> elabC pfalse  <*> elabC b
 elabI (SElimList _P pnil pcons as) =
-  IElimList <$> elabBC _P <*> elabC pnil <*> elabBC3 pcons <*> elabI as
+  IElimList <$> elabBC _P <*> elabC pnil  <*> elabBC3 pcons <*> elabI as
+elabI (SSubst _P q p) =
+  ISubst <$> elabBC _P <*> elabI q <*> elabC p
 
 elabI (SList _A)  = IList <$> elabC _A
 elabI (SPi _A _B) = IPi   <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B) = ISg   <$> elabC _A <*> elabBC _B
+elabI (SEq a b)   = IEq   <$> elabI a  <*> elabI b
 
 -- Once we have meta variables, we should always be able to infer a type for 
 -- a lambda, by inserting a meta variable to type the domain of the lambda,
@@ -104,6 +110,7 @@ elabI (SSg _A _B) = ISg   <$> elabC _A <*> elabBC _B
 -- is a specialized version of a more general type (in which a universal variable
 -- standing for the LHS is free).
 elabI x@SNil        = failUnannotated x
+elabI x@SRefl       = failUnannotated x
 elabI x@(SCons _ _) = failUnannotated x
 elabI x@(SPair _ _) = failUnannotated x
 elabI x@(SLam _)    = failUnannotated x

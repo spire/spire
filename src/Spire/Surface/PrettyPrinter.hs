@@ -96,6 +96,7 @@ dTT       = dt "tt"
 dTrue     = dt "true"
 dFalse    = dt "false"
 dNil      = dt "[]"
+dRefl     = dt "refl"
 dUnit     = dt "Unit"
 dBool     = dt "Bool"
 dString   = dt "String"
@@ -108,8 +109,9 @@ dQuotes = return . PP.dquotes . PP.text
 -- Constructors with arguments pass *themselves* and their args to
 -- their printers.
 
-dCons o x y = ww o x <+> dt "::" <+> w o y
-dPair o x y = ww o x <+> dt ","  <+> w o y
+dCons o x y =  ww o x <+> dt "::" <+> w o y
+dPair o x y =  ww o x <+> dt ","  <+> w o y
+dEq   o x y =  ww o x <+> dt "==" <+> w o y
 
 dLam o bnd_b = do
   (nm , b) <- unbind bnd_b
@@ -142,7 +144,8 @@ instance Display Syntax where
     STT    -> dTT
     STrue  -> dTrue
     SFalse -> dFalse
-    SNil  -> dNil
+    SNil   -> dNil
+    SRefl  -> dRefl
 
     SUnit   -> dUnit
     SBool   -> dBool
@@ -156,6 +159,7 @@ instance Display Syntax where
 
     SPi _A _B -> dPi s _A _B
     SSg _A _B -> dSg s _A _B
+    SEq a b   -> dEq s a b
 
     SVar nm   -> d nm
     SQuotes s -> dQuotes s
@@ -167,6 +171,7 @@ instance Display Syntax where
     SAnn a _A -> dAnn s a _A
     SElimBool bnd t f bool -> dElimBool s bnd t f bool
     SElimList _ _ _ _ -> error "elimList not supported"
+    SSubst _ _ _ -> error "subst not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -249,6 +254,7 @@ instance Precedence Syntax where
   level s = case s of
     SPair _ _           -> pairLevel
     SCons _ _           -> consLevel
+    SEq _ _             -> eqLevel
     SLam _              -> lamLevel
     SPi _ _             -> piLevel
     SSg _ _             -> sgLevel
@@ -259,12 +265,14 @@ instance Precedence Syntax where
     SApp _ _            -> appLevel
     SAnn _ _            -> annLevel
     SElimBool _ _ _ _   -> elimBoolLevel
-    SElimList _ _ _ _ -> elimListLevel
+    SElimList _ _ _ _   -> elimListLevel
+    SSubst _ _ _        -> substLevel
 
     STT               -> atomicLevel
     STrue             -> atomicLevel
     SFalse            -> atomicLevel
     SNil              -> atomicLevel
+    SRefl             -> atomicLevel
     SUnit             -> atomicLevel
     SBool             -> atomicLevel
     SString           -> atomicLevel
@@ -279,6 +287,7 @@ instance Precedence Syntax where
     SApp  _ _         -> appAssoc
     SPair _ _         -> pairAssoc
     SCons _ _         -> consAssoc
+    SEq   _ _         -> AssocNone
 
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone
@@ -287,11 +296,13 @@ instance Precedence Syntax where
     SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
     SElimBool _ _ _ _    -> AssocNone
-    SElimList _ _ _ _ -> AssocNone
+    SElimList _ _ _ _    -> AssocNone
+    SSubst    _ _ _      -> AssocNone
     STT                  -> AssocNone
     STrue                -> AssocNone
     SFalse               -> AssocNone
     SNil                 -> AssocNone
+    SRefl                -> AssocNone
     SUnit                -> AssocNone
     SBool                -> AssocNone
     SString              -> AssocNone
@@ -352,9 +363,11 @@ sgAssoc        = AssocRight
 piLevel        = 5
 piAssoc        = AssocRight
 ifLevel        = 6
-elimBoolLevel  = 6
-elimListLevel  = elimBoolLevel
+elimBoolLevel  = ifLevel
+elimListLevel  = ifLevel
+substLevel     = ifLevel
 lamLevel       = 7
+eqLevel        = 8
 defsLevel      = 9
 defLevel       = 10
 

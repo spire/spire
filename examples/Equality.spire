@@ -1,0 +1,15 @@
+
+not : Bool -> Bool
+not = \ b -> if b then false else true
+
+notTrue : Bool
+notTrue = not true
+
+notFalse : Bool
+notFalse = not false
+
+testNotTrue : notTrue == false
+testNotTrue = refl
+
+testNotFalse : notFalse == true
+testNotFalse = refl

@@ -9,24 +9,27 @@ import Spire.Expression.Types
 
 embedV :: Value -> FreshM Check
 
-embedV VTT           = return $ Infer ITT
-embedV VTrue         = return $ Infer ITrue
-embedV VFalse        = return $ Infer IFalse
-embedV VNil          = return $ CNil
-embedV (VQuotes s)   = return $ Infer (IQuotes s)
-embedV VUnit         = return $ Infer IUnit
-embedV VBool         = return $ Infer IBool
-embedV VString       = return $ Infer IString
-embedV VType         = return $ Infer IType
+embedV VTT             = return $ Infer ITT
+embedV VTrue           = return $ Infer ITrue
+embedV VFalse          = return $ Infer IFalse
+embedV VNil            = return $ CNil
+embedV VRefl           = return $ CRefl
+embedV (VQuotes s)     = return $ Infer (IQuotes s)
+embedV VUnit           = return $ Infer IUnit
+embedV VBool           = return $ Infer IBool
+embedV VString         = return $ Infer IString
+embedV VType           = return $ Infer IType
+                       
+embedV (VList _A)      = Infer <$> (IList <$> embedV _A)
+embedV (VSg _A _B)     = Infer <$> (ISg <$> embedV _A <*> embedVB _B)
+embedV (VPi _A _B)     = Infer <$> (IPi <$> embedV _A <*> embedVB _B)
+embedV (VEq _A a _B b) = Infer <$>
+  (IEq <$> (IAnn <$> embedV a <*> embedV _A) <*> (IAnn <$> embedV b <*> embedV _B))
+embedV (VCons a as)    = CCons <$> embedV a <*> embedV as
+embedV (VPair a b)     = CPair <$> embedV a <*> embedV b
+embedV (VLam b)        = CLam  <$> embedVB b
 
-embedV (VList _A)    = Infer <$> (IList <$> embedV _A)
-embedV (VSg _A _B)   = Infer <$> (ISg <$> embedV _A <*> embedVB _B)
-embedV (VPi _A _B)   = Infer <$> (IPi <$> embedV _A <*> embedVB _B)
-embedV (VCons a as)  = CCons <$> embedV a <*> embedV as
-embedV (VPair a b)   = CPair <$> embedV a <*> embedV b
-embedV (VLam b)      = CLam  <$> embedVB b
-
-embedV (VNeut nm fs) = Infer <$> embedN nm fs
+embedV (VNeut nm fs)   = Infer <$> embedN nm fs
 
 ----------------------------------------------------------------------
 
@@ -42,7 +45,10 @@ embedN nm (Pipe fs (EElimBool _P pt pf)) =
     embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
 embedN nm (Pipe fs (EElimList _A _P pn pc)) =
   IElimList <$> embedVB _P <*>
-    embedV pn <*> embedVB pc <*> (embedN nm fs)
+    embedV pn <*> embedVB pc <*> embedN nm fs
+embedN nm (Pipe fs (ESubst _A _P x y p)) =
+  ISubst <$> embedVB _P <*>
+    embedN nm fs <*> embedV p
 
 ----------------------------------------------------------------------
 

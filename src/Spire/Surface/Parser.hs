@@ -41,12 +41,12 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]"]
+ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
-  "if", "then", "else",
+  "if", "then", "else", "refl",
   "Unit", "Bool", "List", "String", "Type",
   "tt", "true", "false",
-  "elimBool", "elimList",
+  "elimBool", "elimList", "subst",
   "proj1", "proj2",
   wildcard
   ]
@@ -120,6 +120,7 @@ parseAtom = choice
   , parseTrue
   , parseFalse
   , parseNil
+  , parseRefl
   , parseUnit
   , parseBool
   , parseString
@@ -132,12 +133,13 @@ failIfStmt =
   try . notFollowedBy $ parseIdent >> (parseOp ":" <|> parseOp "=")
 
 table = [
-    [Infix parseSpaceApp AssocLeft]
-  , [Infix (parseInfix "::" SCons) AssocRight]
-  , [Infix (parseInfix "," SPair) AssocRight]
-  , [Infix (parseInfix "$" SApp) AssocRight]
-  , [Infix (parseInfix "*" infixSg) AssocRight]
+    [Infix parseSpaceApp             AssocLeft]
+  , [Infix (parseInfix "::" SCons)   AssocRight]
+  , [Infix (parseInfix ","  SPair)   AssocRight]
+  , [Infix (parseInfix "$"  SApp)    AssocRight]
+  , [Infix (parseInfix "*"  infixSg) AssocRight]
   , [Infix (parseInfix "->" infixPi) AssocRight]
+  , [Infix (parseInfix "==" SEq)     AssocNone]
   ] where
 
   parseSpaceApp = failIfStmt >> return SApp
@@ -203,10 +205,11 @@ parseAnn = parseParens $ do
 ----------------------------------------------------------------------
 
 parseNil      = parseOp      "[]"     >> return SNil
-                                      
+
 parseTT       = parseKeyword "tt"     >> return STT
 parseTrue     = parseKeyword "true"   >> return STrue
 parseFalse    = parseKeyword "false"  >> return SFalse
+parseRefl     = parseKeyword "refl"   >> return SRefl
 parseUnit     = parseKeyword "Unit"   >> return SUnit
 parseBool     = parseKeyword "Bool"   >> return SBool
 parseString   = parseKeyword "String" >> return SString

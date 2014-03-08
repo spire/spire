@@ -33,8 +33,9 @@ data Value =
   | VList Value
   | VPi Value (Bind Nom Value)
   | VSg Value (Bind Nom Value)
+  | VEq Value Value Value Value
 
-  | VTT | VTrue | VFalse | VNil
+  | VTT | VTrue | VFalse | VNil | VRefl
   | VQuotes String
   | VCons Value Value
   | VPair Value Value
@@ -49,6 +50,7 @@ data Elim =
   | EProj2
   | EElimBool (Bind Nom Value) Value Value
   | EElimList Value (Bind Nom Value) Value (Bind (Nom , Nom , Nom) Value)
+  | ESubst Value (Bind Nom Value) Value Value Value
   deriving Show
 
 type Spine = SpineFunctor Elim
