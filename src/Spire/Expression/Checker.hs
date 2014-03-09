@@ -341,7 +341,7 @@ check' CNil (VList _A) = do
 
 check' as@CNil _T = throwError $
   "Ill-typed!:\n" ++
-  "attempt to check nil " ++
+  "attempt to check list " ++ prettyPrint as ++
   " at type " ++ prettyPrint _T
 
 check' (CCons a as) (VList _A) = do
@@ -352,6 +352,23 @@ check' (CCons a as) (VList _A) = do
 check' as@(CCons _ _) _T = throwError $
   "Ill-typed!:\n" ++
   "attempt to check list " ++ prettyPrint as ++
+  " at type " ++ prettyPrint _T
+
+check' CHere (VTag (VCons l _E)) = do
+  return VHere
+
+check' t@CHere _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check tag " ++ prettyPrint t ++
+  " at type " ++ prettyPrint _T
+
+check' (CThere t) (VTag (VCons l _E)) = do
+  t' <- check t (VTag _E)
+  return $ VThere t'
+
+check' t@(CThere _) _T = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check tag " ++ prettyPrint t ++
   " at type " ++ prettyPrint _T
 
 check' (Infer a) _B = do
@@ -378,6 +395,10 @@ infer' IType   = return (VType   , VType)
 infer' (IList _A) = do
   _A' <- check _A VType
   return (VList _A' , VType)
+
+infer' (ITag _E) = do
+  _E' <- check _E vEnum
+  return (VTag _E' , VType)
 
 infer' (ISg _A _B) = do
   _A' <- check _A VType
@@ -511,6 +532,28 @@ infer' (ISubst _P q px) = do
       "Ill-typed, substitution of non-equality!\n" ++
       "Eliminated value:\n" ++ show q' ++
       "\nEliminated type:\n" ++ show _Q'
+
+infer' (IBranches _E _P) = do
+  _E' <- check _E vEnum
+  _P' <- checkExtend _E' _P VType
+  _BsEP <- _E' `elim` EBranches _P'
+  return (_BsEP , VType)
+
+infer' (ICase _P cs t) = do
+  (t' , _T') <- infer t
+  case _T' of
+    VTag _E -> do
+      _P'   <- checkExtend (VTag _E) _P VType
+      _BsEP <- _E `elim` EBranches _P'
+      cs'   <- check cs _BsEP
+      pt    <- t' `elim` ECase _E _P' cs'
+      _Pt   <- _P' `sub` t'
+      return (pt , _Pt)
+
+    _ -> throwError $
+      "Ill-typed, case of non-tag!\n" ++
+      "Eliminated value:\n" ++ show t' ++
+      "\nEliminated type:\n" ++ show _T'
 
 ----------------------------------------------------------------------
 

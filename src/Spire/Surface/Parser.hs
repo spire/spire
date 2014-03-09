@@ -43,10 +43,10 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
-  "if", "then", "else", "refl",
-  "Unit", "Bool", "List", "String", "Type",
-  "tt", "true", "false",
-  "elimBool", "elimList", "subst",
+  "if", "then", "else",
+  "Unit", "Bool", "List", "Tag", "String", "Type", "Branches",
+  "tt", "true", "false", "refl", "here", "there",
+  "elimBool", "elimList", "subst", "case",
   "proj1", "proj2",
   wildcard
   ]
@@ -106,7 +106,9 @@ parseChoice = try $ choice [
   , parseElimBool
   , parseProj1
   , parseProj2
+  , parseThere
   , parseList
+  , parseTag
   , parseLam
   ]
 
@@ -121,6 +123,7 @@ parseAtom = choice
   , parseFalse
   , parseNil
   , parseRefl
+  , parseHere
   , parseUnit
   , parseBool
   , parseString
@@ -181,10 +184,20 @@ parseProj2 = try $ do
   ab <- parseAtom
   return $ SProj2 ab
 
+parseThere = try $ do
+  parseKeyword "there"
+  t <- parseAtom
+  return $ SThere t
+
 parseList = try $ do
   parseKeyword "List"
   _A <- parseAtom
   return $ SList _A
+
+parseTag = try $ do
+  parseKeyword "Tag"
+  _E <- parseAtom
+  return $ STag _E
 
 -- \ x -> e
 -- \ _ -> e
@@ -210,6 +223,7 @@ parseTT       = parseKeyword "tt"     >> return STT
 parseTrue     = parseKeyword "true"   >> return STrue
 parseFalse    = parseKeyword "false"  >> return SFalse
 parseRefl     = parseKeyword "refl"   >> return SRefl
+parseHere     = parseKeyword "here"   >> return SHere
 parseUnit     = parseKeyword "Unit"   >> return SUnit
 parseBool     = parseKeyword "Bool"   >> return SBool
 parseString   = parseKeyword "String" >> return SString

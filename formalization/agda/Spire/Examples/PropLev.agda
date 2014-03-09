@@ -24,8 +24,8 @@ Branches [] P = ⊤
 Branches (l ∷ E) P = P here × Branches E (λ t → P (there t))
 
 case : {E : Enum} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
-case P c,cs here = proj₁ c,cs
-case P c,cs (there t) = case (λ t → P (there t)) (proj₂ c,cs) t
+case P (c , cs) here = c
+case P (c , cs) (there t) = case (λ t → P (there t)) cs t
 
 UncurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → Set
@@ -63,8 +63,8 @@ El (Arg A B) X i = Σ A (λ a → El (B a) X i)
 
 Hyps : {I : Set} (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : El D X i) → Set
 Hyps (End j) X P i q = ⊤
-Hyps (Rec j D) X P i x,xs = P j (proj₁ x,xs) × Hyps D X P i (proj₂ x,xs)
-Hyps (Arg A B) X P i a,b = Hyps (B (proj₁ a,b)) X P i (proj₂ a,b)
+Hyps (Rec j D) X P i (x , xs) = P j x × Hyps D X P i xs
+Hyps (Arg A B) X P i (a , b) = Hyps (B a) X P i b
 
 ----------------------------------------------------------------------
 

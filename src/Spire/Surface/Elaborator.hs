@@ -30,31 +30,36 @@ elabC :: Syntax -> SpireM' Check
 
 elabC SNil         = return CNil
 elabC SRefl        = return CRefl
-elabC (SCons a as) = CCons <$> elabC  a <*> elabC as
-elabC (SPair a b)  = CPair <$> elabC  a <*> elabC b
-elabC (SLam b)     = CLam  <$> elabBC b
+elabC SHere        = return CHere
+elabC (SThere t)   = CThere <$> elabC  t
+elabC (SCons a as) = CCons  <$> elabC  a <*> elabC as
+elabC (SPair a b)  = CPair  <$> elabC  a <*> elabC b
+elabC (SLam b)     = CLam   <$> elabBC b
 
-elabC x@STT         = elabIC x
-elabC x@STrue       = elabIC x
-elabC x@SFalse      = elabIC x
-elabC x@SUnit       = elabIC x
-elabC x@SBool       = elabIC x
-elabC x@SString     = elabIC x
-elabC x@SType       = elabIC x
-elabC x@(SQuotes _) = elabIC x
-elabC x@(SList _)   = elabIC x
-elabC x@(SPi _ _)   = elabIC x
-elabC x@(SSg _ _)   = elabIC x
-elabC x@(SEq _ _)   = elabIC x
-elabC x@(SVar _)    = elabIC x
-elabC x@(SProj1 _)  = elabIC x
-elabC x@(SProj2 _)  = elabIC x
-elabC x@(SIf _ _ _) = elabIC x
-elabC x@(SApp _ _)  = elabIC x
-elabC x@(SAnn _ _)  = elabIC x
-elabC x@(SWildCard) = elabIC x
+elabC x@STT                 = elabIC x
+elabC x@STrue               = elabIC x
+elabC x@SFalse              = elabIC x
+elabC x@SUnit               = elabIC x
+elabC x@SBool               = elabIC x
+elabC x@SString             = elabIC x
+elabC x@SType               = elabIC x
+elabC x@(SQuotes _)         = elabIC x
+elabC x@(SList _)           = elabIC x
+elabC x@(STag _)            = elabIC x
+elabC x@(SPi _ _)           = elabIC x
+elabC x@(SSg _ _)           = elabIC x
+elabC x@(SBranches _ _)     = elabIC x
+elabC x@(SEq _ _)           = elabIC x
+elabC x@(SVar _)            = elabIC x
+elabC x@(SProj1 _)          = elabIC x
+elabC x@(SProj2 _)          = elabIC x
+elabC x@(SIf _ _ _)         = elabIC x
+elabC x@(SApp _ _)          = elabIC x
+elabC x@(SAnn _ _)          = elabIC x
+elabC x@(SWildCard)         = elabIC x
 elabC x@(SElimBool _ _ _ _) = elabIC x
 elabC x@(SElimList _ _ _ _) = elabIC x
+elabC x@(SCase _ _ _)       = elabIC x
 elabC x@(SSubst _ _ _)      = elabIC x
 
 ----------------------------------------------------------------------
@@ -98,11 +103,15 @@ elabI (SElimList _P pnil pcons as) =
   IElimList <$> elabBC _P <*> elabC pnil  <*> elabBC3 pcons <*> elabI as
 elabI (SSubst _P q p) =
   ISubst <$> elabBC _P <*> elabI q <*> elabC p
+elabI (SCase _P cs t) =
+  ICase <$> elabBC _P <*> elabC cs <*> elabI t
 
-elabI (SList _A)  = IList <$> elabC _A
-elabI (SPi _A _B) = IPi   <$> elabC _A <*> elabBC _B
-elabI (SSg _A _B) = ISg   <$> elabC _A <*> elabBC _B
-elabI (SEq a b)   = IEq   <$> elabI a  <*> elabI b
+elabI (SList _A)        = IList     <$> elabC _A
+elabI (STag _E)         = ITag      <$> elabC _E
+elabI (SPi _A _B)       = IPi       <$> elabC _A <*> elabBC _B
+elabI (SSg _A _B)       = ISg       <$> elabC _A <*> elabBC _B
+elabI (SEq a b)         = IEq       <$> elabI a  <*> elabI b
+elabI (SBranches _E _P) = IBranches <$> elabC _E <*> elabBC _P
 
 -- Once we have meta variables, we should always be able to infer a type for 
 -- a lambda, by inserting a meta variable to type the domain of the lambda,
@@ -111,6 +120,8 @@ elabI (SEq a b)   = IEq   <$> elabI a  <*> elabI b
 -- standing for the LHS is free).
 elabI x@SNil        = failUnannotated x
 elabI x@SRefl       = failUnannotated x
+elabI x@SHere       = failUnannotated x
+elabI x@(SThere _)  = failUnannotated x
 elabI x@(SCons _ _) = failUnannotated x
 elabI x@(SPair _ _) = failUnannotated x
 elabI x@(SLam _)    = failUnannotated x

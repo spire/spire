@@ -97,6 +97,7 @@ dTrue     = dt "true"
 dFalse    = dt "false"
 dNil      = dt "[]"
 dRefl     = dt "refl"
+dHere     = dt "here"
 dUnit     = dt "Unit"
 dBool     = dt "Bool"
 dString   = dt "String"
@@ -122,13 +123,17 @@ dPi o _A bnd_B = do
 dSg o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
   binding o nm _A <+> dt "*" <+> pushName nm (d _B)
+
 dIf o c t f = alignM . sepM $ [ dt "if" <+> w o c
                               , dt "then" <+> w o t
                               , dt "else" <+> w o f ]
 
-dList o _A  = dt "List" <+> ww o _A
-dProj1 o ab = dt "proj1" <+> ww o ab
-dProj2 o ab = dt "proj2" <+> ww o ab
+dThere o t   = dt "there" <+> ww o t
+dList  o _A  = dt "List"  <+> ww o _A
+dTag   o _E  = dt "Tag"   <+> ww o _E
+dProj1 o ab  = dt "proj1" <+> ww o ab
+dProj2 o ab  = dt "proj2" <+> ww o ab
+
 dApp o f a = alignM $ w o f </> ww o a
 dAnn _ a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
 
@@ -146,19 +151,24 @@ instance Display Syntax where
     SFalse -> dFalse
     SNil   -> dNil
     SRefl  -> dRefl
+    SHere  -> dHere
 
     SUnit   -> dUnit
     SBool   -> dBool
     SString -> dString
     SType   -> dType
 
-    SList _A  -> dList s _A
-    SCons a as -> dCons s a as
-    SPair a b -> dPair s a b
-    SLam b    -> dLam s b
+    SThere t   -> dThere s t
+    SList _A   -> dList  s _A
+    STag  _E   -> dTag   s _E
+    SCons a as -> dCons  s a as
+    SPair a b  -> dPair  s a b
+    SLam  b    -> dLam s b
 
-    SPi _A _B -> dPi s _A _B
-    SSg _A _B -> dSg s _A _B
+    SPi       _A _B -> dPi s _A _B
+    SSg       _A _B -> dSg s _A _B
+    SBranches _E _P -> error "Branches not supported"
+
     SEq a b   -> dEq s a b
 
     SVar nm   -> d nm
@@ -171,7 +181,8 @@ instance Display Syntax where
     SAnn a _A -> dAnn s a _A
     SElimBool bnd t f bool -> dElimBool s bnd t f bool
     SElimList _ _ _ _ -> error "elimList not supported"
-    SSubst _ _ _ -> error "subst not supported"
+    SCase     _ _ _   -> error "case not supported"
+    SSubst    _ _ _   -> error "subst not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -261,11 +272,15 @@ instance Precedence Syntax where
     SIf _ _ _           -> ifLevel
     SProj1 _            -> projLevel
     SProj2 _            -> projLevel
+    SThere _            -> thereLevel
+    STag   _            -> tagLevel
     SList _             -> listLevel
+    SBranches _ _       -> branchesLevel
     SApp _ _            -> appLevel
     SAnn _ _            -> annLevel
     SElimBool _ _ _ _   -> elimBoolLevel
     SElimList _ _ _ _   -> elimListLevel
+    SCase _ _ _         -> caseLevel
     SSubst _ _ _        -> substLevel
 
     STT               -> atomicLevel
@@ -273,6 +288,7 @@ instance Precedence Syntax where
     SFalse            -> atomicLevel
     SNil              -> atomicLevel
     SRefl             -> atomicLevel
+    SHere             -> atomicLevel
     SUnit             -> atomicLevel
     SBool             -> atomicLevel
     SString           -> atomicLevel
@@ -289,20 +305,25 @@ instance Precedence Syntax where
     SCons _ _         -> consAssoc
     SEq   _ _         -> AssocNone
 
+    SBranches   _ _       -> AssocNone
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone
+    SThere _             -> AssocNone
+    STag _               -> AssocNone
     SList _              -> AssocNone
     SProj1 _             -> AssocNone
     SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
     SElimBool _ _ _ _    -> AssocNone
     SElimList _ _ _ _    -> AssocNone
+    SCase     _ _ _      -> AssocNone
     SSubst    _ _ _      -> AssocNone
     STT                  -> AssocNone
     STrue                -> AssocNone
     SFalse               -> AssocNone
     SNil                 -> AssocNone
     SRefl                -> AssocNone
+    SHere                -> AssocNone
     SUnit                -> AssocNone
     SBool                -> AssocNone
     SString              -> AssocNone
@@ -352,8 +373,11 @@ appLevel       = 0
 appAssoc       = AssocLeft
 projLevel      = 0
 listLevel      = projLevel
-fixLevel       = 0
-inLevel        = 0
+tagLevel       = projLevel
+thereLevel     = projLevel
+fixLevel       = projLevel
+inLevel        = projLevel
+branchesLevel  = projLevel
 consLevel      = 2
 pairLevel      = 3
 pairAssoc      = AssocRight
@@ -365,6 +389,7 @@ piAssoc        = AssocRight
 ifLevel        = 6
 elimBoolLevel  = ifLevel
 elimListLevel  = ifLevel
+caseLevel      = ifLevel
 substLevel     = ifLevel
 lamLevel       = 7
 eqLevel        = 8

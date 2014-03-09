@@ -11,3 +11,21 @@ NatE = "zero" :: "suc" :: []
 VecE : Enum
 VecE = "nil" :: "cons" :: []
 
+NatT : Type
+NatT = Tag NatE
+
+VecT : Type
+VecT = Tag VecE
+
+zeroT : NatT
+zeroT = here
+
+sucT : NatT
+sucT = there here
+
+nilT : VecT
+nilT = here
+
+consT : VecT
+consT = there here
+

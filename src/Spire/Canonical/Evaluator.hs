@@ -11,7 +11,7 @@ import Unbound.LocallyNameless.SubstM
 import Spire.Canonical.Types
 import Spire.Canonical.Unification
 import Spire.Surface.PrettyPrinter
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>) , (<*>))
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
@@ -36,6 +36,11 @@ sub b x = do
   (nm , f) <- unbind b
   substM nm x f
 
+subCompose :: Bind Nom Value -> (Value -> Value) -> SpireM (Bind Nom Value)
+subCompose b x = do
+  (nm , f) <- unbind b
+  bind nm <$> substM nm (x (vVar nm)) f
+
 sub3 :: Bind (Nom , Nom , Nom) Value -> (Value , Value , Value) -> SpireM Value
 sub3 b (x1 , x2 , x3) = do
   ((nm1 , nm2 , nm3) , f) <- unbind b
@@ -54,14 +59,36 @@ elim VTrue  (EElimBool _P pt _) = return pt
 elim VFalse (EElimBool _P _ pf) = return pf
 elim _      (EElimBool _P _  _) = throwError "Ill-typed evaluation of elimBool"
 
-elim VNil         (EElimList _A _P pn _)  = return pn
+elim VNil         (EElimList _A _P pn _)  =
+  return pn
 elim (VCons a as) (EElimList _A _P pn pc) = do
   ih <- as `elim` EElimList _A _P pn pc
   pc `sub3` (a , as , ih)
-elim _            (EElimList _A _P _ _)  = throwError "Ill-typed evaluation of elimList"
+elim _            (EElimList _A _P _ _)  =
+  throwError "Ill-typed evaluation of elimList"
 
-elim VRefl         (ESubst _A _P x y px) = return px
-elim _             (ESubst _A _P x y px) = throwError "Ill-typed evaluation of subst"
+elim VRefl         (ESubst _A _P x y px) = do
+  unless (x == y) $
+    throwError "Ill-typed evaluation of subst"
+  return px
+elim _             (ESubst _A _P x y px) =
+  throwError "Ill-typed evaluation of subst"
+
+elim VNil            (EBranches _P) =
+  return VUnit
+elim (VCons l _E)    (EBranches _P) = do
+  _P' <- _P `subCompose` VThere
+  vProd <$> (_P `sub` VHere) <*> (_E `elim` EBranches _P')
+elim _             (EBranches _P) =
+  throwError "Ill-typed evaluation of Branches"
+
+elim VHere         (ECase (VCons l _E) _P (VPair c cs)) =
+  return c
+elim (VThere t)    (ECase (VCons l _E) _P (VPair c cs)) = do
+  _P' <- _P `subCompose` VThere
+  t `elim` ECase _E _P' cs
+elim _             (ECase _E _P cs) =
+  throwError "Ill-typed evaluation of case"
 
 elims :: Value -> Spine -> SpireM Value
 elims x Id = return x

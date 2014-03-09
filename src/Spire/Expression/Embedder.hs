@@ -15,10 +15,13 @@ embedI IUnit   = return SUnit
 embedI IBool   = return SBool
 embedI IString = return SString
 embedI IType   = return SType
-embedI (IList _A)  = SList <$> embedC _A
-embedI (IPi _A _B) = SPi   <$> embedC _A <*> embedCB _B
-embedI (ISg _A _B) = SSg   <$> embedC _A <*> embedCB _B
-embedI (IEq a b)   = SEq   <$> embedI a  <*> embedI b
+
+embedI (ITag      _E)    = STag      <$> embedC _E
+embedI (IList     _A)    = SList     <$> embedC _A
+embedI (IPi       _A _B) = SPi       <$> embedC _A <*> embedCB _B
+embedI (ISg       _A _B) = SSg       <$> embedC _A <*> embedCB _B
+embedI (IBranches _E _P) = SBranches <$> embedC _E <*> embedCB _P
+embedI (IEq       a  b)  = SEq       <$> embedI a  <*> embedI b
 
 embedI (IVar v)    = return $ SVar v
 embedI (IQuotes s) = return $ SQuotes s
@@ -26,7 +29,8 @@ embedI (IQuotes s) = return $ SQuotes s
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
 embedI (IElimBool _P ct cf b) = SElimBool <$> embedCB _P <*> embedC ct <*> embedC cf <*> embedC b
 embedI (IElimList _P pn pc as) = SElimList <$> embedCB _P <*> embedC pn <*> embedCB pc <*> embedI as
-embedI (ISubst _P q p) = SSubst <$> embedCB _P <*> embedI q <*> embedC p
+embedI (ISubst _P q  p) = SSubst <$> embedCB _P <*> embedI q <*> embedC p
+embedI (ICase  _P cs t) = SCase  <$> embedCB _P <*> embedC cs <*> embedI t
 embedI (IProj1 ab) = SProj1 <$> embedI ab
 embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a
@@ -35,9 +39,11 @@ embedI (IAnn a _A) = SAnn <$> embedC a <*> embedC _A
 embedC :: Check -> FreshM Syntax
 embedC CNil         = return SNil
 embedC CRefl        = return SRefl
-embedC (CCons a as) = SCons <$> embedC a <*> embedC as
-embedC (CPair a b)  = SPair <$> embedC a <*> embedC b
-embedC (CLam b)     = SLam <$> embedCB b
+embedC CHere        = return SHere
+embedC (CThere t)   = SThere <$> embedC t
+embedC (CCons a as) = SCons  <$> embedC a  <*> embedC as
+embedC (CPair a b)  = SPair  <$> embedC a  <*> embedC b
+embedC (CLam b)     = SLam   <$> embedCB b
 embedC (Infer i)    = embedI i
 
 ----------------------------------------------------------------------

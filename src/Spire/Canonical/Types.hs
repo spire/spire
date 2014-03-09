@@ -30,15 +30,21 @@ type NomType = (Nom , Embed Type)
 
 data Value =
     VUnit | VBool | VString | VType
-  | VList Value
-  | VPi Value (Bind Nom Value)
-  | VSg Value (Bind Nom Value)
+  | VList Value | VTag Value
+
+  | VPi       Value (Bind Nom Value)
+  | VSg       Value (Bind Nom Value)
+
   | VEq Value Value Value Value
 
-  | VTT | VTrue | VFalse | VNil | VRefl
+  | VTT | VTrue | VFalse | VNil | VRefl | VHere
+  | VThere Value
+
   | VQuotes String
+
   | VCons Value Value
   | VPair Value Value
+
   | VLam (Bind Nom Value)
 
   | VNeut Nom Spine
@@ -46,11 +52,15 @@ data Value =
 
 data Elim =
     EApp Value
-  | EProj1
-  | EProj2
+  | EProj1 | EProj2
+
+  | EBranches (Bind Nom Value)
+
   | EElimBool (Bind Nom Value) Value Value
   | EElimList Value (Bind Nom Value) Value (Bind (Nom , Nom , Nom) Value)
+
   | ESubst Value (Bind Nom Value) Value Value Value
+  | ECase  Value (Bind Nom Value) Value
   deriving Show
 
 type Spine = SpineFunctor Elim
@@ -144,6 +154,12 @@ mv2String nm = case name2String nm of
 
 vVar :: Nom -> Value
 vVar nm = VNeut nm Id
+
+vProd :: Value -> Value -> Value
+vProd _A _B = VSg _A (bind (s2n wildcard) _B)
+
+vEnum :: Value
+vEnum = VList VString
 
 eIf :: Value -> Value -> Value -> Elim
 eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf

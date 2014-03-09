@@ -18,7 +18,8 @@ import Spire.Canonical.Types
 data Check =
     CLam (Bind Nom Check)
   | CPair Check Check
-  | CNil | CRefl
+  | CNil | CRefl | CHere
+  | CThere Check
   | CCons Check Check
   | Infer Infer
   deriving Show
@@ -28,9 +29,10 @@ data Infer =
   | IQuotes String
 
   | IUnit | IBool | IString | IType
-  | IList Check
+  | IList Check | ITag Check
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
+  | IBranches Check (Bind Nom Check)
   | IEq Infer Infer
 
   | IVar Nom
@@ -39,6 +41,7 @@ data Infer =
   | IIf Check Infer Infer
   | IElimBool (Bind Nom Check) Check Check Check
   | IElimList (Bind Nom Check) Check (Bind (Nom , Nom , Nom) Check) Infer
+  | ICase (Bind Nom Check) Check Infer
   | ISubst (Bind Nom Check) Infer Check
   | IApp Infer Check
   | IAnn Check Check

@@ -49,6 +49,15 @@ checkV VType   _     = throwError "Ill-typed!"
 checkV (VList _A) VType = checkV _A VType
 checkV (VList _A) _     = throwError "Ill-typed!"
 
+checkV (VTag _E) VType = checkV _E vEnum
+checkV (VTag _E) _     = throwError "Ill-typed!"
+
+checkV VHere (VTag (VCons l _E)) = return ()
+checkV VHere _ = throwError "Ill-typed!"
+
+checkV (VThere t) (VTag (VCons l _E)) = checkV t (VTag _E)
+checkV (VThere _) _ = throwError "Ill-typed!"
+
 checkV (VEq _A a _B b) VType = do
   checkV _A VType
   checkV a _A
@@ -159,6 +168,21 @@ inferN nm (Pipe fs (ESubst _A _P x y px)) = do
   checkV q (VEq _A x _A y)
   checkV px  =<< _P `sub` x
   _P `sub` y
+
+inferN nm (Pipe fs (EBranches _P)) = do
+  let _E = VNeut nm fs
+  checkV _E vEnum
+  checkVExtend (VTag _E) _P VType
+  return VType
+
+inferN nm (Pipe fs (ECase _E _P cs)) = do
+  checkV _E vEnum
+  checkVExtend (VTag _E) _P VType
+  _BsEP <- _E `elim` EBranches _P
+  checkV cs _BsEP
+  let t = VNeut nm fs
+  checkV t (VTag _E)
+  _P `sub` t
 
 ----------------------------------------------------------------------
 
