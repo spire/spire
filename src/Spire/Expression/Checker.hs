@@ -376,10 +376,10 @@ check' (Infer a) _B = do
   ctx <- asks ctx
   unifyTypes "check'/Infer" _A _B $ throwError $
     "Ill-typed!\n" ++
-    "Expected type:\n" ++ show _B ++
-    "\n\nInferred type:\n" ++ show _A ++
-    "\n\nContext:\n" ++ show ctx ++
-    "\n\nValue:\n" ++ show a'
+    "Expected type:\n" ++ prettyPrint _B ++
+    "\n\nInferred type:\n" ++ prettyPrint _A ++
+    "\n\nContext:\n" ++ prettyPrint ctx ++
+    "\n\nValue:\n" ++ prettyPrint a'
   return a'
 
 infer' ITT         = return (VTT       , VUnit)
