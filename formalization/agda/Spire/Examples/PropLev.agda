@@ -169,11 +169,11 @@ uncurryHyps (Arg A B) X P cn pf i (a , xs) ihs =
 
 ----------------------------------------------------------------------
 
-data μ {I : Set} (E : Enum) (C : Tag E → Desc I) : ISet I where
-  init : (t : Tag E) → UncurriedEl (C t) (μ E C)
+data μ {I : Set} (E : Enum) (cs : BranchesD I E) : ISet I where
+  init : (t : Tag E) → UncurriedEl (caseD cs t) (μ E cs)
 
-inj : {I : Set} (E : Enum) (C : Tag E → Desc I) (t : Tag E) → CurriedEl (C t) (μ E C)
-inj E C t = curryEl (C t) (μ E C) (init t)
+inj : {I : Set} (E : Enum) (cs : BranchesD I E) (t : Tag E) → CurriedEl (caseD cs t) (μ E cs)
+inj E cs t = curryEl (caseD cs t) (μ E cs) (init t)
 
 ----------------------------------------------------------------------
 
@@ -186,150 +186,51 @@ hyps (Rec j D) X P α i x,xs = α j (proj₁ x,xs) , hyps D X P α i (proj₂ x,
 hyps (Arg A B) X P α i a,xs = hyps (B (proj₁ a,xs)) X P α i (proj₂ a,xs)
 
 {-# NO_TERMINATION_CHECK #-}
-ind : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) (μ E C) P (init t))
+ind : {I : Set} (E : Enum) (Ds : BranchesD I E)
+  (P : (i : I) → μ E Ds i → Set)
+  (α : (t : Tag E) → UncurriedHyps (caseD Ds t) (μ E Ds) P (init t))
   (i : I)
-  (x : μ E C i)
+  (x : μ E Ds i)
   → P i x
-ind E C P α i (init t xs) = α t i xs $
-  hyps (C t) (μ E C) P (ind E C P α) i xs
+ind E Ds P α i (init t xs) = α t i xs $
+  hyps (caseD Ds t) (μ E Ds) P (ind E Ds P α) i xs
 
 ----------------------------------------------------------------------
 
-indCurried : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (f : (t : Tag E) → CurriedHyps (C t) (μ E C) P (init t))
+indCurried : {I : Set} (E : Enum) (Ds : BranchesD I E)
+  (P : (i : I) → μ E Ds i → Set)
+  (f : (t : Tag E) → CurriedHyps (caseD Ds t) (μ E Ds) P (init t))
   (i : I)
-  (x : μ E C i)
+  (x : μ E Ds i)
   → P i x
-indCurried E C P f i x = ind E C P (λ t → uncurryHyps (C t) (μ E C) P (init t) (f t)) i x
+indCurried E Ds P f i x = ind E Ds P (λ t → uncurryHyps (caseD Ds t) (μ E Ds) P (init t) (f t)) i x
 
-Summer : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (X  : ISet I) (cn : (t : Tag E) → UncurriedEl (C t) X)
+Summer : {I : Set} (E : Enum) (Ds : BranchesD I E)
+  (X  : ISet I) (cn : (t : Tag E) → UncurriedEl (caseD Ds t) X)
   (P : (i : I) → X i → Set)
   → Tag E → Set
-Summer E C X cn P t = CurriedHyps (C t) X P (cn t)
+Summer E Ds X cn P t = CurriedHyps (caseD Ds t) X P (cn t)
 
-SumCurriedHyps : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
+SumCurriedHyps : {I : Set} (E : Enum) (Ds : BranchesD I E)
+  (P : (i : I) → μ E Ds i → Set)
   → Tag E → Set
-SumCurriedHyps E C P t = Summer E C (μ E C) init P t
+SumCurriedHyps E Ds P t = Summer E Ds (μ E Ds) init P t
 
-elimUncurried : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  → Branches E (SumCurriedHyps E C P)
-  → (i : I) (x : μ E C i) → P i x
-elimUncurried E C P cs i x =
-  indCurried E C P
-    (case (SumCurriedHyps E C P) cs)
+elimUncurried : {I : Set} (E : Enum) (Ds : BranchesD I E)
+  (P : (i : I) → μ E Ds i → Set)
+  → Branches E (SumCurriedHyps E Ds P)
+  → (i : I) (x : μ E Ds i) → P i x
+elimUncurried E Ds P cs i x =
+  indCurried E Ds P
+    (case (SumCurriedHyps E Ds P) cs)
     i x
 
-elim : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
+elim : {I : Set} (E : Enum) (Ds : BranchesD I E)
+  (P : (i : I) → μ E Ds i → Set)
   → CurriedBranches E
-      (SumCurriedHyps E C P)
-      ((i : I) (x : μ E C i) → P i x)
-elim E C P = curryBranches (elimUncurried E C P)
-
-----------------------------------------------------------------------
-
-Soundness : Set₁
-Soundness = {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (cs : Branches E (SumCurriedHyps E C P))
-  (i : I) (x : μ E C i)
-  → ∃ λ α
-  → elimUncurried E C P cs i x ≡ ind E C P α i x
-
-sound : Soundness
-sound E C P cs i xs =
-  let D = Arg (Tag E) C in
-  (λ t → uncurryHyps (C t) (μ E C) P (init t) (case (SumCurriedHyps E C P) cs t)) , refl
-
-Completeness : Set₁
-Completeness = {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) (μ E C) P (init t))
-  (i : I) (x : μ E C i)
-  → ∃ λ cs
-  → ind E C P α i x ≡ elimUncurried E C P cs i x
-
-uncurryHypsIdent : {I : Set} (D : Desc I) (X : ISet I)
-  (P : (i : I) → X i → Set)
-  (cn : UncurriedEl D X)
-  (α : UncurriedHyps D X P cn)
-  (i : I) (xs : El D X i) (ihs : Hyps D X P i xs)
-  → α i xs ihs ≡ uncurryHyps D X P cn (curryHyps D X P cn α) i xs ihs
-uncurryHypsIdent (End .i) X P cn α i refl tt = refl
-uncurryHypsIdent (Rec j D) X P cn α i (x , xs) (p , ps) =
-  uncurryHypsIdent D X P (λ xs → cn (x , xs)) (λ k ys rs → α k (x , ys) (p , rs)) i xs ps
-uncurryHypsIdent (Arg A B) X P cn α i (a , xs) ps =
-  uncurryHypsIdent (B a) X P (λ xs → cn (a , xs)) (λ j ys → α j (a , ys)) i xs ps
-
-postulate
-  ext4 : {A : Set} {B : A → Set} {C : (a : A) → B a → Set}
-    {D : (a : A) (b : B a) → C a b → Set}
-    {Z : (a : A) (b : B a) (c : C a b) → D a b c → Set}
-    (f g : (a : A) (b : B a) (c : C a b) (d : D a b c) → Z a b c d)
-    → ((a : A) (b : B a) (c : C a b) (d : D a b c) → f a b c d ≡ g a b c d)
-    → f ≡ g
-
-toBranches : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (X  : ISet I) (cn : (t : Tag E) → UncurriedEl (C t) X)
-  (P : (i : I) → X i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) X P (cn t))
-  → Branches E (Summer E C X cn P)
-toBranches [] C X cn P α = tt
-toBranches (l ∷ E) C X cn P α =
-    curryHyps (C here) X P (λ xs → cn here xs) (λ i xs → α here i xs)
-  , toBranches E (λ t → C (there t)) X
-     (λ t → cn (there t))
-     P (λ t i xs ih → α (there t) i xs ih)
-
-ToBranches : {I : Set} {E : Enum} (C : Tag E → Desc I)
-  (X  : ISet I) (cn : (t : Tag E) → UncurriedEl (C t) X)
-  (P : (i : I) → X i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) X P (cn t))
-  (t : Tag E)
-  → let β = toBranches E C X cn P α in
-  case (Summer E C X cn P) β t ≡ curryHyps (C t) X P (cn t) (α t)
-ToBranches C X cn P α here = refl
-ToBranches C X cn P α (there t)
-  with ToBranches (λ t → C (there t)) X
-    (λ t xs → cn (there t) xs)
-    P (λ t i xs ih → α (there t) i xs ih) t
-... | ih rewrite ih = refl
-
-completeα : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) (μ E C) P (init t))
-  (t : Tag E) (i : I) (xs : El (C t) (μ E C) i) (ihs : Hyps (C t) (μ E C) P i xs)
-  → let β = toBranches E C (μ E C) init P α in
-  α t i xs ihs ≡ uncurryHyps (C t) (μ E C) P (init t) (case (SumCurriedHyps E C P) β t) i xs ihs
-completeα E C P α t i xs ihs
-  with ToBranches C (μ E C) init P α t
-... | q rewrite q = uncurryHypsIdent (C t) (μ E C) P (init t) (α t) i xs ihs
-
-complete' : {I : Set} (E : Enum) (C : Tag E → Desc I)
-  (P : (i : I) → μ E C i → Set)
-  (α : (t : Tag E) → UncurriedHyps (C t) (μ E C) P (init t))
-  (i : I) (x : μ E C i)
-  → let β = toBranches E C (μ E C) init P α in
-  ind E C P α i x ≡ elimUncurried E C P β i x
-complete' E C P α i (init t xs) = cong
-  (λ f → ind E C P f i (init t xs))
-  (ext4 α
-    (λ t → uncurryHyps (C t) (μ E C) P (init t) (case (SumCurriedHyps E C P) β t))
-    (completeα E C P α)
-  )
-  where β = toBranches E C (μ E C) init P α
-
-complete : Completeness
-complete E C P α i x =
-  let D = Arg (Tag E) C in
-    toBranches E C (μ E C) init P α
-  , complete' E C P α i x
+      (SumCurriedHyps E Ds P)
+      ((i : I) (x : μ E Ds i) → P i x)
+elim E Ds P = curryBranches (elimUncurried E Ds P)
 
 ----------------------------------------------------------------------
 
@@ -357,17 +258,17 @@ nilT = here
 consT : VecT
 consT = there here
 
-ℕC : ℕT → Desc ⊤
-ℕC = caseD $
+ℕDs : BranchesD ⊤ ℕE
+ℕDs =
     End tt
   , Rec tt (End tt)
   , tt
 
 ℕD : Desc ⊤
-ℕD = Arg ℕT ℕC
+ℕD = Arg ℕT (caseD ℕDs)
 
 ℕ : ⊤ → Set
-ℕ = μ ℕE ℕC
+ℕ = μ ℕE ℕDs
 
 zero : ℕ tt
 zero = init zeroT refl
@@ -375,8 +276,8 @@ zero = init zeroT refl
 suc : ℕ tt → ℕ tt
 suc n = init sucT (n , refl)
 
-VecC : (A : Set) → VecT → Desc (ℕ tt)
-VecC A = caseD $
+VecDs : (A : Set) → BranchesD (ℕ tt) VecE
+VecDs A =
     End zero
   , Arg (ℕ tt) (λ n → Arg A λ _ → Rec n (End (suc n)))
   , tt
@@ -388,10 +289,10 @@ consD : (A : Set) → Desc (ℕ tt)
 consD A = Arg (ℕ tt) (λ n → Arg A (λ _ → Rec n (End (suc n))))
 
 VecD : (A : Set) → Desc (ℕ tt)
-VecD A = Arg VecT (VecC A)
+VecD A = Arg VecT (caseD (VecDs A))
 
 Vec : (A : Set) → ℕ tt → Set
-Vec A = μ VecE (VecC A)
+Vec A = μ VecE (VecDs A)
 
 NilEl : (A : Set) (n : ℕ tt) → Set
 NilEl A n = El (nilD A) (Vec A) n
@@ -423,18 +324,18 @@ cons : (A : Set) (n : ℕ tt) (x : A) (xs : Vec A n) → Vec A (suc n)
 cons A n x xs = init consT (n , x , xs , refl)
 
 nil2 : (A : Set) → Vec A zero
-nil2 A = inj VecE (VecC A) nilT
+nil2 A = inj VecE (VecDs A) nilT
 
 cons2 : (A : Set) (n : ℕ tt) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons2 A = inj VecE (VecC A) consT
+cons2 A = inj VecE (VecDs A) consT
 
 ----------------------------------------------------------------------
 
 module Induction where
 
   add : ℕ tt → ℕ tt → ℕ tt
-  add = ind ℕE ℕC _
-    (case (λ t → UncurriedHyps (ℕC t) ℕ _ (init t))
+  add = ind ℕE ℕDs _
+    (case (λ t → UncurriedHyps (caseD ℕDs t) ℕ _ (init t))
       ( (λ u q ih n → n)
       , (λ u m,q ih,tt n → suc (proj₁ ih,tt n))
       , tt
@@ -443,8 +344,8 @@ module Induction where
     tt
   
   mult : ℕ tt → ℕ tt → ℕ tt
-  mult = ind ℕE ℕC _
-    (case (λ t → UncurriedHyps (ℕC t) ℕ _ (init t))
+  mult = ind ℕE ℕDs _
+    (case (λ t → UncurriedHyps (caseD ℕDs t) ℕ _ (init t))
       ( (λ u q ih n → zero)
       , (λ u m,q ih,tt n → add n (proj₁ ih,tt n))
       , tt
@@ -453,8 +354,8 @@ module Induction where
     tt
   
   append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
-  append A = ind VecE (VecC A) _
-    (case (λ t → UncurriedHyps (VecC A t) (Vec A) _ (init t))
+  append A = ind VecE (VecDs A) _
+    (case (λ t → UncurriedHyps (caseD (VecDs A) t) (Vec A) _ (init t))
       ( (λ m q ih n ys → subst (λ m → Vec A (add m n)) q ys)
       , (λ m m',x,xs,q ih,tt n ys →
           let m' = proj₁ m',x,xs,q
@@ -469,8 +370,8 @@ module Induction where
     )
 
   concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-  concat A m = ind VecE (VecC (Vec A m)) _
-    (case (λ t → UncurriedHyps (VecC (Vec A m) t) (Vec (Vec A m)) _ (init t))
+  concat A m = ind VecE (VecDs (Vec A m)) _
+    (case (λ t → UncurriedHyps (caseD (VecDs (Vec A m)) t) (Vec (Vec A m)) _ (init t))
       ( (λ n q ih → subst (λ n → Vec A (mult n m)) q (nil A))
       , (λ n n',x,xs,q ih,tt →
           let n' = proj₁ n',x,xs,q
@@ -488,24 +389,24 @@ module Induction where
 module GenericElim where
 
   add : ℕ tt → ℕ tt → ℕ tt
-  add = elim ℕE ℕC _
+  add = elim ℕE ℕDs _
     (λ n → n)
     (λ m ih n → suc (ih n))
     tt
 
   mult : ℕ tt → ℕ tt → ℕ tt
-  mult = elim ℕE ℕC _
+  mult = elim ℕE ℕDs _
     (λ n → zero)
     (λ m ih n → add n (ih n))
     tt
 
   append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-  append A = elim VecE (VecC A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
+  append A = elim VecE (VecDs A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
     (λ n ys → ys)
     (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
 
   concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-  concat A m = elim VecE (VecC (Vec A m)) (λ n xss → Vec A (mult n m))
+  concat A m = elim VecE (VecDs (Vec A m)) (λ n xss → Vec A (mult n m))
     (nil A)
     (λ n xs xss ih → append A m xs (mult n m) ih)
 
