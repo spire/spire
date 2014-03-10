@@ -53,6 +53,17 @@ data Desc (I : Set) : Set₁ where
   Rec : (i : I) (D : Desc I) → Desc I
   Arg : (A : Set) (B : A → Desc I) → Desc I
 
+elimDesc : {I : Set} (P : Desc I → Set)
+  (pend : (i : I) → P (End i))
+  (prec : (i : I) (D : Desc I) (pd : P D) → P (Rec i D))
+  (parg : (A : Set) (B : A → Desc I) (pb : (a : A) → P (B a)) → P (Arg A B))
+  (D : Desc I) → P D
+elimDesc P pend prec parg (End i) = pend i
+elimDesc P pend prec parg (Rec i D) = prec i D (elimDesc P pend prec parg D)
+elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg (B a))
+
+----------------------------------------------------------------------
+
 ISet : Set → Set₁
 ISet I = I → Set
 
