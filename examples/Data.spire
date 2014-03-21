@@ -24,7 +24,10 @@ sucT = there here
 ----------------------------------------------------------------------
 
 NatB : BranchesD Unit NatE
-NatB = End tt , Rec tt (End tt) , tt
+NatB =
+    End tt
+  , Rec tt (End tt)
+  , tt
 
 Nat : Type
 Nat = Fix NatE NatB tt
@@ -45,5 +48,36 @@ two = suc one
 
 three : Nat
 three = suc two
+
+----------------------------------------------------------------------
+
+VecE : Enum
+VecE = "nil" :: "cons" :: []
+
+VecT : Type
+VecT = Tag VecE
+
+nilT : VecT
+nilT = here
+
+consT : VecT
+consT = there here
+
+----------------------------------------------------------------------
+
+VecB : Type -> BranchesD Nat VecE
+VecB = \ A ->
+    End zero
+  , Arg Nat (\ m -> Arg A (\ _ -> Rec m (End (suc m))))
+  , tt
+
+Vec : Type -> Nat -> Type
+Vec = \ A -> \ n -> Fix VecE (VecB A) n
+
+nil : (A : Type) -> Vec A zero
+nil = \ _ -> init nilT refl
+
+cons : (A : Type) -> (n : Nat) -> (x : A) -> (xs : Vec A n) -> Vec A (suc n)
+cons = \ _ -> \ n -> \ x -> \ xs -> init consT (n , x , xs , refl)
 
 ----------------------------------------------------------------------

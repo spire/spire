@@ -26,7 +26,7 @@
   '("in") ;; keywords
   '(("\\<\\(Unit\\|Bool\\|List\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
     ("\\<\\(if\\|then\\|else\\|elimBool\\|elimList\\|El\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
-    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Rec\\)\\>" . 'font-lock-constant-face) ;; constants
+    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\)\\>" . 'font-lock-constant-face) ;; constants
     )
   '("\\.spire$") ;; file extension
   (list 'spire-bind-keys) ;; other functions to call
