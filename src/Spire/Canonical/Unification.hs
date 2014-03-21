@@ -57,16 +57,22 @@ value2Tm v = case v of
   VUnit -> return $ C Unit
   VTT   -> return $ C Tt
 
-  VEq _ _ _ _ -> unsupported
-  VString     -> unsupported
-  VQuotes _   -> unsupported
-  VList _     -> unsupported
-  VTag _      -> unsupported
-  VNil        -> unsupported
-  VRefl       -> unsupported
-  VHere       -> unsupported
-  VThere _    -> unsupported
-  VCons _ _   -> unsupported
+  VEq  _ _ _ _ -> unsupported
+  VFix _ _ _ _ -> unsupported
+  VString      -> unsupported
+  VQuotes _    -> unsupported
+  VList _      -> unsupported
+  VDesc _      -> unsupported
+  VTag _       -> unsupported
+  VNil         -> unsupported
+  VRefl        -> unsupported
+  VHere        -> unsupported
+  VThere _     -> unsupported
+  VEnd   _     -> unsupported
+  VCons _ _    -> unsupported
+  VRec  _ _    -> unsupported
+  VInit _ _    -> unsupported
+  VArg  _ _    -> unsupported
   where
     nom2Head x = if isMV x
                  then M (translate x)
@@ -79,6 +85,7 @@ value2Tm v = case v of
       EElimBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
 
       EBranches _       -> unsupported
+      EEl _ _ _         -> unsupported
       EElimList _ _ _ _ -> unsupported
       ESubst _ _ _ _ _  -> unsupported
       ECase  _ _ _      -> unsupported

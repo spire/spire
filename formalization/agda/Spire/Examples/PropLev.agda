@@ -169,11 +169,11 @@ uncurryHyps (Arg A B) X P cn pf i (a , xs) ihs =
 
 ----------------------------------------------------------------------
 
-data μ {I : Set} (E : Enum) (cs : BranchesD I E) : ISet I where
-  init : (t : Tag E) → UncurriedEl (caseD cs t) (μ E cs)
+data μ {I : Set} (E : Enum) (Ds : BranchesD I E) : ISet I where
+  init : (t : Tag E) → UncurriedEl (caseD Ds t) (μ E Ds)
 
-inj : {I : Set} (E : Enum) (cs : BranchesD I E) (t : Tag E) → CurriedEl (caseD cs t) (μ E cs)
-inj E cs t = curryEl (caseD cs t) (μ E cs) (init t)
+inj : {I : Set} (E : Enum) (Ds : BranchesD I E) (t : Tag E) → CurriedEl (caseD Ds t) (μ E Ds)
+inj E Ds t = curryEl (caseD Ds t) (μ E Ds) (init t)
 
 ----------------------------------------------------------------------
 

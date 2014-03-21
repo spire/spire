@@ -28,13 +28,17 @@ type SpireM' = ReaderT [Nom] (WriterT MVarDecls SpireM)
 
 elabC :: Syntax -> SpireM' Check
 
-elabC SNil         = return CNil
-elabC SRefl        = return CRefl
-elabC SHere        = return CHere
-elabC (SThere t)   = CThere <$> elabC  t
-elabC (SCons a as) = CCons  <$> elabC  a <*> elabC as
-elabC (SPair a b)  = CPair  <$> elabC  a <*> elabC b
-elabC (SLam b)     = CLam   <$> elabBC b
+elabC SNil           = return CNil
+elabC SRefl          = return CRefl
+elabC SHere          = return CHere
+elabC (SThere t)     = CThere <$> elabC  t
+elabC (SEnd   i)     = CEnd   <$> elabC  i
+elabC (SRec   i  _D) = CRec   <$> elabC  i  <*> elabC  _D
+elabC (SInit  t  xs) = CInit  <$> elabC  t  <*> elabC  xs
+elabC (SArg   _A _B) = CArg   <$> elabC  _A <*> elabBC _B
+elabC (SCons  a as)  = CCons  <$> elabC  a  <*> elabC  as
+elabC (SPair  a b)   = CPair  <$> elabC  a  <*> elabC  b
+elabC (SLam   b)     = CLam   <$> elabBC b
 
 elabC x@STT                 = elabIC x
 elabC x@STrue               = elabIC x
@@ -45,10 +49,13 @@ elabC x@SString             = elabIC x
 elabC x@SType               = elabIC x
 elabC x@(SQuotes _)         = elabIC x
 elabC x@(SList _)           = elabIC x
+elabC x@(SDesc _)           = elabIC x
 elabC x@(STag _)            = elabIC x
 elabC x@(SPi _ _)           = elabIC x
 elabC x@(SSg _ _)           = elabIC x
 elabC x@(SBranches _ _)     = elabIC x
+elabC x@(SEl _ _ _)         = elabIC x
+elabC x@(SFix _ _ _)        = elabIC x
 elabC x@(SEq _ _)           = elabIC x
 elabC x@(SVar _)            = elabIC x
 elabC x@(SProj1 _)          = elabIC x
@@ -107,11 +114,14 @@ elabI (SCase _P cs t) =
   ICase <$> elabBC _P <*> elabC cs <*> elabI t
 
 elabI (SList _A)        = IList     <$> elabC _A
+elabI (SDesc _I)        = IDesc     <$> elabC _I
 elabI (STag _E)         = ITag      <$> elabC _E
 elabI (SPi _A _B)       = IPi       <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B)       = ISg       <$> elabC _A <*> elabBC _B
 elabI (SEq a b)         = IEq       <$> elabI a  <*> elabI b
 elabI (SBranches _E _P) = IBranches <$> elabC _E <*> elabBC _P
+elabI (SEl _D _X i)     = IEl       <$> elabI _D <*> elabBC _X  <*> elabC i
+elabI (SFix _E _Ds i)   = IFix      <$> elabC _E <*> elabC  _Ds <*> elabI i
 
 -- Once we have meta variables, we should always be able to infer a type for 
 -- a lambda, by inserting a meta variable to type the domain of the lambda,
@@ -122,6 +132,10 @@ elabI x@SNil        = failUnannotated x
 elabI x@SRefl       = failUnannotated x
 elabI x@SHere       = failUnannotated x
 elabI x@(SThere _)  = failUnannotated x
+elabI x@(SEnd   _)  = failUnannotated x
+elabI x@(SRec  _ _) = failUnannotated x
+elabI x@(SInit _ _) = failUnannotated x
+elabI x@(SArg  _ _) = failUnannotated x
 elabI x@(SCons _ _) = failUnannotated x
 elabI x@(SPair _ _) = failUnannotated x
 elabI x@(SLam _)    = failUnannotated x

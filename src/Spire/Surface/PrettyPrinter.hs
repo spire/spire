@@ -36,13 +36,14 @@ prettyPrintError a  = prettyPrint a ++ "\x1b[35m(" ++ show a ++ ")\x1b[0m"
 ----------------------------------------------------------------------
 
 -- Lift standard pretty printing ops to a monad.
-sepM , fsepM , hsepM , vcatM , listM :: (Functor m , Monad m) =>
-                                        [m Doc] -> m Doc
+sepM , fsepM , hsepM , vcatM , listM, alignSepM ::
+  (Functor m , Monad m) => [m Doc] -> m Doc
 sepM  xs = PP.sep     <$> sequence xs
 fsepM xs = PP.fillSep <$> sequence xs
 hsepM xs = PP.hsep    <$> sequence xs
 vcatM xs = PP.vcat    <$> sequence xs
 listM xs = PP.list    <$> sequence xs
+alignSepM = alignM . sepM
 
 nestM , indentM :: Functor m => Int -> m Doc -> m Doc
 nestM   n = fmap $ PP.nest n
@@ -117,6 +118,8 @@ dEq   o x y =  ww o x <+> dt "==" <+> w o y
 dLam o bnd_b = do
   (nm , b) <- unbind bnd_b
   fsepM [ dt "\\" <+> pushName nm (d nm) <+> dt "->" , pushName nm (w o b) ]
+dLamArg o bnd_b = parensM (dLam o bnd_b)
+
 dPi o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
   fsepM [ binding o nm _A <+> dt "->" , pushName nm (w o _B) ]
@@ -124,23 +127,58 @@ dSg o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
   binding o nm _A <+> dt "*" <+> pushName nm (d _B)
 
-dIf o c t f = alignM . sepM $ [ dt "if" <+> w o c
-                              , dt "then" <+> w o t
-                              , dt "else" <+> w o f ]
+dIf o c t f = alignSepM
+  [ dt "if" <+> w o c
+  , dt "then" <+> w o t
+  , dt "else" <+> w o f
+  ]
 
 dThere o t   = dt "there" <+> ww o t
+dEnd   o i   = dt "End"   <+> ww o i
 dList  o _A  = dt "List"  <+> ww o _A
+dDesc  o _I  = dt "Desc"  <+> ww o _I
 dTag   o _E  = dt "Tag"   <+> ww o _E
 dProj1 o ab  = dt "proj1" <+> ww o ab
 dProj2 o ab  = dt "proj2" <+> ww o ab
 
 dApp o f a = alignM $ w o f </> ww o a
-dAnn _ a _A = parensM . alignM . sepM $ [ d a , dt ":" <+> d _A ]
+dAnn _ a _A = parensM . alignSepM $ [ d a , dt ":" <+> d _A ]
 
-dElimBool o bnd t f bool =
-  dt "elimBool" <+> (alignM . sepM)
-    [ parensM $ dLam o bnd
-      , ww o t , ww o f , ww o bool ]
+dRec o i _D =
+  dt "Rec" <+> alignSepM
+    [ ww o i , ww o _D ]
+
+dInit o t xs =
+  dt "init" <+> alignSepM
+    [ ww o t , ww o xs ]
+
+dFix o _E _Ds i =
+  dt "Fix" <+> alignSepM
+    [ ww o _E , ww o _Ds , ww o i ]
+
+dArg o _A _B =
+  dt "Arg" <+> alignSepM
+    [ ww o _A , dLamArg o _B ]
+
+dBranches o _E _P =
+  dt "Branches" <+> alignSepM
+    [ ww o _E , dLamArg o _P ]
+
+dEl o _D _X i =
+  dt "El" <+> alignSepM
+    [ ww o _D , dLamArg o _X , ww o i ]
+
+dCase o _P cs t =
+  dt "case" <+> alignSepM
+    [ dLamArg o _P , ww o cs , ww o t ]
+
+dSubst o _P q p =
+  dt "subst" <+> alignSepM
+    [ dLamArg o _P , ww o q , ww o p ]
+
+dElimBool o _P t f bool =
+  dt "elimBool" <+> alignSepM
+    [ dLamArg o _P , ww o t , ww o f , ww o bool ]
 
 ----------------------------------------------------------------------
 
@@ -159,15 +197,22 @@ instance Display Syntax where
     SType   -> dType
 
     SThere t   -> dThere s t
+    SEnd   i   -> dEnd   s i
     SList _A   -> dList  s _A
+    SDesc _I   -> dDesc  s _I
     STag  _E   -> dTag   s _E
     SCons a as -> dCons  s a as
     SPair a b  -> dPair  s a b
     SLam  b    -> dLam s b
 
-    SPi       _A _B -> dPi s _A _B
-    SSg       _A _B -> dSg s _A _B
-    SBranches _E _P -> error "Branches not supported"
+    SRec      i  _D    -> dRec      s i  _D
+    SInit     t  xs    -> dInit     s t  xs
+    SFix      _E _Ds i -> dFix      s _E _Ds i
+    SPi       _A _B    -> dPi       s _A _B
+    SSg       _A _B    -> dSg       s _A _B
+    SArg      _A _B    -> dArg      s _A _B
+    SBranches _E _P    -> dBranches s _E _P
+    SEl       _D _X i  -> dEl       s _D _X  i
 
     SEq a b   -> dEq s a b
 
@@ -179,10 +224,12 @@ instance Display Syntax where
     SProj2 ab -> dProj2 s ab
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
+
     SElimBool bnd t f bool -> dElimBool s bnd t f bool
-    SElimList _ _ _ _ -> error "elimList not supported"
-    SCase     _ _ _   -> error "case not supported"
-    SSubst    _ _ _   -> error "subst not supported"
+    SCase     _P cs t      -> dCase s _P cs t
+    SSubst    _P q  p      -> dSubst s _P q p
+
+    SElimList _ _ _ _      -> error "elimList not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -270,46 +317,61 @@ instance Precedence Syntax where
     SPi _ _             -> piLevel
     SSg _ _             -> sgLevel
     SIf _ _ _           -> ifLevel
-    SProj1 _            -> projLevel
-    SProj2 _            -> projLevel
-    SThere _            -> thereLevel
-    STag   _            -> tagLevel
-    SList _             -> listLevel
-    SBranches _ _       -> branchesLevel
     SApp _ _            -> appLevel
     SAnn _ _            -> annLevel
-    SElimBool _ _ _ _   -> elimBoolLevel
-    SElimList _ _ _ _   -> elimListLevel
-    SCase _ _ _         -> caseLevel
-    SSubst _ _ _        -> substLevel
 
-    STT               -> atomicLevel
-    STrue             -> atomicLevel
-    SFalse            -> atomicLevel
-    SNil              -> atomicLevel
-    SRefl             -> atomicLevel
-    SHere             -> atomicLevel
-    SUnit             -> atomicLevel
-    SBool             -> atomicLevel
-    SString           -> atomicLevel
-    SType             -> atomicLevel
-    SWildCard         -> atomicLevel
-    SVar _            -> atomicLevel
-    SQuotes _         -> atomicLevel
+    SProj1 _            -> initialLevel
+    SProj2 _            -> initialLevel
+    SDesc  _            -> initialLevel
+    STag   _            -> initialLevel
+    SList  _            -> initialLevel
+    SThere _            -> initialLevel
+    SEnd   _            -> initialLevel
+    SRec   _ _          -> initialLevel
+    SInit  _ _          -> initialLevel
+    SArg   _ _          -> initialLevel
+    SEl    _ _ _        -> initialLevel
+    SFix   _ _ _        -> initialLevel
+    SBranches _ _       -> initialLevel
+    SElimBool _ _ _ _   -> initialLevel
+    SElimList _ _ _ _   -> initialLevel
+    SCase _ _ _         -> initialLevel
+    SSubst _ _ _        -> initialLevel
+
+    STT                 -> atomicLevel
+    STrue               -> atomicLevel
+    SFalse              -> atomicLevel
+    SNil                -> atomicLevel
+    SRefl               -> atomicLevel
+    SHere               -> atomicLevel
+    SUnit               -> atomicLevel
+    SBool               -> atomicLevel
+    SString             -> atomicLevel
+    SType               -> atomicLevel
+    SWildCard           -> atomicLevel
+    SVar _              -> atomicLevel
+    SQuotes _           -> atomicLevel
 
   assoc s = case s of
-    SPi   _ _         -> piAssoc
-    SSg   _ _         -> sgAssoc
-    SApp  _ _         -> appAssoc
-    SPair _ _         -> pairAssoc
-    SCons _ _         -> consAssoc
-    SEq   _ _         -> AssocNone
+    SPi   _ _            -> piAssoc
+    SSg   _ _            -> sgAssoc
+    SApp  _ _            -> appAssoc
+    SPair _ _            -> pairAssoc
+    SCons _ _            -> consAssoc
+    SEq   _ _            -> AssocNone
 
-    SBranches   _ _       -> AssocNone
+    SInit       _ _      -> AssocNone
+    SRec        _ _      -> AssocNone
+    SArg        _ _      -> AssocNone
+    SBranches   _ _      -> AssocNone
+    SEl         _ _ _    -> AssocNone
+    SFix        _ _ _    -> AssocNone
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone
     SThere _             -> AssocNone
-    STag _               -> AssocNone
+    SEnd   _             -> AssocNone
+    STag   _             -> AssocNone
+    SDesc _              -> AssocNone
     SList _              -> AssocNone
     SProj1 _             -> AssocNone
     SProj2 _             -> AssocNone
@@ -368,29 +430,20 @@ class Precedence t where
 --
 -- Compare with table in used in Spire.Surface.Parsing.
 atomicLevel    = -1
+initialLevel   = 0
+
 annLevel       = atomicLevel
-appLevel       = 0
+appLevel       = initialLevel
 appAssoc       = AssocLeft
-projLevel      = 0
-listLevel      = projLevel
-tagLevel       = projLevel
-thereLevel     = projLevel
-fixLevel       = projLevel
-inLevel        = projLevel
-branchesLevel  = projLevel
 consLevel      = 2
+consAssoc      = AssocRight
 pairLevel      = 3
 pairAssoc      = AssocRight
-consAssoc      = AssocRight
 sgLevel        = 4
 sgAssoc        = AssocRight
 piLevel        = 5
 piAssoc        = AssocRight
 ifLevel        = 6
-elimBoolLevel  = ifLevel
-elimListLevel  = ifLevel
-caseLevel      = ifLevel
-substLevel     = ifLevel
 lamLevel       = 7
 eqLevel        = 8
 defsLevel      = 9

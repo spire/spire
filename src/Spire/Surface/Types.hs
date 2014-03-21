@@ -16,16 +16,20 @@ import Unbound.LocallyNameless
 data Syntax =
     STT | STrue | SFalse | SNil | SRefl | SHere
   | SQuotes String
-  | SThere Syntax
+  | SThere Syntax | SEnd Syntax
+  | SRec Syntax Syntax | SInit Syntax Syntax
+  | SArg Syntax (Bind Nom Syntax)
   | SCons Syntax Syntax
   | SPair Syntax Syntax
   | SLam (Bind Nom Syntax)
 
   | SUnit | SBool | SString | SType
-  | SList Syntax | STag Syntax
+  | SList Syntax | STag Syntax | SDesc Syntax
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
   | SBranches Syntax (Bind Nom Syntax)
+  | SEl Syntax (Bind Nom Syntax) Syntax
+  | SFix Syntax Syntax Syntax
   | SEq Syntax Syntax
 
   | SWildCard
@@ -55,7 +59,7 @@ type SProg = [SDef]
 ----------------------------------------------------------------------
 
 sVar :: String -> Syntax
-sVar nm = SVar (s2n nm)
+sVar = SVar . s2n
 
 sLam :: String -> Syntax -> Syntax
 sLam nm x = SLam $ bind (s2n nm) x

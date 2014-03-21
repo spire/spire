@@ -6,6 +6,7 @@
   , FlexibleContexts
   , UndecidableInstances
   , GeneralizedNewtypeDeriving
+  , GADTs
   #-}
 
 module Spire.Expression.Types where
@@ -19,7 +20,9 @@ data Check =
     CLam (Bind Nom Check)
   | CPair Check Check
   | CNil | CRefl | CHere
-  | CThere Check
+  | CThere Check | CEnd Check
+  | CRec Check Check | CInit Check Check
+  | CArg Check (Bind Nom Check)
   | CCons Check Check
   | Infer Infer
   deriving Show
@@ -29,10 +32,12 @@ data Infer =
   | IQuotes String
 
   | IUnit | IBool | IString | IType
-  | IList Check | ITag Check
+  | IList Check | ITag Check | IDesc Check
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
   | IBranches Check (Bind Nom Check)
+  | IEl Infer (Bind Nom Check) Check
+  | IFix Check Check Infer
   | IEq Infer Infer
 
   | IVar Nom

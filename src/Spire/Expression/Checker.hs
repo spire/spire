@@ -371,6 +371,47 @@ check' t@(CThere _) _T = throwError $
   "attempt to check tag " ++ prettyPrint t ++
   " at type " ++ prettyPrint _T
 
+check' (CEnd i) (VDesc _I) = do
+  i' <- check i _I
+  return $ VEnd i'
+
+check' _D@(CEnd _) _A = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check description " ++ prettyPrint _D ++
+  " at type " ++ prettyPrint _A
+
+check' (CRec i _D) (VDesc _I) = do
+  i'  <- check i _I
+  _D' <- check _D (VDesc _I)
+  return $ VRec i' _D'
+
+check' _D@(CRec _ _) _A = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check description " ++ prettyPrint _D ++
+  " at type " ++ prettyPrint _A
+
+check' (CArg _A _B) (VDesc _I) = do
+  _A' <- check _A VType
+  _B' <- checkExtend _A' _B (VDesc _I)
+  return $ VArg _A' _B'
+
+check' _D@(CArg _ _) _A = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check description " ++ prettyPrint _D ++
+  " at type " ++ prettyPrint _A
+
+check' (CInit t xs) (VFix _I _E _Ds i) = do
+  t'  <- check t (VTag _E)
+  _D' <- t' `elim` eCaseD _I _E _Ds
+  let _X = vBind (\j -> VFix _I _E _Ds j)
+  xs' <- check xs =<< _D' `elim` EEl _I _X i
+  return $ VInit t' xs'
+
+check' x@(CInit _ _) _A = throwError $
+  "Ill-typed!:\n" ++
+  "attempt to check fixpoint " ++ prettyPrint x ++
+  " at type " ++ prettyPrint _A
+
 check' (Infer a) _B = do
   (a' , _A) <- infer a
   ctx <- asks ctx
@@ -396,6 +437,10 @@ infer' (IList _A) = do
   _A' <- check _A VType
   return (VList _A' , VType)
 
+infer' (IDesc _I) = do
+  _I' <- check _I VType
+  return (VDesc _I' , VType)
+
 infer' (ITag _E) = do
   _E' <- check _E vEnum
   return (VTag _E' , VType)
@@ -414,6 +459,25 @@ infer' (IEq a b) = do
   (a' , _A') <- infer a
   (b' , _B') <- infer b
   return (VEq _A' a' _B' b' , VType)
+
+infer' (IFix _E _Ds i) = do
+  (i' , _I') <- infer i
+  _E'  <- check _E vEnum
+  _Ds' <- check _Ds =<< _E' `elim` eBranchesD _I'
+  return (VFix _I' _E' _Ds' i' , VType)
+
+infer' (IEl _D _X i) = do
+  (_D' , _A) <- infer _D
+  case _A of
+    VDesc _I' -> do
+      _X' <- checkExtend _I' _X VType
+      i'  <- check i _I'
+      _ElD'  <- _D' `elim` EEl _I' _X' i'
+      return (_ElD' , VType)
+    _ -> throwError $
+      "Ill-typed, interpreation of non-description!\n" ++
+      "Interpreted value:\n" ++ show _D ++
+      "\nInterpreted type:\n" ++ show _A
 
 infer' (IVar nm) = lookupValAndType nm
 

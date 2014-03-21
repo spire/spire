@@ -1,0 +1,49 @@
+
+----------------------------------------------------------------------
+
+Enum : Type
+Enum = List String
+
+BranchesD : Type -> Enum -> Type
+BranchesD = \ I -> \ E -> Branches E (\ _ -> Desc I)
+
+----------------------------------------------------------------------
+
+NatE : Enum
+NatE = "zero" :: "suc" :: []
+
+NatT : Type
+NatT = Tag NatE
+
+zeroT : NatT
+zeroT = here
+
+sucT : NatT
+sucT = there here
+
+----------------------------------------------------------------------
+
+NatB : BranchesD Unit NatE
+NatB = End tt , Rec tt (End tt) , tt
+
+Nat : Type
+Nat = Fix NatE NatB tt
+
+zero : Nat
+zero = init zeroT refl
+
+suc : Nat -> Nat
+suc = \ n -> init sucT (n , refl)
+
+----------------------------------------------------------------------
+
+one : Nat
+one = suc zero
+
+two : Nat
+two = suc one
+
+three : Nat
+three = suc two
+
+----------------------------------------------------------------------

@@ -1,7 +1,7 @@
 ;;; spire-mode.el --- Spire major mode
 
 ;; URL: https://github.com/spire/spire/blob/master/editor/emacs/spire-mode.el
-;; Copyright (C) 2013, Larry Diehl
+;; Copyright (C) 2013-2014, Larry Diehl
 ;; Author: Larry Diehl
 ;; License: https://github.com/spire/spire/blob/master/LICENSE
 ;; Keywords: extensions
@@ -25,8 +25,8 @@
   '("--") ;; comments
   '("in") ;; keywords
   '(("\\<\\(Unit\\|Bool\\|List\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
-    ("\\<\\(if\\|then\\|else\\|elimBool\\|elimList\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
-    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|here\\|there\\|suc\\|Done\\|Rec\\)\\>" . 'font-lock-constant-face) ;; constants
+    ("\\<\\(if\\|then\\|else\\|elimBool\\|elimList\\|El\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
+    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Rec\\)\\>" . 'font-lock-constant-face) ;; constants
     )
   '("\\.spire$") ;; file extension
   (list 'spire-bind-keys) ;; other functions to call

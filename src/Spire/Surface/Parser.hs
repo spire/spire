@@ -30,9 +30,9 @@ parseProgram = parse (parseSpaces >> parseProg)
 formatParseError :: ParseError -> String
 formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
   where
-  file = sourceName . errorPos $ error
-  line = sourceLine . errorPos $ error
-  col = sourceColumn . errorPos $ error
+  file = sourceName   . errorPos $ error
+  line = sourceLine   . errorPos $ error
+  col  = sourceColumn . errorPos $ error
   -- Copied from 'Show' instance for 'ParseError':
   -- http://hackage.haskell.org/packages/archive/parsec/latest/doc/html/src/Text-Parsec-Error.html#ParseError
   msg = showErrorMessages "or" "unknown parse error"
@@ -43,10 +43,17 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
+  "Unit", "Bool", "String", "Type",
+  "List", "Tag", "Desc",
+  "Branches", "El", "Fix",
+
+  "tt", "true", "false",
+  "refl", "here", "there", "init",
+  "End", "Rec", "Arg",
+
   "if", "then", "else",
-  "Unit", "Bool", "List", "Tag", "String", "Type", "Branches",
-  "tt", "true", "false", "refl", "here", "there",
-  "elimBool", "elimList", "subst", "case",
+  "elimBool", "elimList",
+  "subst", "case",
   "proj1", "proj2",
   wildcard
   ]
@@ -103,13 +110,23 @@ parseChoice :: ParserM Syntax
 parseChoice = try $ choice [
     parseAtom
   , parseIf
-  , parseElimBool
+  , parseList
+  , parseDesc
+  , parseTag
+  , parseThere
+  , parseEnd
   , parseProj1
   , parseProj2
-  , parseThere
-  , parseList
-  , parseTag
+  , parseRec
+  , parseInit
+  , parseFix
   , parseLam
+  , parseArg
+  , parseBranches
+  , parseEl
+  , parseCase
+  , parseSubst
+  , parseElimBool
   ]
 
 parseAtom = choice
@@ -166,14 +183,6 @@ parseIf = do
   c2 <- parseSyntax
   return $ SIf b c1 c2
 
-parseElimBool = do
-  parseKeyword "elimBool"
-  SLam m <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
-  pt <- parseAtom
-  pf <- parseAtom
-  b <- parseAtom
-  return $ SElimBool m pt pf b
-
 parseProj1 = try $ do
   parseKeyword "proj1"
   ab <- parseAtom
@@ -189,15 +198,51 @@ parseThere = try $ do
   t <- parseAtom
   return $ SThere t
 
+parseEnd = try $ do
+  parseKeyword "End"
+  i <- parseAtom
+  return $ SEnd i
+
 parseList = try $ do
   parseKeyword "List"
   _A <- parseAtom
   return $ SList _A
 
+parseDesc = try $ do
+  parseKeyword "Desc"
+  _I <- parseAtom
+  return $ SDesc _I
+
 parseTag = try $ do
   parseKeyword "Tag"
   _E <- parseAtom
   return $ STag _E
+
+parseRec = try $ do
+  parseKeyword "Rec"
+  i  <- parseAtom
+  _D <- parseAtom
+  return $ SRec i _D
+
+parseInit = try $ do
+  parseKeyword "init"
+  t  <- parseAtom
+  xs <- parseAtom
+  return $ SInit t xs
+
+parseFix = try $ do
+  parseKeyword "Fix"
+  _E  <- parseAtom
+  _Ds <- parseAtom
+  i   <- parseAtom
+  return $ SFix _E _Ds i
+
+parseAnn = parseParens $ do
+  --    binding   or  annotation
+  a <- parseVar <|> parseSyntax
+  parseOp ":"
+  b <- parseSyntax
+  return $ SAnn a b
 
 -- \ x -> e
 -- \ _ -> e
@@ -208,12 +253,50 @@ parseLam = try $ do
   tm <- parseSyntax
   return $ sLam l tm
 
-parseAnn = parseParens $ do
-  --    binding   or  annotation
-  a <- parseVar <|> parseSyntax
-  parseOp ":"
-  b <- parseSyntax
-  return $ SAnn a b
+parseLamArg = do
+  SLam _P <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
+  return _P
+
+parseArg = do
+  parseKeyword "Arg"
+  _A <- parseAtom
+  _B <- parseLamArg
+  return $ SArg _A _B
+
+parseBranches = do
+  parseKeyword "Branches"
+  _E <- parseAtom
+  _P <- parseLamArg
+  return $ SBranches _E _P
+
+parseEl = do
+  parseKeyword "El"
+  _D <- parseAtom
+  _X <- parseLamArg
+  i  <- parseAtom
+  return $ SEl _D _X i
+
+parseCase = do
+  parseKeyword "case"
+  _P <- parseLamArg
+  cs <- parseAtom
+  t  <- parseAtom
+  return $ SCase _P cs t
+
+parseSubst = do
+  parseKeyword "subst"
+  _P <- parseLamArg
+  q  <- parseAtom
+  p  <- parseAtom
+  return $ SSubst _P q p
+
+parseElimBool = do
+  parseKeyword "elimBool"
+  _P <- parseLamArg
+  pt <- parseAtom
+  pf <- parseAtom
+  b  <- parseAtom
+  return $ SElimBool _P pt pf b
 
 ----------------------------------------------------------------------
 

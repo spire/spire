@@ -30,23 +30,26 @@ type NomType = (Nom , Embed Type)
 
 data Value =
     VUnit | VBool | VString | VType
-  | VList Value | VTag Value
+  | VList Value | VTag Value | VDesc Value
 
-  | VPi       Value (Bind Nom Value)
-  | VSg       Value (Bind Nom Value)
+  | VPi  Value (Bind Nom Value)
+  | VSg  Value (Bind Nom Value)
 
-  | VEq Value Value Value Value
+  | VFix Value Value Value Value
+  | VEq  Value Value Value Value
 
   | VTT | VTrue | VFalse | VNil | VRefl | VHere
-  | VThere Value
+  | VThere Value | VEnd Value
 
-  | VQuotes String
-
+  | VRec Value Value | VInit Value Value
   | VCons Value Value
   | VPair Value Value
 
+  | VArg Value (Bind Nom Value)
+
   | VLam (Bind Nom Value)
 
+  | VQuotes String
   | VNeut Nom Spine
   deriving Show
 
@@ -55,6 +58,7 @@ data Elim =
   | EProj1 | EProj2
 
   | EBranches (Bind Nom Value)
+  | EEl Value (Bind Nom Value) Value
 
   | EElimBool (Bind Nom Value) Value Value
   | EElimList Value (Bind Nom Value) Value (Bind (Nom , Nom , Nom) Value)
@@ -136,6 +140,9 @@ wildcard = "_"
 isWildcard :: Nom -> Bool
 isWildcard nm = name2String nm == wildcard
 
+vName :: Nom
+vName = s2n "x"
+
 ----------------------------------------------------------------------
 
 freshMV :: Fresh m => String -> m Nom
@@ -152,6 +159,9 @@ mv2String nm = case name2String nm of
 
 ----------------------------------------------------------------------
 
+vBind :: (Value -> Value) -> Bind Nom Value
+vBind f = bind vName (f (vVar vName))
+
 vVar :: Nom -> Value
 vVar nm = VNeut nm Id
 
@@ -160,6 +170,14 @@ vProd _A _B = VSg _A (bind (s2n wildcard) _B)
 
 vEnum :: Value
 vEnum = VList VString
+
+----------------------------------------------------------------------
+
+eBranchesD :: Type -> Elim
+eBranchesD _I = EBranches (bind (s2n wildcard) (VDesc _I))
+
+eCaseD :: Type -> Value -> Value -> Elim
+eCaseD _I _E _Ds = ECase _E (bind (s2n wildcard) (VDesc _I)) _Ds
 
 eIf :: Value -> Value -> Value -> Elim
 eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf

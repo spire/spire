@@ -36,15 +36,22 @@ sub b x = do
   (nm , f) <- unbind b
   substM nm x f
 
+elimB :: Bind Nom Value -> Elim -> SpireM (Bind Nom Value)
+elimB bnd_f g = do
+  (nm , f) <- unbind bnd_f
+  bind nm <$> elim f g
+
 subCompose :: Bind Nom Value -> (Value -> Value) -> SpireM (Bind Nom Value)
-subCompose b x = do
-  (nm , f) <- unbind b
-  bind nm <$> substM nm (x (vVar nm)) f
+subCompose bnd_f g = do
+  (nm , f) <- unbind bnd_f
+  bind nm <$> substM nm (g (vVar nm)) f
 
 sub3 :: Bind (Nom , Nom , Nom) Value -> (Value , Value , Value) -> SpireM Value
 sub3 b (x1 , x2 , x3) = do
   ((nm1 , nm2 , nm3) , f) <- unbind b
   substsM [(nm1 , x1) , (nm2 , x2) , (nm3 , x3)] f
+
+----------------------------------------------------------------------
 
 elim :: Value -> Elim -> SpireM Value
 elim (VNeut nm fs) f        = return $ VNeut nm (Pipe fs f)
@@ -78,9 +85,18 @@ elim VNil            (EBranches _P) =
   return VUnit
 elim (VCons l _E)    (EBranches _P) = do
   _P' <- _P `subCompose` VThere
-  vProd <$> (_P `sub` VHere) <*> (_E `elim` EBranches _P')
-elim _             (EBranches _P) =
+  vProd <$> _P `sub` VHere <*> _E `elim` EBranches _P'
+elim _               (EBranches _P) =
   throwError "Ill-typed evaluation of Branches"
+
+elim (VEnd j)        (EEl _I _X i) =
+  return $ VEq _I j _I i
+elim (VRec j _D)     (EEl _I _X i) =
+  vProd <$> _X `sub` j <*> _D `elim` EEl _I _X i
+elim (VArg _A _B)    (EEl _I _X i) =
+  VSg _A <$> _B `elimB` EEl _I _X i
+elim _               (EEl _I _X i) =
+  throwError "Ill-typed evaluation of El"
 
 elim VHere         (ECase (VCons l _E) _P (VPair c cs)) =
   return c
