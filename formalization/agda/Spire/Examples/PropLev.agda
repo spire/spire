@@ -177,13 +177,13 @@ inj E Ds t = curryEl (caseD Ds t) (μ E Ds) (init t)
 
 ----------------------------------------------------------------------
 
-hyps : {I : Set} (D : Desc I) (X : I → Set)
+prove : {I : Set} (D : Desc I) (X : I → Set)
   (P : (i : I) → X i → Set)
   (α : (i : I) (x : X i) → P i x)
   (i : I) (xs : El D X i) → Hyps D X P i xs
-hyps (End j) X P α i xs = tt
-hyps (Rec j D) X P α i x,xs = α j (proj₁ x,xs) , hyps D X P α i (proj₂ x,xs)
-hyps (Arg A B) X P α i a,xs = hyps (B (proj₁ a,xs)) X P α i (proj₂ a,xs)
+prove (End j) X P α i q = tt
+prove (Rec j D) X P α i (x , xs) = α j x , prove D X P α i xs
+prove (Arg A B) X P α i (a , xs) = prove (B a) X P α i xs
 
 {-# NO_TERMINATION_CHECK #-}
 ind : {I : Set} (E : Enum) (Ds : BranchesD I E)
@@ -193,7 +193,7 @@ ind : {I : Set} (E : Enum) (Ds : BranchesD I E)
   (x : μ E Ds i)
   → P i x
 ind E Ds P α i (init t xs) = α t i xs $
-  hyps (caseD Ds t) (μ E Ds) P (ind E Ds P α) i xs
+  prove (caseD Ds t) (μ E Ds) P (ind E Ds P α) i xs
 
 ----------------------------------------------------------------------
 
