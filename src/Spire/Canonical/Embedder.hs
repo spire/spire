@@ -56,20 +56,20 @@ embedN nm (Pipe fs EProj2)   = IProj2 <$> embedN nm fs
 embedN nm (Pipe fs (EBranches _P)) =
   IBranches <$> (Infer <$> embedN nm fs)
     <*> embedVB _P
-embedN nm (Pipe fs (EEl _E _X i)) =
+embedN nm (Pipe fs (EEl _I _X i)) =
   IEl <$> embedN nm fs
     <*> embedVB _X <*> embedV i
 
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   IElimBool <$> embedVB _P <*>
     embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
-embedN nm (Pipe fs (EElimList _A _P pn pc)) =
+embedN nm (Pipe fs (EElimList _P pn pc)) =
   IElimList <$> embedVB _P <*>
     embedV pn <*> embedVB pc <*> embedN nm fs
-embedN nm (Pipe fs (ESubst _A _P x y p)) =
+embedN nm (Pipe fs (ESubst _P p)) =
   ISubst <$> embedVB _P <*>
     embedN nm fs <*> embedV p
-embedN nm (Pipe fs (ECase _E _P cs)) =
+embedN nm (Pipe fs (ECase _P cs)) =
   ICase <$> embedVB _P <*>
     embedV cs <*> embedN nm fs
 

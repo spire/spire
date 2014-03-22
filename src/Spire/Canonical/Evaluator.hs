@@ -46,7 +46,7 @@ subCompose bnd_f g = do
   (nm , f) <- unbind bnd_f
   bind nm <$> substM nm (g (vVar nm)) f
 
-sub3 :: Bind (Nom , Nom , Nom) Value -> (Value , Value , Value) -> SpireM Value
+sub3 :: Bind Nom3 Value -> (Value , Value , Value) -> SpireM Value
 sub3 b (x1 , x2 , x3) = do
   ((nm1 , nm2 , nm3) , f) <- unbind b
   substsM [(nm1 , x1) , (nm2 , x2) , (nm3 , x3)] f
@@ -66,19 +66,17 @@ elim VTrue  (EElimBool _P pt _) = return pt
 elim VFalse (EElimBool _P _ pf) = return pf
 elim _      (EElimBool _P _  _) = throwError "Ill-typed evaluation of elimBool"
 
-elim VNil         (EElimList _A _P pn _)  =
+elim VNil         (EElimList _P pn _)  =
   return pn
-elim (VCons a as) (EElimList _A _P pn pc) = do
-  ih <- as `elim` EElimList _A _P pn pc
+elim (VCons a as) (EElimList _P pn pc) = do
+  ih <- as `elim` EElimList _P pn pc
   pc `sub3` (a , as , ih)
-elim _            (EElimList _A _P _ _)  =
+elim _            (EElimList _P _ _)  =
   throwError "Ill-typed evaluation of elimList"
 
-elim VRefl         (ESubst _A _P x y px) = do
-  unless (x == y) $
-    throwError "Ill-typed evaluation of subst"
+elim VRefl         (ESubst _P px) =
   return px
-elim _             (ESubst _A _P x y px) =
+elim _             (ESubst _P px) =
   throwError "Ill-typed evaluation of subst"
 
 elim VNil            (EBranches _P) =
@@ -98,12 +96,12 @@ elim (VArg _A _B)    (EEl _I _X i) =
 elim _               (EEl _I _X i) =
   throwError "Ill-typed evaluation of El"
 
-elim VHere         (ECase (VCons l _E) _P (VPair c cs)) =
+elim VHere         (ECase _P (VPair c cs)) =
   return c
-elim (VThere t)    (ECase (VCons l _E) _P (VPair c cs)) = do
+elim (VThere t)    (ECase _P (VPair c cs)) = do
   _P' <- _P `subCompose` VThere
-  t `elim` ECase _E _P' cs
-elim _             (ECase _E _P cs) =
+  t `elim` ECase _P' cs
+elim _             (ECase _P cs) =
   throwError "Ill-typed evaluation of case"
 
 elims :: Value -> Spine -> SpireM Value

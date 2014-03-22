@@ -25,8 +25,15 @@ import Spire.Options
 ----------------------------------------------------------------------
 
 type Type = Value
-type Nom = Name Value
+
+type Nom  = Name Value
+type Nom2 = (Nom , Nom)
+type Nom3 = (Nom , Nom , Nom)
+type Nom4 = (Nom , Nom , Nom , Nom)
+
 type NomType = (Nom , Embed Type)
+
+----------------------------------------------------------------------
 
 data Value =
     VUnit | VBool | VString | VType
@@ -61,10 +68,10 @@ data Elim =
   | EEl Value (Bind Nom Value) Value
 
   | EElimBool (Bind Nom Value) Value Value
-  | EElimList Value (Bind Nom Value) Value (Bind (Nom , Nom , Nom) Value)
+  | EElimList (Bind Nom Value) Value (Bind Nom3 Value)
 
-  | ESubst Value (Bind Nom Value) Value Value Value
-  | ECase  Value (Bind Nom Value) Value
+  | ESubst (Bind Nom Value) Value
+  | ECase  (Bind Nom Value) Value
   deriving Show
 
 type Spine = SpineFunctor Elim
@@ -176,8 +183,8 @@ vEnum = VList VString
 eBranchesD :: Type -> Elim
 eBranchesD _I = EBranches (bind (s2n wildcard) (VDesc _I))
 
-eCaseD :: Type -> Value -> Value -> Elim
-eCaseD _I _E _Ds = ECase _E (bind (s2n wildcard) (VDesc _I)) _Ds
+eCaseD :: Type -> Value -> Elim
+eCaseD _I _Ds = ECase (bind (s2n wildcard) (VDesc _I)) _Ds
 
 eIf :: Value -> Value -> Value -> Elim
 eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf

@@ -149,7 +149,7 @@ elabBC bnd = do
   a'       <- local (++ [nm]) $ elabC a
   return   $  bind nm a'
 
-elabBC3 :: Bind (Nom , Nom , Nom) Syntax -> SpireM' (Bind (Nom , Nom , Nom) Check)
+elabBC3 :: Bind Nom3 Syntax -> SpireM' (Bind Nom3 Check)
 elabBC3 bnd = do
   ((nm1 , nm2 , nm3) , a) <- unbind bnd
   -- Store names in binding order.

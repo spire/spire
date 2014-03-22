@@ -45,7 +45,7 @@ data Infer =
   | IProj2 Infer
   | IIf Check Infer Infer
   | IElimBool (Bind Nom Check) Check Check Check
-  | IElimList (Bind Nom Check) Check (Bind (Nom , Nom , Nom) Check) Infer
+  | IElimList (Bind Nom Check) Check (Bind Nom3 Check) Infer
   | ICase (Bind Nom Check) Check Infer
   | ISubst (Bind Nom Check) Infer Check
   | IApp Infer Check

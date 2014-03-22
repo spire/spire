@@ -402,7 +402,7 @@ check' _D@(CArg _ _) _A = throwError $
 
 check' (CInit t xs) (VFix _I _E _Ds i) = do
   t'  <- check t (VTag _E)
-  _D' <- t' `elim` eCaseD _I _E _Ds
+  _D' <- t' `elim` eCaseD _I _Ds
   let _X = vBind (\j -> VFix _I _E _Ds j)
   xs' <- check xs =<< _D' `elim` EEl _I _X i
   return $ VInit t' xs'
@@ -556,10 +556,10 @@ infer' (IElimList _P pnil pcons as) = do
   (as' , _As') <- infer as
   case _As' of
     VList _A' -> do
-      _P'    <- checkExtend (VList _A') _P VType
+      _P'    <- checkExtend _As' _P VType
       pnil'  <- check pnil =<< _P' `sub` VNil
       pcons' <- checkPCons _A' _P' pcons
-      pas'   <- as' `elim` EElimList _A' _P' pnil' pcons'
+      pas'   <- as' `elim` EElimList _P' pnil' pcons'
       _Pas'  <- _P' `sub` as'
       return (pas' , _Pas')
     _ -> throwError $
@@ -569,7 +569,7 @@ infer' (IElimList _P pnil pcons as) = do
 
   where
 
-  checkPCons :: Type -> Bind Nom Type -> Bind (Nom , Nom , Nom) Check -> SpireM (Bind (Nom , Nom , Nom) Value)
+  checkPCons :: Type -> Bind Nom Type -> Bind Nom3 Check -> SpireM (Bind Nom3 Value)
   checkPCons _A bnd_P bnd_pcons = do
     ((nm_a , nm_as , nm_pas) , pcons) <- unbind bnd_pcons
     _Pas    <- bnd_P `sub` vVar nm_as
@@ -588,7 +588,7 @@ infer' (ISubst _P q px) = do
           "using subst when equality domain type " ++ prettyPrint _A ++
           " does not match codomain type " ++ prettyPrint _B
       px' <- check px =<< _P' `sub` x
-      py  <- q' `elim` ESubst _A _P' x y px'
+      py  <- q' `elim` ESubst _P' px'
       _Py <- _P' `sub` y
       return (py , _Py)
 
@@ -607,10 +607,10 @@ infer' (ICase _P cs t) = do
   (t' , _T') <- infer t
   case _T' of
     VTag _E -> do
-      _P'   <- checkExtend (VTag _E) _P VType
+      _P'   <- checkExtend _T' _P VType
       _BsEP <- _E `elim` EBranches _P'
       cs'   <- check cs _BsEP
-      pt    <- t' `elim` ECase _E _P' cs'
+      pt    <- t' `elim` ECase _P' cs'
       _Pt   <- _P' `sub` t'
       return (pt , _Pt)
 

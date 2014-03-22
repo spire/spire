@@ -86,9 +86,9 @@ value2Tm v = case v of
 
       EBranches _       -> unsupported
       EEl _ _ _         -> unsupported
-      EElimList _ _ _ _ -> unsupported
-      ESubst _ _ _ _ _  -> unsupported
-      ECase  _ _ _      -> unsupported
+      EElimList _ _ _   -> unsupported
+      ESubst _ _        -> unsupported
+      ECase  _ _        -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e

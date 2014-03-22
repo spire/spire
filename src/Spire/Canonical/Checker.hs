@@ -135,7 +135,7 @@ checkV (VArg _A _B) _ =
 
 checkV (VInit t xs) (VFix _I _E _Ds i) = do
   checkV t (VTag _E)
-  _D <- t `elim` eCaseD _I _E _Ds
+  _D <- t `elim` eCaseD _I _Ds
   let _X = vBind (\j -> VFix _I _E _Ds j)
   checkV xs =<< _D `elim` EEl _I _X i
 checkV (VInit t xs) _ =
@@ -179,31 +179,35 @@ inferN nm (Pipe fs (EElimBool _P ptrue pfalse)) = do
   checkV b VBool
   _P `sub` b
 
-inferN nm (Pipe fs (EElimList _A _P pnil pcons)) = do
-  checkV _A VType
-  checkVExtend (VList _A) _P VType
-  checkV pnil =<< _P `sub` VNil
-  checkVPCons _A _P pcons
+inferN nm (Pipe fs (EElimList _P pnil pcons)) = do
   let as = VNeut nm fs
-  checkV as (VList _A)
-  _P `sub` as where
+  _ListA <- inferN nm fs
+  case _ListA of
+    VList _A -> do
+      checkVExtend _ListA _P VType
+      checkV pnil =<< _P `sub` VNil
+      checkVPCons _A _P pcons
+      _P `sub` as
+    _  -> throwError "Ill-typed!"
+  where
 
-  checkVPCons :: Type -> Bind Nom Type -> Bind (Nom , Nom , Nom) Value -> SpireM ()
+  checkVPCons :: Type -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
   checkVPCons _A bnd_P bnd_pcons = do
     ((nm_a , nm_as , nm_pas) , pcons) <- unbind bnd_pcons
     _Pas   <- bnd_P `sub` vVar nm_as
     _Pcons <- bnd_P `sub` VCons (vVar nm_a) (vVar nm_as)
     extendCtx nm_a _A $ extendCtx nm_as (VList _A) $ extendCtx nm_pas _Pas $ checkV pcons _Pcons
 
-inferN nm (Pipe fs (ESubst _A _P x y px)) = do
-  checkV _A VType
-  checkVExtend _A _P VType
-  checkV x _A
-  checkV y _A
-  let q = VNeut nm fs
-  checkV q (VEq _A x _A y)
-  checkV px =<< _P `sub` x
-  _P `sub` y
+inferN nm (Pipe fs (ESubst _P px)) = do
+  _Q <- inferN nm fs
+  case _Q of
+    VEq _A x _B y -> do
+      unless (_A == _B) $
+        throwError "Ill-typed!"
+      checkVExtend _A _P VType
+      checkV px =<< _P `sub` x
+      _P `sub` y
+    _  -> throwError "Ill-typed!"
 
 inferN nm (Pipe fs (EBranches _P)) = do
   let _E = VNeut nm fs
@@ -219,13 +223,16 @@ inferN nm (Pipe fs (EEl _I _X i)) = do
   checkV i _I
   return VType
 
-inferN nm (Pipe fs (ECase _E _P cs)) = do
-  checkV _E vEnum
-  checkVExtend (VTag _E) _P VType
-  checkV cs =<< _E `elim` EBranches _P
+inferN nm (Pipe fs (ECase _P cs)) = do
   let t = VNeut nm fs
-  checkV t (VTag _E)
-  _P `sub` t
+  _TagE <- inferN nm fs
+  case _TagE of
+    VTag _E -> do
+      checkVExtend _TagE _P VType
+      checkV cs =<< _E `elim` EBranches _P
+      checkV t _TagE
+      _P `sub` t
+    _  -> throwError "Ill-typed!"
 
 ----------------------------------------------------------------------
 
