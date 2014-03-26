@@ -169,11 +169,34 @@ uncurryHyps (Arg A B) X P cn pf i (a , xs) ihs =
 
 ----------------------------------------------------------------------
 
-data μ {I : Set} (E : Enum) (Ds : BranchesD I E) : ISet I where
-  init : (t : Tag E) → UncurriedEl (caseD Ds t) (μ E Ds)
+data μ {I : Set} (D : Desc I) : ISet I where
+  init : UncurriedEl D (μ D)
 
-inj : {I : Set} (E : Enum) (Ds : BranchesD I E) (t : Tag E) → CurriedEl (caseD Ds t) (μ E Ds)
-inj E Ds t = curryEl (caseD Ds t) (μ E Ds) (init t)
+Data : (I : Set) → Set
+Data I = Σ Enum (BranchesD I)
+
+TagR : ∀{I} → Data I → Set
+TagR (E , xs) = Tag E
+
+BranchesR : ∀{I} (R : Data I) (P : TagR R → Set) → Set
+BranchesR (E , xs) = Branches E
+
+CurriedBranchesR : ∀{I} (R : Data I) (P : TagR R → Set) (X : Set) → Set
+CurriedBranchesR (E , xs) = CurriedBranches E
+
+DescR : ∀{I} → Data I → Desc I
+DescR (E , xs) = Arg (Tag E) (caseD xs)
+
+caseR : ∀{I} (R : Data I) → TagR R → Desc I
+caseR (E , xs) = case (λ _ → Desc _) xs
+
+----------------------------------------------------------------------
+
+inj : {I : Set} (R : Data I)
+  → let D = DescR R
+  in CurriedEl D (μ D)
+inj R = let D = DescR R
+  in curryEl D (μ D) init
 
 ----------------------------------------------------------------------
 
@@ -186,51 +209,49 @@ prove (Rec j D) X P α i (x , xs) = α j x , prove D X P α i xs
 prove (Arg A B) X P α i (a , xs) = prove (B a) X P α i xs
 
 {-# NO_TERMINATION_CHECK #-}
-ind : {I : Set} (E : Enum) (Ds : BranchesD I E)
-  (P : (i : I) → μ E Ds i → Set)
-  (α : (t : Tag E) → UncurriedHyps (caseD Ds t) (μ E Ds) P (init t))
+ind : {I : Set} (D : Desc I)
+  (P : (i : I) → μ D i → Set)
+  (α : UncurriedHyps D (μ D) P init)
   (i : I)
-  (x : μ E Ds i)
+  (x : μ D i)
   → P i x
-ind E Ds P α i (init t xs) = α t i xs $
-  prove (caseD Ds t) (μ E Ds) P (ind E Ds P α) i xs
+ind D P α i (init xs) = α i xs $
+  prove D (μ D) P (ind D P α) i xs
 
 ----------------------------------------------------------------------
 
-indCurried : {I : Set} (E : Enum) (Ds : BranchesD I E)
-  (P : (i : I) → μ E Ds i → Set)
-  (f : (t : Tag E) → CurriedHyps (caseD Ds t) (μ E Ds) P (init t))
+indCurried : {I : Set} (D : Desc I)
+  (P : (i : I) → μ D i → Set)
+  (f : CurriedHyps D (μ D) P init)
   (i : I)
-  (x : μ E Ds i)
+  (x : μ D i)
   → P i x
-indCurried E Ds P f i x = ind E Ds P (λ t → uncurryHyps (caseD Ds t) (μ E Ds) P (init t) (f t)) i x
+indCurried D P f i x = ind D P (uncurryHyps D (μ D) P init f) i x
 
-Summer : {I : Set} (E : Enum) (Ds : BranchesD I E)
-  (X  : ISet I) (cn : (t : Tag E) → UncurriedEl (caseD Ds t) X)
-  (P : (i : I) → X i → Set)
-  → Tag E → Set
-Summer E Ds X cn P t = CurriedHyps (caseD Ds t) X P (cn t)
+SumCurriedHyps : {I : Set} (R : Data I)
+  → let D = DescR R in
+  (P : (i : I) → μ D i → Set)
+  → TagR R → Set
+SumCurriedHyps R P t =
+  CurriedHyps (caseR R t) (μ (DescR R)) P (λ xs → init (t , xs))
 
-SumCurriedHyps : {I : Set} (E : Enum) (Ds : BranchesD I E)
-  (P : (i : I) → μ E Ds i → Set)
-  → Tag E → Set
-SumCurriedHyps E Ds P t = Summer E Ds (μ E Ds) init P t
-
-elimUncurried : {I : Set} (E : Enum) (Ds : BranchesD I E)
-  (P : (i : I) → μ E Ds i → Set)
-  → Branches E (SumCurriedHyps E Ds P)
-  → (i : I) (x : μ E Ds i) → P i x
-elimUncurried E Ds P cs i x =
-  indCurried E Ds P
-    (case (SumCurriedHyps E Ds P) cs)
+elimUncurried : {I : Set} (R : Data I)
+  → let D = DescR R in
+  (P : (i : I) → μ D i → Set)
+  → BranchesR R (SumCurriedHyps R P)
+  → (i : I) (x : μ D i) → P i x
+elimUncurried R P cs i x =
+  indCurried (DescR R) P
+    (case (SumCurriedHyps R P) cs)
     i x
 
-elim : {I : Set} (E : Enum) (Ds : BranchesD I E)
-  (P : (i : I) → μ E Ds i → Set)
-  → CurriedBranches E
-      (SumCurriedHyps E Ds P)
-      ((i : I) (x : μ E Ds i) → P i x)
-elim E Ds P = curryBranches (elimUncurried E Ds P)
+elim : {I : Set} (R : Data I)
+  → let D = DescR R in
+  (P : (i : I) → μ D i → Set)
+  → CurriedBranchesR R
+      (SumCurriedHyps R P)
+      ((i : I) (x : μ D i) → P i x)
+elim R P = curryBranches (elimUncurried R P)
 
 ----------------------------------------------------------------------
 
@@ -258,27 +279,27 @@ nilT = here
 consT : VecT
 consT = there here
 
-ℕDs : BranchesD ⊤ ℕE
-ℕDs =
-    End tt
+ℕR : Data ⊤
+ℕR = ℕE
+  , End tt
   , Rec tt (End tt)
   , tt
 
 ℕD : Desc ⊤
-ℕD = Arg ℕT (caseD ℕDs)
+ℕD = DescR ℕR
 
 ℕ : ⊤ → Set
-ℕ = μ ℕE ℕDs
+ℕ = μ ℕD
 
 zero : ℕ tt
-zero = init zeroT refl
+zero = init (zeroT , refl)
 
 suc : ℕ tt → ℕ tt
-suc n = init sucT (n , refl)
+suc n = init (sucT , n , refl)
 
-VecDs : (A : Set) → BranchesD (ℕ tt) VecE
-VecDs A =
-    End zero
+VecR : (A : Set) → Data (ℕ tt)
+VecR A = VecE
+  , End zero
   , Arg (ℕ tt) (λ n → Arg A λ _ → Rec n (End (suc n)))
   , tt
 
@@ -289,10 +310,10 @@ consD : (A : Set) → Desc (ℕ tt)
 consD A = Arg (ℕ tt) (λ n → Arg A (λ _ → Rec n (End (suc n))))
 
 VecD : (A : Set) → Desc (ℕ tt)
-VecD A = Arg VecT (caseD (VecDs A))
+VecD A = DescR (VecR A)
 
 Vec : (A : Set) → ℕ tt → Set
-Vec A = μ VecE (VecDs A)
+Vec A = μ (VecD A)
 
 NilEl : (A : Set) (n : ℕ tt) → Set
 NilEl A n = El (nilD A) (Vec A) n
@@ -318,95 +339,40 @@ ConsUncurriedHyps : (A : Set)
 ConsUncurriedHyps A P cn = UncurriedHyps (consD A) (Vec A) P cn
 
 nil : (A : Set) → Vec A zero
-nil A = init nilT refl
+nil A = init (nilT , refl)
 
 cons : (A : Set) (n : ℕ tt) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons A n x xs = init consT (n , x , xs , refl)
+cons A n x xs = init (consT , n , x , xs , refl)
 
 nil2 : (A : Set) → Vec A zero
-nil2 A = inj VecE (VecDs A) nilT
+nil2 A = inj (VecR A) nilT
 
 cons2 : (A : Set) (n : ℕ tt) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons2 A = inj VecE (VecDs A) consT
-
-----------------------------------------------------------------------
-
-module Induction where
-
-  add : ℕ tt → ℕ tt → ℕ tt
-  add = ind ℕE ℕDs _
-    (case (λ t → UncurriedHyps (caseD ℕDs t) ℕ _ (init t))
-      ( (λ u q ih n → n)
-      , (λ u m,q ih,tt n → suc (proj₁ ih,tt n))
-      , tt
-      )
-    )
-    tt
-  
-  mult : ℕ tt → ℕ tt → ℕ tt
-  mult = ind ℕE ℕDs _
-    (case (λ t → UncurriedHyps (caseD ℕDs t) ℕ _ (init t))
-      ( (λ u q ih n → zero)
-      , (λ u m,q ih,tt n → add n (proj₁ ih,tt n))
-      , tt
-      )
-    )
-    tt
-  
-  append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n) 
-  append A = ind VecE (VecDs A) _
-    (case (λ t → UncurriedHyps (caseD (VecDs A) t) (Vec A) _ (init t))
-      ( (λ m q ih n ys → subst (λ m → Vec A (add m n)) q ys)
-      , (λ m m',x,xs,q ih,tt n ys →
-          let m' = proj₁ m',x,xs,q
-              x = proj₁ (proj₂ m',x,xs,q)
-              q = proj₂ (proj₂ (proj₂ m',x,xs,q))
-              ih = proj₁ ih,tt
-          in
-          subst (λ m → Vec A (add m n)) q (cons A (add m' n) x (ih n ys))
-        )
-      , tt
-      )
-    )
-
-  concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-  concat A m = ind VecE (VecDs (Vec A m)) _
-    (case (λ t → UncurriedHyps (caseD (VecDs (Vec A m)) t) (Vec (Vec A m)) _ (init t))
-      ( (λ n q ih → subst (λ n → Vec A (mult n m)) q (nil A))
-      , (λ n n',x,xs,q ih,tt →
-          let n' = proj₁ n',x,xs,q
-              xs = proj₁ (proj₂ n',x,xs,q)
-              q = proj₂ (proj₂ (proj₂ n',x,xs,q))
-              ih = proj₁ ih,tt
-          in subst  (λ n → Vec A (mult n m)) q (append A m xs (mult n' m) ih)
-        )
-      , tt
-      )
-    )
+cons2 A = inj (VecR A) consT
 
 ----------------------------------------------------------------------
 
 module GenericElim where
 
   add : ℕ tt → ℕ tt → ℕ tt
-  add = elim ℕE ℕDs _
+  add = elim ℕR _
     (λ n → n)
     (λ m ih n → suc (ih n))
     tt
 
   mult : ℕ tt → ℕ tt → ℕ tt
-  mult = elim ℕE ℕDs _
+  mult = elim ℕR _
     (λ n → zero)
     (λ m ih n → add n (ih n))
     tt
 
   append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-  append A = elim VecE (VecDs A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
+  append A = elim (VecR A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
     (λ n ys → ys)
     (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
 
   concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-  concat A m = elim VecE (VecDs (Vec A m)) (λ n xss → Vec A (mult n m))
+  concat A m = elim (VecR (Vec A m)) (λ n xss → Vec A (mult n m))
     (nil A)
     (λ n xs xss ih → append A m xs (mult n m) ih)
 
