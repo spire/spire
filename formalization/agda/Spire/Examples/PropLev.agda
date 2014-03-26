@@ -352,28 +352,26 @@ cons2 A = inj (VecR A) consT
 
 ----------------------------------------------------------------------
 
-module GenericElim where
+add : ℕ tt → ℕ tt → ℕ tt
+add = elim ℕR _
+  (λ n → n)
+  (λ m ih n → suc (ih n))
+  tt
 
-  add : ℕ tt → ℕ tt → ℕ tt
-  add = elim ℕR _
-    (λ n → n)
-    (λ m ih n → suc (ih n))
-    tt
+mult : ℕ tt → ℕ tt → ℕ tt
+mult = elim ℕR _
+  (λ n → zero)
+  (λ m ih n → add n (ih n))
+  tt
 
-  mult : ℕ tt → ℕ tt → ℕ tt
-  mult = elim ℕR _
-    (λ n → zero)
-    (λ m ih n → add n (ih n))
-    tt
+append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
+append A = elim (VecR A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
+  (λ n ys → ys)
+  (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
 
-  append : (A : Set) (m : ℕ tt) (xs : Vec A m) (n : ℕ tt) (ys : Vec A n) → Vec A (add m n)
-  append A = elim (VecR A) (λ m xs → (n : ℕ tt) (ys : Vec A n) → Vec A (add m n))
-    (λ n ys → ys)
-    (λ m x xs ih n ys → cons A (add m n) x (ih n ys))
-
-  concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-  concat A m = elim (VecR (Vec A m)) (λ n xss → Vec A (mult n m))
-    (nil A)
-    (λ n xs xss ih → append A m xs (mult n m) ih)
+concat : (A : Set) (m n : ℕ tt) (xss : Vec (Vec A m) n) → Vec A (mult n m)
+concat A m = elim (VecR (Vec A m)) (λ n xss → Vec A (mult n m))
+  (nil A)
+  (λ n xs xss ih → append A m xs (mult n m) ih)
 
 ----------------------------------------------------------------------
