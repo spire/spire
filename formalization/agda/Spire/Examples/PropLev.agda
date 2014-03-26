@@ -79,14 +79,6 @@ Hyps (Arg A B) X P i (a , b) = Hyps (B a) X P i b
 
 ----------------------------------------------------------------------
 
-BranchesD : (I : Set) (E : Enum) → Set
-BranchesD I E = Branches E (λ _ → Desc I)
-
-caseD : {I : Set} {E : Enum} (cs : BranchesD I E) (t : Tag E) → Desc I
-caseD = case (λ _ → Desc _)
-
-----------------------------------------------------------------------
-
 UncurriedEl : {I : Set} (D : Desc I) (X : ISet I) → Set
 UncurriedEl D X = ∀{i} → El D X i → X i
 
@@ -172,30 +164,38 @@ uncurryHyps (Arg A B) X P cn pf i (a , xs) ihs =
 data μ {I : Set} (D : Desc I) : ISet I where
   init : UncurriedEl D (μ D)
 
-Data : (I : Set) → Set
-Data I = Σ Enum (BranchesD I)
+----------------------------------------------------------------------
 
-TagR : ∀{I} → Data I → Set
-TagR (E , xs) = Tag E
+Data : Set
+Data =
+  Σ Set λ I →
+  Σ Enum λ E →
+  Branches E (λ _ → Desc I)
 
-BranchesR : ∀{I} (R : Data I) (P : TagR R → Set) → Set
-BranchesR (E , xs) = Branches E
+DataI : Data → Set
+DataI (I , E , B) = I
 
-CurriedBranchesR : ∀{I} (R : Data I) (P : TagR R → Set) (X : Set) → Set
-CurriedBranchesR (E , xs) = CurriedBranches E
+DataE : Data → Enum
+DataE (I , E , B) = E
 
-DescR : ∀{I} → Data I → Desc I
-DescR (E , xs) = Arg (Tag E) (caseD xs)
+DataT : Data → Set
+DataT R = Tag (DataE R)
 
-caseR : ∀{I} (R : Data I) → TagR R → Desc I
-caseR (E , xs) = case (λ _ → Desc _) xs
+DataB : (R : Data) → Branches (DataE R) (λ _ → Desc (DataI R))
+DataB (I , E , B) = B
+
+DataD : (R : Data) → Desc (DataI R)
+DataD R = Arg (DataT R) (case (λ _ → Desc (DataI R)) (DataB R))
+
+caseR : (R : Data) → DataT R → Desc (DataI R)
+caseR R = case (λ _ → Desc (DataI R)) (DataB R)
 
 ----------------------------------------------------------------------
 
-inj : {I : Set} (R : Data I)
-  → let D = DescR R
+inj : (R : Data)
+  → let D = DataD R
   in CurriedEl D (μ D)
-inj R = let D = DescR R
+inj R = let D = DataD R
   in curryEl D (μ D) init
 
 ----------------------------------------------------------------------
@@ -228,29 +228,29 @@ indCurried : {I : Set} (D : Desc I)
   → P i x
 indCurried D P f i x = ind D P (uncurryHyps D (μ D) P init f) i x
 
-SumCurriedHyps : {I : Set} (R : Data I)
-  → let D = DescR R in
-  (P : (i : I) → μ D i → Set)
-  → TagR R → Set
+SumCurriedHyps : (R : Data)
+  → let D = DataD R in
+  (P : ∀ i → μ D i → Set)
+  → DataT R → Set
 SumCurriedHyps R P t =
-  CurriedHyps (caseR R t) (μ (DescR R)) P (λ xs → init (t , xs))
+  CurriedHyps (caseR R t) (μ (DataD R)) P (λ xs → init (t , xs))
 
-elimUncurried : {I : Set} (R : Data I)
-  → let D = DescR R in
-  (P : (i : I) → μ D i → Set)
-  → BranchesR R (SumCurriedHyps R P)
-  → (i : I) (x : μ D i) → P i x
+elimUncurried : (R : Data)
+  → let D = DataD R in
+  (P : ∀ i → μ D i → Set)
+  → Branches (DataE R) (SumCurriedHyps R P)
+  → ∀ i (x : μ D i) → P i x
 elimUncurried R P cs i x =
-  indCurried (DescR R) P
+  indCurried (DataD R) P
     (case (SumCurriedHyps R P) cs)
     i x
 
-elim : {I : Set} (R : Data I)
-  → let D = DescR R in
-  (P : (i : I) → μ D i → Set)
-  → CurriedBranchesR R
+elim : (R : Data)
+  → let D = DataD R in
+  (P : ∀ i → μ D i → Set)
+  → CurriedBranches (DataE R)
       (SumCurriedHyps R P)
-      ((i : I) (x : μ D i) → P i x)
+      (∀ i (x : μ D i) → P i x)
 elim R P = curryBranches (elimUncurried R P)
 
 ----------------------------------------------------------------------
@@ -279,14 +279,14 @@ nilT = here
 consT : VecT
 consT = there here
 
-ℕR : Data ⊤
-ℕR = ℕE
+ℕR : Data
+ℕR = ⊤ , ℕE
   , End tt
   , Rec tt (End tt)
   , tt
 
 ℕD : Desc ⊤
-ℕD = DescR ℕR
+ℕD = DataD ℕR
 
 ℕ : ⊤ → Set
 ℕ = μ ℕD
@@ -297,8 +297,8 @@ zero = init (zeroT , refl)
 suc : ℕ tt → ℕ tt
 suc n = init (sucT , n , refl)
 
-VecR : (A : Set) → Data (ℕ tt)
-VecR A = VecE
+VecR : (A : Set) → Data
+VecR A = (ℕ tt) , VecE
   , End zero
   , Arg (ℕ tt) (λ n → Arg A λ _ → Rec n (End (suc n)))
   , tt
@@ -310,7 +310,7 @@ consD : (A : Set) → Desc (ℕ tt)
 consD A = Arg (ℕ tt) (λ n → Arg A (λ _ → Rec n (End (suc n))))
 
 VecD : (A : Set) → Desc (ℕ tt)
-VecD A = DescR (VecR A)
+VecD A = DataD (VecR A)
 
 Vec : (A : Set) → ℕ tt → Set
 Vec A = μ (VecD A)
