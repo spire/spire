@@ -400,14 +400,12 @@ check' _D@(CArg _ _) _A = throwError $
   "attempt to check description " ++ prettyPrint _D ++
   " at type " ++ prettyPrint _A
 
-check' (CInit t xs) (VFix _I _E _Ds i) = do
-  t'  <- check t (VTag _E)
-  _D' <- t' `elim` eCaseD _I _Ds
-  let _X = vBind (\j -> VFix _I _E _Ds j)
-  xs' <- check xs =<< _D' `elim` EEl _I _X i
-  return $ VInit t' xs'
+check' (CInit xs) (VFix _I _D i) = do
+  let _X = vBind (\j -> VFix _I _D j)
+  xs' <- check xs =<< _D `elim` EEl _I _X i
+  return $ VInit xs'
 
-check' x@(CInit _ _) _A = throwError $
+check' x@(CInit _) _A = throwError $
   "Ill-typed!:\n" ++
   "attempt to check fixpoint " ++ prettyPrint x ++
   " at type " ++ prettyPrint _A
@@ -460,11 +458,10 @@ infer' (IEq a b) = do
   (b' , _B') <- infer b
   return (VEq _A' a' _B' b' , VType)
 
-infer' (IFix _E _Ds i) = do
+infer' (IFix _D i) = do
   (i' , _I') <- infer i
-  _E'  <- check _E vEnum
-  _Ds' <- check _Ds =<< _E' `elim` eBranchesD _I'
-  return (VFix _I' _E' _Ds' i' , VType)
+  _D'  <- check _D $ VDesc _I'
+  return (VFix _I' _D' i' , VType)
 
 infer' (IEl _D _X i) = do
   (_D' , _A) <- infer _D

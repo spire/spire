@@ -81,12 +81,11 @@ checkV (VPi _A _B) VType = do
 checkV (VPi _A _B) _ =
   throwError "Ill-typed!"
 
-checkV (VFix _I _E _Ds i) VType = do
+checkV (VFix _I _D i) VType = do
   checkV _I VType
-  checkV _E vEnum
-  checkV _Ds =<< _E `elim` eBranchesD _I
+  checkV _D $ VDesc _I
   checkV i _I
-checkV (VFix _I _E _Ds i) _ =
+checkV (VFix _I _D i) _ =
   throwError "Ill-typed!"
 
 checkV (VCons a as) (VList _A) = do
@@ -133,12 +132,10 @@ checkV (VArg _A _B) (VDesc _I) = do
 checkV (VArg _A _B) _ =
   throwError "Ill-typed!"
 
-checkV (VInit t xs) (VFix _I _E _Ds i) = do
-  checkV t (VTag _E)
-  _D <- t `elim` eCaseD _I _Ds
-  let _X = vBind (\j -> VFix _I _E _Ds j)
+checkV (VInit xs) (VFix _I _D i) = do
+  let _X = vBind (\j -> VFix _I _D j)
   checkV xs =<< _D `elim` EEl _I _X i
-checkV (VInit t xs) _ =
+checkV (VInit xs) _ =
   throwError "Ill-typed!"
 
 checkV (VNeut nm fs) _B = do

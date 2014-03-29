@@ -226,16 +226,14 @@ parseRec = try $ do
 
 parseInit = try $ do
   parseKeyword "init"
-  t  <- parseAtom
   xs <- parseAtom
-  return $ SInit t xs
+  return $ SInit xs
 
 parseFix = try $ do
   parseKeyword "Fix"
-  _E  <- parseAtom
-  _Ds <- parseAtom
+  _D  <- parseAtom
   i   <- parseAtom
-  return $ SFix _E _Ds i
+  return $ SFix _D i
 
 parseAnn = parseParens $ do
   --    binding   or  annotation

@@ -42,13 +42,13 @@ data Value =
   | VPi  Value (Bind Nom Value)
   | VSg  Value (Bind Nom Value)
 
-  | VFix Value Value Value Value
+  | VFix Value Value Value
   | VEq  Value Value Value Value
 
   | VTT | VTrue | VFalse | VNil | VRefl | VHere
   | VThere Value | VEnd Value
 
-  | VRec Value Value | VInit Value Value
+  | VRec Value Value | VInit Value
   | VCons Value Value
   | VPair Value Value
 

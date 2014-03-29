@@ -23,7 +23,7 @@ embedI (IPi       _A _B)     = SPi       <$> embedC _A <*> embedCB _B
 embedI (ISg       _A _B)     = SSg       <$> embedC _A <*> embedCB _B
 embedI (IBranches _E _P)     = SBranches <$> embedC _E <*> embedCB _P
 embedI (IEl       _D _X  i)  = SEl       <$> embedI _D <*> embedCB _X  <*> embedC i
-embedI (IFix      _E _Ds i)  = SFix      <$> embedC _E <*> embedC  _Ds <*> embedI i
+embedI (IFix      _D i)      = SFix      <$> embedC _D <*> embedI  i
 embedI (IEq       a  b)      = SEq       <$> embedI a  <*> embedI b
 
 embedI (IVar v)    = return $ SVar v
@@ -47,7 +47,7 @@ embedC (CThere t)   = SThere <$> embedC t
 embedC (CEnd i)     = SEnd   <$> embedC i
 embedC (CRec i  _D) = SRec   <$> embedC i   <*> embedC  _D
 embedC (CArg _A _B) = SArg   <$> embedC _A  <*> embedCB _B
-embedC (CInit t xs) = SInit  <$> embedC t   <*> embedC  xs
+embedC (CInit xs)   = SInit  <$> embedC  xs
 embedC (CCons a as) = SCons  <$> embedC a   <*> embedC  as
 embedC (CPair a b)  = SPair  <$> embedC a   <*> embedC  b
 embedC (CLam b)     = SLam   <$> embedCB b

@@ -58,7 +58,7 @@ value2Tm v = case v of
   VTT   -> return $ C Tt
 
   VEq  _ _ _ _ -> unsupported
-  VFix _ _ _ _ -> unsupported
+  VFix _ _ _   -> unsupported
   VString      -> unsupported
   VQuotes _    -> unsupported
   VList _      -> unsupported
@@ -71,7 +71,7 @@ value2Tm v = case v of
   VEnd   _     -> unsupported
   VCons _ _    -> unsupported
   VRec  _ _    -> unsupported
-  VInit _ _    -> unsupported
+  VInit _      -> unsupported
   VArg  _ _    -> unsupported
   where
     nom2Head x = if isMV x

@@ -17,7 +17,7 @@ data Syntax =
     STT | STrue | SFalse | SNil | SRefl | SHere
   | SQuotes String
   | SThere Syntax | SEnd Syntax
-  | SRec Syntax Syntax | SInit Syntax Syntax
+  | SRec Syntax Syntax | SInit Syntax
   | SArg Syntax (Bind Nom Syntax)
   | SCons Syntax Syntax
   | SPair Syntax Syntax
@@ -29,7 +29,7 @@ data Syntax =
   | SSg Syntax (Bind Nom Syntax)
   | SBranches Syntax (Bind Nom Syntax)
   | SEl Syntax (Bind Nom Syntax) Syntax
-  | SFix Syntax Syntax Syntax
+  | SFix Syntax Syntax
   | SEq Syntax Syntax
 
   | SWildCard

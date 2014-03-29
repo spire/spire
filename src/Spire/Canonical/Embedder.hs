@@ -32,11 +32,11 @@ embedV (VPi       _A _B)  = Infer <$> (IPi       <$> embedV _A <*> embedVB _B)
                           
 embedV (VEq _A a _B b)    = Infer <$>
   (IEq <$> (IAnn <$> embedV a <*> embedV _A) <*> (IAnn <$> embedV b <*> embedV _B))
-embedV (VFix _I _E _Ds i) = Infer <$>
-  (IFix <$> embedV _E <*> embedV  _Ds <*> (IAnn <$> embedV i <*> embedV _I))
+embedV (VFix _I _D i) = Infer <$>
+  (IFix <$> embedV _D <*> (IAnn <$> embedV i <*> embedV _I))
 
 embedV (VRec  i  _D)      = CRec  <$> embedV i  <*> embedV  _D
-embedV (VInit  t  xs)     = CInit <$> embedV t  <*> embedV  xs
+embedV (VInit xs)         = CInit <$> embedV xs
 embedV (VArg  _A _B)      = CArg  <$> embedV _A <*> embedVB _B
 embedV (VCons a as)       = CCons <$> embedV a  <*> embedV  as
 embedV (VPair a b)        = CPair <$> embedV a  <*> embedV  b

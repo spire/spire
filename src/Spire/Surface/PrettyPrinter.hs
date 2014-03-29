@@ -140,6 +140,7 @@ dDesc  o _I  = dt "Desc"  <+> ww o _I
 dTag   o _E  = dt "Tag"   <+> ww o _E
 dProj1 o ab  = dt "proj1" <+> ww o ab
 dProj2 o ab  = dt "proj2" <+> ww o ab
+dInit  o xs  = dt "init"  <+> ww o xs
 
 dApp o f a = alignM $ w o f </> ww o a
 dAnn _ a _A = parensM . alignSepM $ [ d a , dt ":" <+> d _A ]
@@ -148,13 +149,9 @@ dRec o i _D =
   dt "Rec" <+> alignSepM
     [ ww o i , ww o _D ]
 
-dInit o t xs =
-  dt "init" <+> alignSepM
-    [ ww o t , ww o xs ]
-
-dFix o _E _Ds i =
+dFix o _D i =
   dt "Fix" <+> alignSepM
-    [ ww o _E , ww o _Ds , ww o i ]
+    [ ww o _D , ww o i ]
 
 dArg o _A _B =
   dt "Arg" <+> alignSepM
@@ -206,8 +203,8 @@ instance Display Syntax where
     SLam  b    -> dLam s b
 
     SRec      i  _D    -> dRec      s i  _D
-    SInit     t  xs    -> dInit     s t  xs
-    SFix      _E _Ds i -> dFix      s _E _Ds i
+    SInit     xs       -> dInit     s xs
+    SFix      _D i     -> dFix      s _D i
     SPi       _A _B    -> dPi       s _A _B
     SSg       _A _B    -> dSg       s _A _B
     SArg      _A _B    -> dArg      s _A _B
@@ -328,10 +325,10 @@ instance Precedence Syntax where
     SThere _            -> initialLevel
     SEnd   _            -> initialLevel
     SRec   _ _          -> initialLevel
-    SInit  _ _          -> initialLevel
+    SInit  _            -> initialLevel
     SArg   _ _          -> initialLevel
     SEl    _ _ _        -> initialLevel
-    SFix   _ _ _        -> initialLevel
+    SFix   _ _          -> initialLevel
     SBranches _ _       -> initialLevel
     SElimBool _ _ _ _   -> initialLevel
     SElimList _ _ _ _   -> initialLevel
@@ -360,12 +357,12 @@ instance Precedence Syntax where
     SCons _ _            -> consAssoc
     SEq   _ _            -> AssocNone
 
-    SInit       _ _      -> AssocNone
+    SInit       _        -> AssocNone
     SRec        _ _      -> AssocNone
     SArg        _ _      -> AssocNone
     SBranches   _ _      -> AssocNone
     SEl         _ _ _    -> AssocNone
-    SFix        _ _ _    -> AssocNone
+    SFix        _ _      -> AssocNone
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone
     SThere _             -> AssocNone

@@ -21,7 +21,7 @@ data Check =
   | CPair Check Check
   | CNil | CRefl | CHere
   | CThere Check | CEnd Check
-  | CRec Check Check | CInit Check Check
+  | CRec Check Check | CInit Check
   | CArg Check (Bind Nom Check)
   | CCons Check Check
   | Infer Infer
@@ -37,7 +37,7 @@ data Infer =
   | ISg Check (Bind Nom Check)
   | IBranches Check (Bind Nom Check)
   | IEl Infer (Bind Nom Check) Check
-  | IFix Check Check Infer
+  | IFix Check Infer
   | IEq Infer Infer
 
   | IVar Nom
