@@ -28,14 +28,11 @@ elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec pa
 ISet : Set → Set₁
 ISet I = I → Set
 
-El' : {I : Set} (X : ISet I) (i : I) (D : Desc I) → Set
-El' X i = elimDesc _
-  (λ j → j ≡ i)
-  (λ j D ih → X j × ih)
-  (λ A B ih → Σ A ih)
-
 El : {I : Set} (D : Desc I) (X : ISet I) (i : I) → Set
-El D X i = El' X i D
+El = elimDesc _
+  (λ j X i → j ≡ i)
+  (λ j D ih X i → X j × ih X i)
+  (λ A B ih X i → Σ A (λ a → ih a X i))
 
 Hyps : {I : Set} (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : El D X i) → Set
 Hyps = elimDesc _

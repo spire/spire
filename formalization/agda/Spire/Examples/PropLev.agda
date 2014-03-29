@@ -200,23 +200,23 @@ inj R = let D = DataD R
 
 ----------------------------------------------------------------------
 
-prove : {I : Set} (D : Desc I) (X : I → Set)
-  (P : (i : I) → X i → Set)
-  (α : (i : I) (x : X i) → P i x)
-  (i : I) (xs : El D X i) → Hyps D X P i xs
-prove (End j) X P α i q = tt
-prove (Rec j D) X P α i (x , xs) = α j x , prove D X P α i xs
-prove (Arg A B) X P α i (a , xs) = prove (B a) X P α i xs
-
-{-# NO_TERMINATION_CHECK #-}
 ind : {I : Set} (D : Desc I)
   (P : (i : I) → μ D i → Set)
   (α : UncurriedHyps D (μ D) P init)
   (i : I)
   (x : μ D i)
   → P i x
-ind D P α i (init xs) = α i xs $
-  prove D (μ D) P (ind D P α) i xs
+
+prove : {I : Set} (D E : Desc I)
+  (P : (i : I) → μ E i → Set)
+  (α : UncurriedHyps E (μ E) P init)
+  (i : I) (xs : El D (μ E) i) → Hyps D (μ E) P i xs
+
+ind D P α i (init xs) = α i xs (prove D D P α i xs)
+
+prove (End j) E P α i q = tt
+prove (Rec j D) E P α i (x , xs) = ind E P α j x , prove D E P α i xs
+prove (Arg A B) E P α i (a , xs) = prove (B a) E P α i xs
 
 ----------------------------------------------------------------------
 
