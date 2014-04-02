@@ -3,7 +3,6 @@ open import Data.Unit
 open import Data.Product hiding ( curry ; uncurry )
 open import Data.List hiding ( concat )
 open import Data.String
-open import Data.Nat
 open import Relation.Binary.PropositionalEquality
 open import Function
 module Spire.Examples.DarkwingDuck where
@@ -203,6 +202,26 @@ nilT = here
 
 consT : VecT
 consT = there here
+
+ℕR : Data
+ℕR = record
+  { P = End
+  ; I = λ _ → End
+  ; E = ℕE
+  ; B = λ _ →
+      End tt
+    , Rec tt (End tt)
+    , tt
+  }
+
+ℕ : Set
+ℕ = Form ℕR
+
+zero : ℕ
+zero = inj ℕR zeroT
+
+suc : ℕ → ℕ
+suc = inj ℕR sucT
 
 VecR : Data
 VecR = record
