@@ -54,10 +54,35 @@ Elᴰ (End j) X i = j ≡ i
 Elᴰ (Rec j D) X i = X j × Elᴰ D X i
 Elᴰ (Arg A B) X i = Σ A (λ a → Elᴰ (B a) X i)
 
+Hyps : {I : Set} (D : Desc I) (X : ISet I) (P : (i : I) → X i → Set) (i : I) (xs : Elᴰ D X i) → Set
+Hyps (End j) X P i q = ⊤
+Hyps (Rec j D) X P i (x , xs) = P j x × Hyps D X P i xs
+Hyps (Arg A B) X P i (a , b) = Hyps (B a) X P i b
+
 ----------------------------------------------------------------------
 
 data μ {I : Set} (D : Desc I) (i : I) : Set where
   init : Elᴰ D (μ D) i → μ D i
+
+----------------------------------------------------------------------
+
+ind : {I : Set} (D : Desc I)
+  (M : (i : I) → μ D i → Set)
+  (α : ∀ i (xs : Elᴰ D (μ D) i) (ihs : Hyps D (μ D) M i xs) → M i (init xs))
+  (i : I)
+  (x : μ D i)
+  → M i x
+
+prove : {I : Set} (D E : Desc I)
+  (M : (i : I) → μ E i → Set)
+  (α : ∀ i (xs : Elᴰ E (μ E) i) (ihs : Hyps E (μ E) M i xs) → M i (init xs))
+  (i : I) (xs : Elᴰ D (μ E) i) → Hyps D (μ E) M i xs
+
+ind D M α i (init xs) = α i xs (prove D D M α i xs)
+
+prove (End j) E M α i q = tt
+prove (Rec j D) E M α i (x , xs) = ind E M α j x , prove D E M α i xs
+prove (Arg A B) E M α i (a , xs) = prove (B a) E M α i xs
 
 ----------------------------------------------------------------------
 
@@ -68,14 +93,11 @@ record Data : Set where
     E : Enum
     B : (A : Elᵀ P) → Branches E (λ _ → Desc (Elᵀ (I A)))
 
-  T : Set
-  T = Tag E
-
-  C : (A : Elᵀ P) → T → Desc (Elᵀ (I A))
+  C : (A : Elᵀ P) → Tag E → Desc (Elᵀ (I A))
   C A = case (λ _ → Desc (Elᵀ (I A))) (B A)
 
   D : (A : Elᵀ P) → Desc (Elᵀ (I A))
-  D A = Arg T (C A)
+  D A = Arg (Tag E) (C A)
 
 ----------------------------------------------------------------------
 
@@ -144,21 +166,47 @@ curryElᴰ (Arg A B) X cn = λ a → curryElᴰ (B a) X (λ xs → cn (a , xs))
 
 ----------------------------------------------------------------------
 
-injUncurried : (R : Data)
-  → UncurriedElᵀ (Data.P R) λ A
-  → let D = Data.D R A
-  in CurriedElᴰ D (μ D)
-injUncurried R A t =
-  curryElᴰ (Data.C R A t) (μ (Data.D R A))
-    (λ xs → init (t , xs))
+UncurriedHyps : {I : Set} (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedElᴰ D X)
+  → Set
+UncurriedHyps D X P cn =
+  ∀ i (xs : Elᴰ D X i) (ihs : Hyps D X P i xs) → P i (cn xs)
 
-inj : (R : Data)
-  → ICurriedElᵀ (Data.P R) λ p
-  → let D = Data.D R p
-  in CurriedElᴰ D (μ D)
-inj R =
-  icurryElᵀ (Data.P R) (λ p → let D = Data.D R p in CurriedElᴰ D (μ D))
-    (injUncurried R)
+CurriedHyps : {I : Set} (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedElᴰ D X)
+  → Set
+CurriedHyps (End i) X P cn =
+  P i (cn refl)
+CurriedHyps (Rec i D) X P cn =
+  (x : X i) → P i x → CurriedHyps D X P (λ xs → cn (x , xs))
+CurriedHyps (Arg A B) X P cn =
+  (a : A) → CurriedHyps (B a) X P (λ xs → cn (a , xs))
+
+curryHyps : {I : Set} (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedElᴰ D X)
+  → UncurriedHyps D X P cn
+  → CurriedHyps D X P cn
+curryHyps (End i) X P cn pf =
+  pf i refl tt
+curryHyps (Rec i D) X P cn pf =
+  λ x ih → curryHyps D X P (λ xs → cn (x , xs)) (λ i xs ihs → pf i (x , xs) (ih , ihs))
+curryHyps (Arg A B) X P cn pf =
+  λ a → curryHyps (B a) X P (λ xs → cn (a , xs)) (λ i xs ihs → pf i (a , xs) ihs)
+
+uncurryHyps : {I : Set} (D : Desc I) (X : ISet I)
+  (P : (i : I) → X i → Set)
+  (cn : UncurriedElᴰ D X)
+  → CurriedHyps D X P cn
+  → UncurriedHyps D X P cn
+uncurryHyps (End .i) X P cn pf i refl tt =
+  pf
+uncurryHyps (Rec j D) X P cn pf i (x , xs) (ih , ihs) =
+  uncurryHyps D X P (λ ys → cn (x , ys)) (pf x ih) i xs ihs
+uncurryHyps (Arg A B) X P cn pf i (a , xs) ihs =
+  uncurryHyps (B a) X P (λ ys → cn (a , ys)) (pf a) i xs ihs
 
 ----------------------------------------------------------------------
 
@@ -176,6 +224,70 @@ Form R =
   curryElᵀ (Data.P R) (λ p → CurriedElᵀ (Data.I R p) λ i → Set) λ p →
   curryElᵀ (Data.I R p) (λ i → Set) λ i →
   FormUncurried R p i
+
+----------------------------------------------------------------------
+
+injUncurried : (R : Data)
+  → UncurriedElᵀ (Data.P R) λ p
+  → let D = Data.D R p
+  in CurriedElᴰ D (μ D)
+injUncurried R p t = curryElᴰ (Data.C R p t)
+  (μ (Data.D R p))
+  (λ xs → init (t , xs))
+
+inj : (R : Data)
+  → ICurriedElᵀ (Data.P R) λ p
+  → let D = Data.D R p
+  in CurriedElᴰ D (μ D)
+inj R = icurryElᵀ (Data.P R)
+  (λ p → let D = Data.D R p in CurriedElᴰ D (μ D))
+  (injUncurried R)
+
+----------------------------------------------------------------------
+
+indCurried : {I : Set} (D : Desc I)
+  (M : (i : I) → μ D i → Set)
+  (f : CurriedHyps D (μ D) M init)
+  (i : I)
+  (x : μ D i)
+  → M i x
+indCurried D M f i x =
+  ind D M (uncurryHyps D (μ D) M init f) i x
+
+SumCurriedHyps : (R : Data)
+  → UncurriedElᵀ (Data.P R) λ p
+  → let D = Data.D R p in
+  (M : ∀ i → μ D i → Set)
+  → Tag (Data.E R) → Set
+SumCurriedHyps R p M t =
+  CurriedHyps (Data.C R p t) (μ (Data.D R p)) M (λ xs → init (t , xs))
+
+elimUncurried : (R : Data)
+  → UncurriedElᵀ (Data.P R) λ p
+  → let D = Data.D R p in
+  (M : ∀ i → μ D i → Set)
+  → UncurriedBranches (Data.E R)
+    (SumCurriedHyps R p M)
+    (∀ i (x : μ D i) → M i x)
+elimUncurried R p M cs i x =
+  indCurried (Data.D R p) M
+    (case (SumCurriedHyps R p M) cs)
+    i x
+
+elim : (R : Data)
+  → ICurriedElᵀ (Data.P R) λ p
+  → let D = Data.D R p in
+  (M : ∀ i → μ D i → Set)
+  → CurriedBranches (Data.E R)
+    (SumCurriedHyps R p M)
+    (∀ i (x : μ D i) → M i x)
+elim R = icurryElᵀ (Data.P R)
+  (λ p → let D = Data.D R p in
+    (M : ∀ i → μ D i → Set) →
+    CurriedBranches (Data.E R)
+    (SumCurriedHyps R p M)
+    (∀ i (x : μ D i) → M i x))
+  (λ p M → curryBranches (elimUncurried R p M))
 
 ----------------------------------------------------------------------
 
@@ -202,6 +314,8 @@ nilT = here
 
 consT : VecT
 consT = there here
+
+----------------------------------------------------------------------
 
 ℕR : Data
 ℕR = record
@@ -245,3 +359,16 @@ cons = inj VecR consT
 
 ----------------------------------------------------------------------
 
+add : ℕ → ℕ → ℕ
+add = elim ℕR (λ u n → ℕ → ℕ)
+  (λ n → n)
+  (λ m ih n → suc (ih n))
+  tt
+
+mult : ℕ → ℕ → ℕ
+mult = elim ℕR (λ u n → ℕ → ℕ)
+  (λ n → zero)
+  (λ m ih n → add n (ih n))
+  tt
+
+----------------------------------------------------------------------

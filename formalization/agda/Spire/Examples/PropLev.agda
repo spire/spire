@@ -222,8 +222,9 @@ SumCurriedHyps R P t =
 elimUncurried : (R : Data)
   → let D = DataD R in
   (P : ∀ i → μ D i → Set)
-  → Branches (DataE R) (SumCurriedHyps R P)
-  → ∀ i (x : μ D i) → P i x
+  → UncurriedBranches (DataE R)
+    (SumCurriedHyps R P)
+    (∀ i (x : μ D i) → P i x)
 elimUncurried R P cs i x =
   indCurried (DataD R) P
     (case (SumCurriedHyps R P) cs)
@@ -337,13 +338,13 @@ cons2 A = inj (VecR A) consT
 ----------------------------------------------------------------------
 
 add : ℕ tt → ℕ tt → ℕ tt
-add = elim ℕR _
+add = elim ℕR (λ u n → ℕ tt → ℕ tt)
   (λ n → n)
   (λ m ih n → suc (ih n))
   tt
 
 mult : ℕ tt → ℕ tt → ℕ tt
-mult = elim ℕR _
+mult = elim ℕR (λ u n → ℕ tt → ℕ tt)
   (λ n → zero)
   (λ m ih n → add n (ih n))
   tt
