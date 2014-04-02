@@ -106,17 +106,26 @@ UncurriedElᵀ T X = (xs : Elᵀ T) → X xs
 
 CurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
 CurriedElᵀ End X = X tt
-CurriedElᵀ (Arg A B) X = {a : A} → CurriedElᵀ (B a) (λ b → X (a , b))
+CurriedElᵀ (Arg A B) X = (a : A) → CurriedElᵀ (B a) (λ b → X (a , b))
 
 curryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → UncurriedElᵀ T X → CurriedElᵀ T X
 curryElᵀ End X f = f tt
-curryElᵀ (Arg A B) X f = λ {a} → curryElᵀ (B a) (λ b → X (a , b)) (λ b → f (a , b))
+curryElᵀ (Arg A B) X f = λ a → curryElᵀ (B a) (λ b → X (a , b)) (λ b → f (a , b))
 
-uncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
-  → CurriedElᵀ T X → UncurriedElᵀ T X
-uncurryElᵀ End X x tt = x
-uncurryElᵀ (Arg A B) X f (a , b) = uncurryElᵀ (B a) (λ b → X (a , b)) f b
+ICurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
+ICurriedElᵀ End X = X tt
+ICurriedElᵀ (Arg A B) X = {a : A} → ICurriedElᵀ (B a) (λ b → X (a , b))
+
+icurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
+  → UncurriedElᵀ T X → ICurriedElᵀ T X
+icurryElᵀ End X f = f tt
+icurryElᵀ (Arg A B) X f = λ {a} → icurryElᵀ (B a) (λ b → X (a , b)) (λ b → f (a , b))
+
+iuncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
+  → ICurriedElᵀ T X → UncurriedElᵀ T X
+iuncurryElᵀ End X x tt = x
+iuncurryElᵀ (Arg A B) X f (a , b) = iuncurryElᵀ (B a) (λ b → X (a , b)) f b
 
 ----------------------------------------------------------------------
 
@@ -145,10 +154,29 @@ injUncurried R A t =
     (λ xs → init (t , xs))
 
 inj : (R : Data)
-  → CurriedElᵀ (Data.P R) λ A
-  → let D = Data.D R A
+  → ICurriedElᵀ (Data.P R) λ p
+  → let D = Data.D R p
   in CurriedElᴰ D (μ D)
-inj R = curryElᵀ _ _ (injUncurried R)
+inj R =
+  icurryElᵀ (Data.P R) (λ p → let D = Data.D R p in CurriedElᴰ D (μ D))
+    (injUncurried R)
+
+----------------------------------------------------------------------
+
+FormUncurried : (R : Data)
+  → UncurriedElᵀ (Data.P R) λ p
+  → UncurriedElᵀ (Data.I R p) λ i
+  → Set
+FormUncurried R p i = μ (Data.D R p) i
+
+Form : (R : Data)
+  → CurriedElᵀ (Data.P R) λ p
+  → CurriedElᵀ (Data.I R p) λ i
+  → Set
+Form R =
+  curryElᵀ (Data.P R) (λ p → CurriedElᵀ (Data.I R p) λ i → Set) λ p →
+  curryElᵀ (Data.I R p) (λ i → Set) λ i →
+  FormUncurried R p i
 
 ----------------------------------------------------------------------
 
@@ -188,7 +216,7 @@ VecR = record
   }
 
 Vec : (A : Set) → ℕ → Set
-Vec A n = μ (Data.D VecR (A , tt)) (n , tt)
+Vec = Form VecR
 
 nil : {A : Set} → Vec A zero
 nil = inj VecR nilT

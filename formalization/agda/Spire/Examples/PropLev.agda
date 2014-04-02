@@ -87,11 +87,6 @@ CurriedEl (End i) X = X i
 CurriedEl (Rec i D) X = (x : X i) → CurriedEl D X
 CurriedEl (Arg A B) X = (a : A) → CurriedEl (B a) X
 
-CurriedEl' : {I : Set} (D : Desc I) (X : ISet I) (i : I) → Set
-CurriedEl' (End j) X i = j ≡ i → X i
-CurriedEl' (Rec j D) X i = (x : X j) → CurriedEl' D X i
-CurriedEl' (Arg A B) X i = (a : A) → CurriedEl' (B a) X i
-
 curryEl : {I : Set} (D : Desc I) (X : ISet I)
   → UncurriedEl D X → CurriedEl D X
 curryEl (End i) X cn = cn refl
@@ -123,17 +118,6 @@ CurriedHyps (Rec i D) X P cn =
   (x : X i) → P i x → CurriedHyps D X P (λ xs → cn (x , xs))
 CurriedHyps (Arg A B) X P cn =
   (a : A) → CurriedHyps (B a) X P (λ xs → cn (a , xs))
-
-CurriedHyps' : {I : Set} (D : Desc I) (X : ISet I)
-  (P : (i : I) → X i → Set)
-  (i : I)
-  (cn : El D X i → X i)
-  → Set
-CurriedHyps' (End j) X P i cn = (q : j ≡ i) → P i (cn q)
-CurriedHyps' (Rec j D) X P i cn =
-  (x : X j) → P j x → CurriedHyps' D X P i (λ xs → cn (x , xs))
-CurriedHyps' (Arg A B) X P i cn =
-  (a : A) → CurriedHyps' (B a) X P i (λ xs → cn (a , xs))
 
 curryHyps : {I : Set} (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
