@@ -262,20 +262,26 @@ indCurried D M f i x =
 SumCurriedHyps : (R : Data)
   → UncurriedElᵀ (Data.P R) λ p
   → let D = Data.D R p in
-  (M : ∀ i → μ D i → Set)
+  (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
   → Tag (Data.E R) → Set
 SumCurriedHyps R p M t =
-  CurriedHyps (Data.C R p t) (μ (Data.D R p)) M (λ xs → init (t , xs))
+  let unM = uncurryElᵀ (Data.I R p) (λ i → μ (Data.D R p) i → Set) M in
+  CurriedHyps (Data.C R p t) (μ (Data.D R p)) unM (λ xs → init (t , xs))
 
 elimUncurried : (R : Data)
   → UncurriedElᵀ (Data.P R) λ p
   → let D = Data.D R p in
-  (M : UncurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
-  → UncurriedBranches (Data.E R)
-    (SumCurriedHyps R p M)
-    (∀ i (x : μ D i) → M i x)
-elimUncurried R p M cs i x =
-  indCurried (Data.D R p) M
+  (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
+  → let unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
+  in UncurriedBranches (Data.E R)
+     (SumCurriedHyps R p M)
+     (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x))
+elimUncurried R p M cs =
+  let D = Data.D R p
+      unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
+  in
+  curryElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x) λ i x →
+  indCurried (Data.D R p) unM
     (case (SumCurriedHyps R p M) cs)
     i x
 
@@ -285,19 +291,17 @@ elim : (R : Data)
   (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
   → let unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
   in CurriedBranches (Data.E R)
-     (SumCurriedHyps R p unM)
-     (∀ i (x : μ D i) → unM i x)
+     (SumCurriedHyps R p M)
+     (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x))
 elim R = icurryElᵀ (Data.P R)
   (λ p → let D = Data.D R p in
     (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
     → let unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
     in CurriedBranches (Data.E R)
-       (SumCurriedHyps R p unM)
-       (∀ i (x : μ D i) → unM i x))
+       (SumCurriedHyps R p M)
+       (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x)))
   (λ p M → curryBranches
-    (elimUncurried R p
-      (uncurryElᵀ (Data.I R p)
-        ((λ i → μ (Data.D R p) i → Set)) M)))
+    (elimUncurried R p M))
 
 ----------------------------------------------------------------------
 
@@ -373,24 +377,20 @@ add : ℕ → ℕ → ℕ
 add = elim ℕR (λ n → ℕ → ℕ)
   (λ n → n)
   (λ m ih n → suc (ih n))
-  tt
 
 mult : ℕ → ℕ → ℕ
 mult = elim ℕR (λ n → ℕ → ℕ)
   (λ n → zero)
   (λ m ih n → add n (ih n))
-  tt
 
 append : {A : Set} (m : ℕ) (xs : Vec A m) (n : ℕ) (ys : Vec A n) → Vec A (add m n)
-append {A} m xs = elim VecR (λ m xs → (n : ℕ) (ys : Vec A n) → Vec A (add m n))
+append {A} = elim VecR (λ m xs → (n : ℕ) (ys : Vec A n) → Vec A (add m n))
   (λ n ys → ys)
   (λ m x xs ih n ys → cons (add m n) x (ih n ys))
-  (m , tt) xs
 
 concat : {A : Set} (m n : ℕ) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-concat {A} m n xss = elim VecR (λ n xss → Vec A (mult n m))
+concat {A} m = elim VecR (λ n xss → Vec A (mult n m))
   nil
   (λ n xs xss ih → append m xs (mult n m) ih)
-  (n , tt) xss
 
 ----------------------------------------------------------------------
