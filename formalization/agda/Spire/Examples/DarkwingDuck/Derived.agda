@@ -4,11 +4,34 @@ module Spire.Examples.DarkwingDuck.Derived where
 
 ----------------------------------------------------------------------
 
+ISet : Set → Set
+ISet I = I → Set
+
 Enum : Set
 Enum = List String
 
-ISet : Set → Set
-ISet I = I → Set
+Tag : Enum → Set
+Tag xs = Point String xs
+
+Branches : (E : List String) (P : Tag E → Set) → Set
+Branches = elimList _
+  (λ P → ⊤)
+  (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
+
+case' : (E : List String) (t : Tag E) (P : Tag E → Set) (cs : Branches E P) → P t
+case' = elimPoint _
+  (λ l E P c,cs → proj₁ c,cs)
+  (λ l E t ih P c,cs → ih (λ t → P (there t)) (proj₂ c,cs))
+
+case : {E : List String} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
+case P cs t = case' _ t P cs
+
+----------------------------------------------------------------------
+
+Elᵀ  : Tel → Set
+Elᵀ = elimTel _
+  ⊤
+  (λ A B ih → Σ A ih)
 
 ----------------------------------------------------------------------
 
@@ -33,18 +56,15 @@ UncurriedBranches E P X = Branches E P → X
 
 CurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → Set
-CurriedBranches [] P X = X
-CurriedBranches (l ∷ E) P X = P here → CurriedBranches E (λ t → P (there t)) X
+CurriedBranches = elimList _
+  (λ P X → X)
+  (λ l E ih P X → P here → ih (λ t → P (there t)) X)
 
-curryBranches : {E : Enum} {P : Tag E → Set} {X : Set}
+curryBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → UncurriedBranches E P X → CurriedBranches E P X
-curryBranches {[]} f = f tt
-curryBranches {l ∷ E} f = λ c → curryBranches (λ cs → f (c , cs))
-
-uncurryBranches : {E : Enum} {P : Tag E → Set} {X : Set}
-  → CurriedBranches E P X → UncurriedBranches E P X
-uncurryBranches {[]} x tt = x
-uncurryBranches {l ∷ E} f (c , cs) = uncurryBranches (f c) cs
+curryBranches = elimList _
+  (λ P X f → f tt)
+  (λ l E ih P X f c → ih (λ t → P (there t)) X (λ cs → f (c , cs)))
 
 ----------------------------------------------------------------------
 
@@ -52,32 +72,34 @@ UncurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
 UncurriedElᵀ T X = (xs : Elᵀ T) → X xs
 
 CurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
-CurriedElᵀ End X = X tt
-CurriedElᵀ (Arg A B) X = (a : A) → CurriedElᵀ (B a) (λ b → X (a , b))
+CurriedElᵀ = elimTel _
+  (λ X → X tt)
+  (λ A B ih X → (a : A) → ih a (λ b → X (a , b)))
 
 curryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → UncurriedElᵀ T X → CurriedElᵀ T X
-curryElᵀ End X f = f tt
-curryElᵀ (Arg A B) X f = λ a → curryElᵀ (B a) (λ b → X (a , b)) (λ b → f (a , b))
+curryElᵀ = elimTel _
+  (λ X f → f tt)
+  (λ A B ih X f a → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
 uncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → CurriedElᵀ T X → UncurriedElᵀ T X
+-- uncurryElᵀ = elimTel _
+--   (λ X x u → elimUnit X x u)
+--   (λ A B ih X f a,b → {!!})
 uncurryElᵀ End X x tt = x
 uncurryElᵀ (Arg A B) X f (a , b) = uncurryElᵀ (B a) (λ b → X (a , b)) (f a) b
 
 ICurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
-ICurriedElᵀ End X = X tt
-ICurriedElᵀ (Arg A B) X = {a : A} → ICurriedElᵀ (B a) (λ b → X (a , b))
+ICurriedElᵀ = elimTel _
+  (λ X → X tt)
+  (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
 
 icurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → UncurriedElᵀ T X → ICurriedElᵀ T X
-icurryElᵀ End X f = f tt
-icurryElᵀ (Arg A B) X f = λ {a} → icurryElᵀ (B a) (λ b → X (a , b)) (λ b → f (a , b))
-
-iuncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
-  → ICurriedElᵀ T X → UncurriedElᵀ T X
-iuncurryElᵀ End X x tt = x
-iuncurryElᵀ (Arg A B) X f (a , b) = iuncurryElᵀ (B a) (λ b → X (a , b)) f b
+icurryElᵀ = elimTel _
+  (λ X f → f tt)
+  (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
 ----------------------------------------------------------------------
 
@@ -85,15 +107,17 @@ UncurriedElᴰ : {I : Set} (D : Desc I) (X : ISet I) → Set
 UncurriedElᴰ D X = ∀{i} → Elᴰ D X i → X i
 
 CurriedElᴰ : {I : Set} (D : Desc I) (X : ISet I) → Set
-CurriedElᴰ (End i) X = X i
-CurriedElᴰ (Rec i D) X = (x : X i) → CurriedElᴰ D X
-CurriedElᴰ (Arg A B) X = (a : A) → CurriedElᴰ (B a) X
+CurriedElᴰ = elimDesc _
+  (λ i X → X i)
+  (λ i D ih X → (x : X i) → ih X )
+  (λ A B ih X → (a : A) → ih a X)
 
 curryElᴰ : {I : Set} (D : Desc I) (X : ISet I)
   → UncurriedElᴰ D X → CurriedElᴰ D X
-curryElᴰ (End i) X cn = cn refl
-curryElᴰ (Rec i D) X cn = λ x → curryElᴰ D X (λ xs → cn (x , xs))
-curryElᴰ (Arg A B) X cn = λ a → curryElᴰ (B a) X (λ xs → cn (a , xs))
+curryElᴰ = elimDesc _
+  (λ i X cn → cn refl)
+  (λ i D ih X cn x → ih X (λ xs → cn (x , xs)))
+  (λ A B ih X cn a → ih a X (λ xs → cn (a , xs)))
 
 ----------------------------------------------------------------------
 
@@ -108,30 +132,23 @@ CurriedHyps : {I : Set} (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : UncurriedElᴰ D X)
   → Set
-CurriedHyps (End i) X P cn =
-  P i (cn refl)
-CurriedHyps (Rec i D) X P cn =
-  (x : X i) → P i x → CurriedHyps D X P (λ xs → cn (x , xs))
-CurriedHyps (Arg A B) X P cn =
-  (a : A) → CurriedHyps (B a) X P (λ xs → cn (a , xs))
-
-curryHyps : {I : Set} (D : Desc I) (X : ISet I)
-  (P : (i : I) → X i → Set)
-  (cn : UncurriedElᴰ D X)
-  → UncurriedHyps D X P cn
-  → CurriedHyps D X P cn
-curryHyps (End i) X P cn pf =
-  pf i refl tt
-curryHyps (Rec i D) X P cn pf =
-  λ x ih → curryHyps D X P (λ xs → cn (x , xs)) (λ i xs ihs → pf i (x , xs) (ih , ihs))
-curryHyps (Arg A B) X P cn pf =
-  λ a → curryHyps (B a) X P (λ xs → cn (a , xs)) (λ i xs ihs → pf i (a , xs) ihs)
+CurriedHyps = elimDesc _
+  (λ i X P cn → P i (cn refl))
+  (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ xs → cn (x , xs)))
+  (λ A B ih X P cn → (a : A) → ih a X P (λ xs → cn (a , xs)))
 
 uncurryHyps : {I : Set} (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : UncurriedElᴰ D X)
   → CurriedHyps D X P cn
   → UncurriedHyps D X P cn
+-- uncurryHyps = elimDesc _
+--   (λ j X P cn pf i q u →
+--     elimEq (λ k q → P k (cn q)) pf i q)
+--   (λ j D ih X P cn pf i x,xs ih,ihs →
+--     {!!})
+--   (λ A B ih X P cn pf i a,xs ihs →
+--     {!!})
 uncurryHyps (End .i) X P cn pf i refl tt =
   pf
 uncurryHyps (Rec j D) X P cn pf i (x , xs) (ih , ihs) =
@@ -226,7 +243,7 @@ elim R = icurryElᵀ (Data.P R)
     in CurriedBranches (Data.E R)
        (SumCurriedHyps R p M)
        (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x)))
-  (λ p M → curryBranches
+  (λ p M → curryBranches (Data.E R) _ _
     (elimUncurried R p M))
 
 ----------------------------------------------------------------------
