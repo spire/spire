@@ -13,6 +13,12 @@ Enum = List String
 Tag : Enum → Set
 Tag xs = Point String xs
 
+proj₁ : ∀{A B} → Σ A B → A
+proj₁ = elimPair _ (λ a b → a)
+
+proj₂ : ∀{A B} (ab : Σ A B) → B (proj₁ ab)
+proj₂ = elimPair _ (λ a b → b)
+
 Branches : (E : List String) (P : Tag E → Set) → Set
 Branches = elimList _
   (λ P → ⊤)
@@ -26,12 +32,8 @@ case' = elimPoint _
 case : {E : List String} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
 case P cs t = case' _ t P cs
 
-----------------------------------------------------------------------
-
 Elᵀ  : Tel → Set
-Elᵀ = elimTel _
-  ⊤
-  (λ A B ih → Σ A ih)
+Elᵀ = elimTel _ ⊤ (λ A B ih → Σ A ih)
 
 ----------------------------------------------------------------------
 
@@ -84,11 +86,9 @@ curryElᵀ = elimTel _
 
 uncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → CurriedElᵀ T X → UncurriedElᵀ T X
--- uncurryElᵀ = elimTel _
---   (λ X x u → elimUnit X x u)
---   (λ A B ih X f a,b → {!!})
-uncurryElᵀ End X x tt = x
-uncurryElᵀ (Arg A B) X f (a , b) = uncurryElᵀ (B a) (λ b → X (a , b)) (f a) b
+uncurryElᵀ = elimTel _
+  (λ X x → elimUnit X x)
+  (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) (f a) b))
 
 ICurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
 ICurriedElᵀ = elimTel _
@@ -142,19 +142,14 @@ uncurryHyps : {I : Set} (D : Desc I) (X : ISet I)
   (cn : UncurriedElᴰ D X)
   → CurriedHyps D X P cn
   → UncurriedHyps D X P cn
--- uncurryHyps = elimDesc _
---   (λ j X P cn pf i q u →
---     elimEq (λ k q → P k (cn q)) pf i q)
---   (λ j D ih X P cn pf i x,xs ih,ihs →
---     {!!})
---   (λ A B ih X P cn pf i a,xs ihs →
---     {!!})
-uncurryHyps (End .i) X P cn pf i refl tt =
-  pf
-uncurryHyps (Rec j D) X P cn pf i (x , xs) (ih , ihs) =
-  uncurryHyps D X P (λ ys → cn (x , ys)) (pf x ih) i xs ihs
-uncurryHyps (Arg A B) X P cn pf i (a , xs) ihs =
-  uncurryHyps (B a) X P (λ ys → cn (a , ys)) (pf a) i xs ihs
+uncurryHyps = elimDesc _
+  (λ j X P cn pf →
+    elimEq _ (λ u → pf))
+  (λ j D ih X P cn pf i →
+    elimPair _ (λ x xs ih,ihs →
+      ih X P (λ ys → cn (x , ys)) (pf x (proj₁ ih,ihs)) i xs (proj₂ ih,ihs)))
+  (λ A B ih X P cn pf i →
+    elimPair _ (λ a xs → ih a X P (λ ys → cn (a , ys)) (pf a) i xs))
 
 ----------------------------------------------------------------------
 

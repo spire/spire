@@ -25,11 +25,11 @@ elimUnit P ptt tt = ptt
 data Σ (A : Set) (B : A → Set) : Set where
   _,_ : (a : A) (b : B a) → Σ A B
 
-proj₁ : ∀{A B} → Σ A B → A
-proj₁ (a , b) = a
-
-proj₂ : ∀{A B} (ab : Σ A B) → B (proj₁ ab)
-proj₂ (a , b) = b
+elimPair : {A : Set} {B : A → Set}
+  (P : Σ A B → Set)
+  (ppair : (a : A) (b : B a) → P (a , b))
+  (ab : Σ A B) → P ab
+elimPair P ppair (a , b) = ppair a b
 
 ----------------------------------------------------------------------
 
