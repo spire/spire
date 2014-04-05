@@ -37,21 +37,6 @@ Elᵀ = elimTel _ ⊤ (λ A B ih → Σ A ih)
 
 ----------------------------------------------------------------------
 
-record Data : Set where
-  field
-    P : Tel
-    I : Elᵀ P → Tel
-    E : Enum
-    B : (A : Elᵀ P) → Branches E (λ _ → Desc (Elᵀ (I A)))
-
-  C : (A : Elᵀ P) → Tag E → Desc (Elᵀ (I A))
-  C A = case (λ _ → Desc (Elᵀ (I A))) (B A)
-
-  D : (A : Elᵀ P) → Desc (Elᵀ (I A))
-  D A = Arg (Tag E) (C A)
-
-----------------------------------------------------------------------
-
 UncurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → Set
 UncurriedBranches E P X = Branches E P → X
@@ -150,6 +135,21 @@ uncurryHyps = elimDesc _
       ih X P (λ ys → cn (x , ys)) (pf x (proj₁ ih,ihs)) i xs (proj₂ ih,ihs)))
   (λ A B ih X P cn pf i →
     elimPair _ (λ a xs → ih a X P (λ ys → cn (a , ys)) (pf a) i xs))
+
+----------------------------------------------------------------------
+
+record Data : Set where
+  field
+    P : Tel
+    I : Elᵀ P → Tel
+    E : Enum
+    B : (A : Elᵀ P) → Branches E (λ _ → Desc (Elᵀ (I A)))
+
+  C : (A : Elᵀ P) → Tag E → Desc (Elᵀ (I A))
+  C A = case (λ _ → Desc (Elᵀ (I A))) (B A)
+
+  D : (A : Elᵀ P) → Desc (Elᵀ (I A))
+  D A = Arg (Tag E) (C A)
 
 ----------------------------------------------------------------------
 
