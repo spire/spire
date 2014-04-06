@@ -1,4 +1,4 @@
-module Spire.Examples.DarkwingDuck.Primitive where
+module Spire.DarkwingDuck.Primitive where
 
 ----------------------------------------------------------------------
 

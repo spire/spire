@@ -1,6 +1,6 @@
 {-# OPTIONS --type-in-type #-}
-open import Spire.Examples.DarkwingDuck.Primitive
-module Spire.Examples.DarkwingDuck.Derived where
+open import Spire.DarkwingDuck.Primitive
+module Spire.DarkwingDuck.Derived where
 
 ----------------------------------------------------------------------
 
