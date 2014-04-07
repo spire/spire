@@ -85,9 +85,9 @@ mult = elim ℕR
   (λ n → zero)
   (λ m ih n → add n (ih n))
 
-append : {A : Set} {m : ℕ} (xs : Vec A m) {n : ℕ} (ys : Vec A n) → Vec A (add m n)
-append {A} {m} = elim VecR
-  (λ m xs → {n : ℕ} (ys : Vec A n) → Vec A (add m n))
+append : {A : Set} {m n : ℕ} (xs : Vec A m) (ys : Vec A n) → Vec A (add m n)
+append {A} {m} {n} = elim VecR
+  (λ m xs → (ys : Vec A n) → Vec A (add m n))
   (λ ys → ys)
   (λ x xs ih ys → cons x (ih ys))
   m
