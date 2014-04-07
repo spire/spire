@@ -33,7 +33,7 @@ case : {E : List String} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) →
 case P cs t = case' _ t P cs
 
 Elᵀ  : Tel → Set
-Elᵀ = elimTel _ ⊤ (λ A B ih → Σ A ih)
+Elᵀ = elimTel _ ⊤ (λ A B ih → Σ A ih) (λ A B ih → Σ A ih)
 
 ----------------------------------------------------------------------
 
@@ -62,28 +62,33 @@ CurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
 CurriedElᵀ = elimTel _
   (λ X → X tt)
   (λ A B ih X → (a : A) → ih a (λ b → X (a , b)))
+  (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
 
 curryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → UncurriedElᵀ T X → CurriedElᵀ T X
 curryElᵀ = elimTel _
   (λ X f → f tt)
   (λ A B ih X f a → ih a (λ b → X (a , b)) (λ b → f (a , b)))
+  (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
 uncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → CurriedElᵀ T X → UncurriedElᵀ T X
 uncurryElᵀ = elimTel _
   (λ X x → elimUnit X x)
   (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) (f a) b))
+  (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) f b))
 
 ICurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
 ICurriedElᵀ = elimTel _
   (λ X → X tt)
+  (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
   (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
 
 icurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
   → UncurriedElᵀ T X → ICurriedElᵀ T X
 icurryElᵀ = elimTel _
   (λ X f → f tt)
+  (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
   (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
 ----------------------------------------------------------------------
@@ -96,6 +101,7 @@ CurriedElᴰ = elimDesc _
   (λ i X → X i)
   (λ i D ih X → (x : X i) → ih X )
   (λ A B ih X → (a : A) → ih a X)
+  (λ A B ih X → {a : A} → ih a X)
 
 curryElᴰ : {I : Set} (D : Desc I) (X : ISet I)
   → UncurriedElᴰ D X → CurriedElᴰ D X
@@ -103,6 +109,7 @@ curryElᴰ = elimDesc _
   (λ i X cn → cn refl)
   (λ i D ih X cn x → ih X (λ xs → cn (x , xs)))
   (λ A B ih X cn a → ih a X (λ xs → cn (a , xs)))
+  (λ A B ih X cn {a} → ih a X (λ xs → cn (a , xs)))
 
 ----------------------------------------------------------------------
 
@@ -121,6 +128,7 @@ CurriedHyps = elimDesc _
   (λ i X P cn → P i (cn refl))
   (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ xs → cn (x , xs)))
   (λ A B ih X P cn → (a : A) → ih a X P (λ xs → cn (a , xs)))
+  (λ A B ih X P cn → {a : A} → ih a X P (λ xs → cn (a , xs)))
 
 uncurryHyps : {I : Set} (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
@@ -135,6 +143,8 @@ uncurryHyps = elimDesc _
       ih X P (λ ys → cn (x , ys)) (pf x (proj₁ ih,ihs)) i xs (proj₂ ih,ihs)))
   (λ A B ih X P cn pf i →
     elimPair _ (λ a xs → ih a X P (λ ys → cn (a , ys)) (pf a) i xs))
+  (λ A B ih X P cn pf i →
+    elimPair _ (λ a xs → ih a X P (λ ys → cn (a , ys)) pf i xs))
 
 ----------------------------------------------------------------------
 

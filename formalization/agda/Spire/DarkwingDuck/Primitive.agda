@@ -79,14 +79,16 @@ elimPoint P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimPoint P phere
 
 data Tel : Set₁ where
   End : Tel
-  Arg : (A : Set) (B : A → Tel) → Tel
+  Arg IArg : (A : Set) (B : A → Tel) → Tel
 
 elimTel : (P : Tel → Set)
   (pend : P End)
-  (parg : (A : Set) (B : A → Tel) (pb : (a : A) → P (B a)) → P (Arg A B))
+  (parg  : (A : Set) (B : A → Tel) (pb : (a : A) → P (B a)) → P (Arg A B))
+  (piarg : (A : Set) (B : A → Tel) (pb : (a : A) → P (B a)) → P (IArg A B))
   (T : Tel) → P T
-elimTel P pend parg End = pend
-elimTel P pend parg (Arg A B) = parg A B (λ a → elimTel P pend parg (B a))
+elimTel P pend parg piarg End = pend
+elimTel P pend parg piarg (Arg A B) = parg A B (λ a → elimTel P pend parg piarg (B a))
+elimTel P pend parg piarg (IArg A B) = piarg A B (λ a → elimTel P pend parg piarg (B a))
 
 ----------------------------------------------------------------------
 
@@ -94,25 +96,30 @@ data Desc (I : Set) : Set₁ where
   End : (i : I) → Desc I
   Rec : (i : I) (D : Desc I) → Desc I
   Arg : (A : Set) (B : A → Desc I) → Desc I
+  IArg : (A : Set) (B : A → Desc I) → Desc I
 
 elimDesc : {I : Set} (P : Desc I → Set)
   (pend : (i : I) → P (End i))
-  (prec : (i : I) (D : Desc I) (pd : P D) → P (Rec i D))
+  (prec  : (i : I) (D : Desc I) (pd : P D) → P (Rec i D))
   (parg : (A : Set) (B : A → Desc I) (pb : (a : A) → P (B a)) → P (Arg A B))
+  (piarg : (A : Set) (B : A → Desc I) (pb : (a : A) → P (B a)) → P (IArg A B))
   (D : Desc I) → P D
-elimDesc P pend prec parg (End i) = pend i
-elimDesc P pend prec parg (Rec i D) = prec i D (elimDesc P pend prec parg D)
-elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg (B a))
+elimDesc P pend prec parg piarg (End i) = pend i
+elimDesc P pend prec parg piarg (Rec i D) = prec i D (elimDesc P pend prec parg piarg D)
+elimDesc P pend prec parg piarg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg piarg (B a))
+elimDesc P pend prec parg piarg (IArg A B) = piarg A B (λ a → elimDesc P pend prec parg piarg (B a))
 
 Elᴰ : {I : Set} (D : Desc I) → (I → Set) → I → Set
 Elᴰ (End j) X i = j ≡ i
-Elᴰ (Rec j D) X i = Σ (X j) (λ _ → Elᴰ D X i)
-Elᴰ (Arg A B) X i = Σ A (λ a → Elᴰ (B a) X i)
+Elᴰ (Rec j D)  X i = Σ (X j) (λ _ → Elᴰ D X i)
+Elᴰ (Arg A B)  X i = Σ A (λ a → Elᴰ (B a) X i)
+Elᴰ (IArg A B) X i = Σ A (λ a → Elᴰ (B a) X i)
 
 Hyps : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Elᴰ D X i) → Set
 Hyps (End j) X P i q = ⊤
-Hyps (Rec j D) X P i (x , xs) = Σ (P j x) (λ _ → Hyps D X P i xs)
-Hyps (Arg A B) X P i (a , b) = Hyps (B a) X P i b
+Hyps (Rec j D)  X P i (x , xs) = Σ (P j x) (λ _ → Hyps D X P i xs)
+Hyps (Arg A B)  X P i (a , b) = Hyps (B a) X P i b
+Hyps (IArg A B) X P i (a , b) = Hyps (B a) X P i b
 
 ----------------------------------------------------------------------
 
@@ -134,7 +141,8 @@ prove : {I : Set} (D E : Desc I)
 ind D M α i (init xs) = α i xs (prove D D M α i xs)
 
 prove (End j) E M α i q = tt
-prove (Rec j D) E M α i (x , xs) = ind E M α j x , prove D E M α i xs
-prove (Arg A B) E M α i (a , xs) = prove (B a) E M α i xs
+prove (Rec j D)  E M α i (x , xs) = ind E M α j x , prove D E M α i xs
+prove (Arg A B)  E M α i (a , xs) = prove (B a) E M α i xs
+prove (IArg A B) E M α i (a , xs) = prove (B a) E M α i xs
 
 ----------------------------------------------------------------------
