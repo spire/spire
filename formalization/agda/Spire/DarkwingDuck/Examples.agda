@@ -32,15 +32,8 @@ consT = there here
 ----------------------------------------------------------------------
 
 ℕR : Data
-ℕR = record
-  { P = End
-  ; I = λ _ → End
-  ; E = ℕE
-  ; B = λ _ →
-      End tt
-    , Rec tt (End tt)
-    , tt
-  }
+ℕR = Decl ℕE End End
+  (End tt , Rec tt (End tt) , tt)
 
 ℕ : Set
 ℕ = Form ℕR
@@ -52,15 +45,14 @@ suc : ℕ → ℕ
 suc = inj ℕR sucT
 
 VecR : Data
-VecR = record
-  { P = Arg Set (λ _ → End)
-  ; I = λ _ → Arg ℕ (λ _ → End)
-  ; E = VecE
-  ; B = λ A →
-      End (zero , tt)
-    , IArg ℕ (λ n → Arg (proj₁ A) λ _ → Rec (n , tt) (End (suc n , tt)))
-    , tt
-  }
+VecR = Decl VecE
+  (Arg Set λ _ → End)
+  (λ _ → Arg ℕ λ _ → End)
+  (λ A →
+    End (zero , tt)
+  , IArg ℕ (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
+  , tt
+  )
 
 Vec : (A : Set) → ℕ → Set
 Vec = Form VecR

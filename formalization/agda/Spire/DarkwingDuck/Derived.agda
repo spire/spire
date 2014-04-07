@@ -163,6 +163,32 @@ record Data : Set where
 
 ----------------------------------------------------------------------
 
+Decl :
+  (E : Enum)
+  (P : Tel)
+  (I : CurriedElᵀ P (λ _ → Tel))
+  (B : let I = uncurryElᵀ P (λ _ → Tel) I
+      in CurriedElᵀ P λ A → Branches E (λ _ → Desc (Elᵀ (I A))))
+  → Data
+Decl E P I B = record
+  { P = P
+  ; I = uncurryElᵀ P _ I
+  ; E = E
+  ; B = uncurryElᵀ P _ B
+  }
+
+----------------------------------------------------------------------
+
+End[_] : (I : Tel)
+  → CurriedElᵀ I (λ _ → Desc (Elᵀ I))
+End[_] I = curryElᵀ I _ End
+
+Rec[_] : (I : Tel)
+  → CurriedElᵀ I (λ _ → Desc (Elᵀ I) → Desc (Elᵀ I))
+Rec[_] I = curryElᵀ I _ Rec
+
+----------------------------------------------------------------------
+
 FormUncurried : (R : Data)
   → UncurriedElᵀ (Data.P R) λ p
   → UncurriedElᵀ (Data.I R p) λ i
