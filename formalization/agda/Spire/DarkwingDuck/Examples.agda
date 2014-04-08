@@ -5,49 +5,25 @@ module Spire.DarkwingDuck.Examples where
 
 ----------------------------------------------------------------------
 
-ℕE : Enum
-ℕE = "zero" ∷ "suc" ∷ []
-
-VecE : Enum
-VecE = "nil" ∷ "cons" ∷ []
-
-ℕT : Set
-ℕT = Tag ℕE
-
-VecT : Set
-VecT = Tag VecE
-
-zeroT : ℕT
-zeroT = here
-
-sucT : ℕT
-sucT = there here
-
-nilT : VecT
-nilT = here
-
-consT : VecT
-consT = there here
-
-----------------------------------------------------------------------
-
 ℕR : Data
-ℕR = Decl ℕE End End
+ℕR = Decl End End
+  ("zero" ∷ "suc" ∷ [])
   (End tt , Rec tt (End tt) , tt)
 
 ℕ : Set
 ℕ = Form ℕR
 
 zero : ℕ
-zero = inj ℕR zeroT
+zero = inj ℕR here
 
 suc : ℕ → ℕ
-suc = inj ℕR sucT
+suc = inj ℕR (there here)
 
 VecR : Data
-VecR = Decl VecE
+VecR = Decl
   (Arg Set λ _ → End)
   (λ _ → Arg ℕ λ _ → End)
+  ("nil" ∷ "cons" ∷ [])
   (λ A →
     End (zero , tt)
   , IArg ℕ (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
@@ -58,10 +34,10 @@ Vec : (A : Set) → ℕ → Set
 Vec = Form VecR
 
 nil : {A : Set} → Vec A zero
-nil = inj VecR nilT
+nil = inj VecR here
 
 cons : {A : Set} {n : ℕ} (x : A) (xs : Vec A n) → Vec A (suc n)
-cons = inj VecR consT
+cons = inj VecR (there here)
 
 ----------------------------------------------------------------------
 

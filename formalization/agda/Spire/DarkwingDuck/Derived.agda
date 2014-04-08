@@ -164,13 +164,13 @@ record Data : Set where
 ----------------------------------------------------------------------
 
 Decl :
-  (E : Enum)
   (P : Tel)
   (I : CurriedElᵀ P (λ _ → Tel))
+  (E : Enum)
   (B : let I = uncurryElᵀ P (λ _ → Tel) I
       in CurriedElᵀ P λ A → Branches E (λ _ → Desc (Elᵀ (I A))))
   → Data
-Decl E P I B = record
+Decl P I E B = record
   { P = P
   ; I = uncurryElᵀ P _ I
   ; E = E
