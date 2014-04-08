@@ -102,16 +102,16 @@ two = suc one
 three : ℕ
 three = suc two
 
-[1] : Vec ℕ one
-[1] = cons one nil
+[1,2] : Vec ℕ two
+[1,2] = cons one (cons two nil)
 
-[2,3] : Vec ℕ two
-[2,3] = cons two (cons three nil)
+[3] : Vec ℕ one
+[3] = cons three nil
 
 [1,2,3] : Vec ℕ three
 [1,2,3] = cons one (cons two (cons three nil))
 
-test-append : [1,2,3] ≡ append [1] [2,3]
+test-append : [1,2,3] ≡ append [1,2] [3]
 test-append = refl
 
 ----------------------------------------------------------------------
