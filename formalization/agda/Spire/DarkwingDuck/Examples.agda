@@ -1,4 +1,4 @@
-{-# OPTIONS --type-in-type #-}
+{-# OPTIONS --type-in-type --no-pattern-matching #-}
 open import Spire.DarkwingDuck.Primitive
 open import Spire.DarkwingDuck.Derived
 module Spire.DarkwingDuck.Examples where
