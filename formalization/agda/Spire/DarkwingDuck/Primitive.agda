@@ -64,16 +64,16 @@ elimList P pnil pcons (x ∷ xs) = pcons x xs (elimList P pnil pcons xs)
 
 ----------------------------------------------------------------------
 
-data Point (A : Set) : List A → Set where
-  here : ∀{x xs} → Point A (x ∷ xs)
-  there : ∀{x xs} → Point A xs → Point A (x ∷ xs)
+data PointsTo (A : Set) : List A → Set where
+  here : ∀{x xs} → PointsTo A (x ∷ xs)
+  there : ∀{x xs} → PointsTo A xs → PointsTo A (x ∷ xs)
 
-elimPoint : {A : Set} (P : (xs : List A) → Point A xs → Set)
+elimPointsTo : {A : Set} (P : (xs : List A) → PointsTo A xs → Set)
   (phere : (x : A) (xs : List A) → P (x ∷ xs) here)
-  (pthere : (x : A) (xs : List A) (t : Point A xs) → P xs t → P (x ∷ xs) (there t))
-  (xs : List A) (t : Point A xs) → P xs t
-elimPoint P phere pthere (x ∷ xs) here = phere x xs
-elimPoint P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimPoint P phere pthere xs t)
+  (pthere : (x : A) (xs : List A) (t : PointsTo A xs) → P xs t → P (x ∷ xs) (there t))
+  (xs : List A) (t : PointsTo A xs) → P xs t
+elimPointsTo P phere pthere (x ∷ xs) here = phere x xs
+elimPointsTo P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimPointsTo P phere pthere xs t)
 
 ----------------------------------------------------------------------
 

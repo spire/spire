@@ -11,7 +11,7 @@ Enum : Set
 Enum = List String
 
 Tag : Enum → Set
-Tag xs = Point String xs
+Tag xs = PointsTo String xs
 
 proj₁ : ∀{A B} → Σ A B → A
 proj₁ = elimPair _ (λ a b → a)
@@ -25,7 +25,7 @@ Branches = elimList _
   (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
 
 case' : (E : List String) (t : Tag E) (P : Tag E → Set) (cs : Branches E P) → P t
-case' = elimPoint _
+case' = elimPointsTo _
   (λ l E P c,cs → proj₁ c,cs)
   (λ l E t ih P c,cs → ih (λ t → P (there t)) (proj₂ c,cs))
 
