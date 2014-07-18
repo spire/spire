@@ -112,29 +112,27 @@ Elᴰ (Arg A B)  X i = Σ A (λ a → Elᴰ (B a) X i)
 Hyps : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Elᴰ D X i) → Set
 Hyps (End j) X P i q = ⊤
 Hyps (Rec j D)  X P i (x , xs) = Σ (P j x) (λ _ → Hyps D X P i xs)
-Hyps (Arg A B)  X P i (a , b) = Hyps (B a) X P i b
+Hyps (Arg A B)  X P i (a , xs) = Hyps (B a) X P i xs
 
 ----------------------------------------------------------------------
 
 data μ (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p)) (i : I p) : Set where
   init : Elᴰ D (μ ℓ P I p D) i → μ ℓ P I p D i
 
-ind : {ℓ : String} {P : Set} {I : P → Set} {p : P} (D : Desc (I p))
+map : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set)
+  (p : (i : I) (x : X i) → P i x) (i : I) (xs : Elᴰ D X i)
+  → Hyps D X P i xs
+map (End j) X P p i q = tt
+map (Rec j D) X P p i (x , xs) = p j x , map D X P p i xs
+map (Arg A B) X P p i (a , xs) = map (B a) X P p i xs
+
+{-# NO_TERMINATION_CHECK #-}
+ind : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
   (M : (i : I p) → μ ℓ P I p D i → Set)
   (α : ∀ i (xs : Elᴰ D (μ ℓ P I p D) i) (ihs : Hyps D (μ ℓ P I p D) M i xs) → M i (init xs))
   (i : I p)
   (x : μ ℓ P I p D i)
   → M i x
-
-prove : {ℓ : String} {P : Set} {I : P → Set} {p : P} (D E : Desc (I p))
-  (M : (i : I p) → μ ℓ P I p E i → Set)
-  (α : ∀ i (xs : Elᴰ E (μ ℓ P I p E) i) (ihs : Hyps E (μ ℓ P I p E) M i xs) → M i (init xs))
-  (i : (I p)) (xs : Elᴰ D (μ ℓ P I p E) i) → Hyps D (μ ℓ P I p E) M i xs
-
-ind D M α i (init xs) = α i xs (prove D D M α i xs)
-
-prove (End j) E M α i q = tt
-prove (Rec j D) E M α i (x , xs) = ind E M α j x , prove D E M α i xs
-prove (Arg A B) E M α i (a , xs) = prove (B a) E M α i xs
+ind ℓ P I p D M α i (init xs) = α i xs (map D (μ ℓ P I p D) M (ind ℓ P I p D M α) i xs)
 
 ----------------------------------------------------------------------
