@@ -116,20 +116,20 @@ Hyps (Arg A B)  X P i (a , b) = Hyps (B a) X P i b
 
 ----------------------------------------------------------------------
 
-data μ (P : Set) (I : P → Set) (p : P) (D : Desc (I p)) (i : I p) : Set where
-  init : Elᴰ D (μ P I p D) i → μ P I p D i
+data μ (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p)) (i : I p) : Set where
+  init : Elᴰ D (μ ℓ P I p D) i → μ ℓ P I p D i
 
-ind : {P : Set} {I : P → Set} {p : P} (D : Desc (I p))
-  (M : (i : I p) → μ P I p D i → Set)
-  (α : ∀ i (xs : Elᴰ D (μ P I p D) i) (ihs : Hyps D (μ P I p D) M i xs) → M i (init xs))
+ind : {ℓ : String} {P : Set} {I : P → Set} {p : P} (D : Desc (I p))
+  (M : (i : I p) → μ ℓ P I p D i → Set)
+  (α : ∀ i (xs : Elᴰ D (μ ℓ P I p D) i) (ihs : Hyps D (μ ℓ P I p D) M i xs) → M i (init xs))
   (i : I p)
-  (x : μ P I p D i)
+  (x : μ ℓ P I p D i)
   → M i x
 
-prove : {P : Set} {I : P → Set} {p : P} (D E : Desc (I p))
-  (M : (i : I p) → μ P I p E i → Set)
-  (α : ∀ i (xs : Elᴰ E (μ P I p E) i) (ihs : Hyps E (μ P I p E) M i xs) → M i (init xs))
-  (i : (I p)) (xs : Elᴰ D (μ P I p E) i) → Hyps D (μ P I p E) M i xs
+prove : {ℓ : String} {P : Set} {I : P → Set} {p : P} (D E : Desc (I p))
+  (M : (i : I p) → μ ℓ P I p E i → Set)
+  (α : ∀ i (xs : Elᴰ E (μ ℓ P I p E) i) (ihs : Hyps E (μ ℓ P I p E) M i xs) → M i (init xs))
+  (i : (I p)) (xs : Elᴰ D (μ ℓ P I p E) i) → Hyps D (μ ℓ P I p E) M i xs
 
 ind D M α i (init xs) = α i xs (prove D D M α i xs)
 
