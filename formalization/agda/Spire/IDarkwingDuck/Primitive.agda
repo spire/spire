@@ -1,4 +1,4 @@
-module Spire.DarkwingDuck.Primitive where
+module Spire.IDarkwingDuck.Primitive where
 
 ----------------------------------------------------------------------
 

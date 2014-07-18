@@ -1,6 +1,6 @@
 {-# OPTIONS --type-in-type --no-pattern-matching #-}
-open import Spire.DarkwingDuck.Primitive
-module Spire.DarkwingDuck.Derived where
+open import Spire.IDarkwingDuck.Primitive
+module Spire.IDarkwingDuck.Derived where
 
 ----------------------------------------------------------------------
 
