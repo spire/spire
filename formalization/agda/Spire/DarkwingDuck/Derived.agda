@@ -11,7 +11,7 @@ Enum : Set
 Enum = List String
 
 Tag : Enum → Set
-Tag xs = PointsTo String xs
+Tag xs = Elem String xs
 
 proj₁ : ∀{A B} → Σ A B → A
 proj₁ = elimPair _ (λ a b → a)
@@ -25,15 +25,15 @@ Branches = elimList _
   (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
 
 case' : (E : List String) (t : Tag E) (P : Tag E → Set) (cs : Branches E P) → P t
-case' = elimPointsTo _
-  (λ l E P c,cs → proj₁ c,cs)
-  (λ l E t ih P c,cs → ih (λ t → P (there t)) (proj₂ c,cs))
+case' = elimElem _ _
+  (λ l E P c,cs → elimPair (λ _ → P here) (λ a b → a) c,cs)
+  (λ l E t ih P c,cs → ih (λ t → P (there t)) (elimPair (λ _ → Branches E (λ t → P (there t))) (λ a b → b) c,cs))
 
 case : {E : List String} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
 case P cs t = case' _ t P cs
 
-Elᵀ  : Tel → Set
-Elᵀ = elimTel _ ⊤ (λ A B ih → Σ A ih) (λ A B ih → Σ A ih)
+Scope  : Tel → Set
+Scope = elimTel _ ⊤ (λ A B ih → Σ A ih)
 
 ----------------------------------------------------------------------
 
@@ -55,225 +55,209 @@ curryBranches = elimList _
 
 ----------------------------------------------------------------------
 
-UncurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
-UncurriedElᵀ T X = (xs : Elᵀ T) → X xs
+UncurriedScope : (T : Tel) (X : Scope T → Set) → Set
+UncurriedScope T X = (xs : Scope T) → X xs
 
-CurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
-CurriedElᵀ = elimTel _
+CurriedScope : (T : Tel) (X : Scope T → Set) → Set
+CurriedScope = elimTel _
   (λ X → X tt)
   (λ A B ih X → (a : A) → ih a (λ b → X (a , b)))
-  (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
 
-curryElᵀ : (T : Tel) (X : Elᵀ T → Set)
-  → UncurriedElᵀ T X → CurriedElᵀ T X
-curryElᵀ = elimTel _
+curryScope : (T : Tel) (X : Scope T → Set)
+  → UncurriedScope T X → CurriedScope T X
+curryScope = elimTel _
   (λ X f → f tt)
   (λ A B ih X f a → ih a (λ b → X (a , b)) (λ b → f (a , b)))
-  (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
-uncurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
-  → CurriedElᵀ T X → UncurriedElᵀ T X
-uncurryElᵀ = elimTel _
+uncurryScope : (T : Tel) (X : Scope T → Set)
+  → CurriedScope T X → UncurriedScope T X
+uncurryScope = elimTel _
   (λ X x → elimUnit X x)
   (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) (f a) b))
-  (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) f b))
-
-ICurriedElᵀ : (T : Tel) (X : Elᵀ T → Set) → Set
-ICurriedElᵀ = elimTel _
-  (λ X → X tt)
-  (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
-  (λ A B ih X → {a : A} → ih a (λ b → X (a , b)))
-
-icurryElᵀ : (T : Tel) (X : Elᵀ T → Set)
-  → UncurriedElᵀ T X → ICurriedElᵀ T X
-icurryElᵀ = elimTel _
-  (λ X f → f tt)
-  (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
-  (λ A B ih X f {a} → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
 ----------------------------------------------------------------------
 
-UncurriedElᴰ : {I : Set} (D : Desc I) (X : ISet I) → Set
-UncurriedElᴰ D X = ∀{i} → Elᴰ D X i → X i
+UncurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
+UncurriedFunc I D X = (i : I) → Func I D X i → X i
 
-CurriedElᴰ : {I : Set} (D : Desc I) (X : ISet I) → Set
-CurriedElᴰ = elimDesc _
+CurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
+CurriedFunc I = elimDesc _
   (λ i X → X i)
   (λ i D ih X → (x : X i) → ih X )
   (λ A B ih X → (a : A) → ih a X)
-  (λ A B ih X → {a : A} → ih a X)
 
-curryElᴰ : {I : Set} (D : Desc I) (X : ISet I)
-  → UncurriedElᴰ D X → CurriedElᴰ D X
-curryElᴰ = elimDesc _
-  (λ i X cn → cn refl)
-  (λ i D ih X cn x → ih X (λ xs → cn (x , xs)))
-  (λ A B ih X cn a → ih a X (λ xs → cn (a , xs)))
-  (λ A B ih X cn {a} → ih a X (λ xs → cn (a , xs)))
+curryFunc : (I : Set) (D : Desc I) (X : ISet I)
+  → UncurriedFunc I D X → CurriedFunc I D X
+curryFunc I = elimDesc _
+  (λ i X cn → cn i refl)
+  (λ i D ih X cn x → ih X (λ j xs → cn j (x , xs)))
+  (λ A B ih X cn a → ih a X (λ j xs → cn j (a , xs)))
 
 ----------------------------------------------------------------------
 
-UncurriedHyps : {I : Set} (D : Desc I) (X : ISet I)
+UncurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
-  (cn : UncurriedElᴰ D X)
+  (cn : UncurriedFunc I D X)
   → Set
-UncurriedHyps D X P cn =
-  ∀ i (xs : Elᴰ D X i) (ihs : Hyps D X P i xs) → P i (cn xs)
+UncurriedHyps I D X P cn =
+  (i : I) (xs : Func I D X i) (ihs : Hyps I D X P i xs) → P i (cn i xs)
 
-CurriedHyps : {I : Set} (D : Desc I) (X : ISet I)
+CurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
-  (cn : UncurriedElᴰ D X)
+  (cn : UncurriedFunc I D X)
   → Set
-CurriedHyps = elimDesc _
-  (λ i X P cn → P i (cn refl))
-  (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ xs → cn (x , xs)))
-  (λ A B ih X P cn → (a : A) → ih a X P (λ xs → cn (a , xs)))
-  (λ A B ih X P cn → {a : A} → ih a X P (λ xs → cn (a , xs)))
+CurriedHyps I = elimDesc _
+  (λ i X P cn → P i (cn i refl))
+  (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ j xs → cn j (x , xs)))
+  (λ A B ih X P cn → (a : A) → ih a X P (λ j xs → cn j (a , xs)))
 
-uncurryHyps : {I : Set} (D : Desc I) (X : ISet I)
+uncurryHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
-  (cn : UncurriedElᴰ D X)
-  → CurriedHyps D X P cn
-  → UncurriedHyps D X P cn
-uncurryHyps = elimDesc _
+  (cn : UncurriedFunc I D X)
+  → CurriedHyps I D X P cn
+  → UncurriedHyps I D X P cn
+uncurryHyps I = elimDesc _
   (λ j X P cn pf →
     elimEq _ (λ u → pf))
   (λ j D ih X P cn pf i →
     elimPair _ (λ x xs ih,ihs →
-      ih X P (λ ys → cn (x , ys)) (pf x (proj₁ ih,ihs)) i xs (proj₂ ih,ihs)))
+      ih X P (λ j ys → cn j (x , ys)) (pf x (proj₁ ih,ihs)) i xs (proj₂ ih,ihs)))
   (λ A B ih X P cn pf i →
-    elimPair _ (λ a xs → ih a X P (λ ys → cn (a , ys)) (pf a) i xs))
-  (λ A B ih X P cn pf i →
-    elimPair _ (λ a xs → ih a X P (λ ys → cn (a , ys)) pf i xs))
+    elimPair _ (λ a xs → ih a X P (λ j ys → cn j (a , ys)) (pf a) i xs))
 
 ----------------------------------------------------------------------
 
 record Data : Set where
   field
+    N : String
     P : Tel
-    I : Elᵀ P → Tel
+    I : Scope P → Tel
     E : Enum
-    B : (A : Elᵀ P) → Branches E (λ _ → Desc (Elᵀ (I A)))
+    B : (p : Scope P) → Branches E (λ _ → Desc (Scope (I p)))
 
-  C : (A : Elᵀ P) → Tag E → Desc (Elᵀ (I A))
-  C A = case (λ _ → Desc (Elᵀ (I A))) (B A)
+  PS : Set
+  PS = Scope P
 
-  D : (A : Elᵀ P) → Desc (Elᵀ (I A))
-  D A = Arg (Tag E) (C A)
+  IS : PS → Set
+  IS p = Scope (I p)
+
+  C : (p : PS) → Tag E → Desc (IS p)
+  C p = case (λ _ → Desc (IS p)) (B p)
+
+  D : (p : PS) → Desc (IS p)
+  D p = Arg (Tag E) (C p)
+
+  F : (p : PS) → IS p → Set
+  F p = μ N PS IS p (D p)
 
 ----------------------------------------------------------------------
 
 Decl :
+  (N : String)
   (P : Tel)
-  (I : CurriedElᵀ P (λ _ → Tel))
+  (I : CurriedScope P (λ _ → Tel))
   (E : Enum)
-  (B : let I = uncurryElᵀ P (λ _ → Tel) I
-      in CurriedElᵀ P λ A → Branches E (λ _ → Desc (Elᵀ (I A))))
+  (B : let I = uncurryScope P (λ _ → Tel) I
+      in CurriedScope P λ A → Branches E (λ _ → Desc (Scope (I A))))
   → Data
-Decl P I E B = record
-  { P = P
-  ; I = uncurryElᵀ P _ I
+Decl N P I E B = record
+  { N = N
+  ; P = P
+  ; I = uncurryScope P _ I
   ; E = E
-  ; B = uncurryElᵀ P _ B
+  ; B = uncurryScope P _ B
   }
 
 ----------------------------------------------------------------------
 
 End[_] : (I : Tel)
-  → CurriedElᵀ I (λ _ → Desc (Elᵀ I))
-End[_] I = curryElᵀ I _ End
+  → CurriedScope I (λ _ → Desc (Scope I))
+End[_] I = curryScope I _ End
 
 Rec[_] : (I : Tel)
-  → CurriedElᵀ I (λ _ → Desc (Elᵀ I) → Desc (Elᵀ I))
-Rec[_] I = curryElᵀ I _ Rec
+  → CurriedScope I (λ _ → Desc (Scope I) → Desc (Scope I))
+Rec[_] I = curryScope I _ Rec
 
 ----------------------------------------------------------------------
 
 FormUncurried : (R : Data)
-  → UncurriedElᵀ (Data.P R) λ p
-  → UncurriedElᵀ (Data.I R p) λ i
+  → UncurriedScope (Data.P R) λ p
+  → UncurriedScope (Data.I R p) λ i
   → Set
-FormUncurried R p i = μ (Data.D R p) i
+FormUncurried = Data.F
 
 Form : (R : Data)
-  → CurriedElᵀ (Data.P R) λ p
-  → CurriedElᵀ (Data.I R p) λ i
+  → CurriedScope (Data.P R) λ p
+  → CurriedScope (Data.I R p) λ i
   → Set
 Form R =
-  curryElᵀ (Data.P R) (λ p → CurriedElᵀ (Data.I R p) λ i → Set) λ p →
-  curryElᵀ (Data.I R p) (λ i → Set) λ i →
+  curryScope (Data.P R) (λ p → CurriedScope (Data.I R p) λ i → Set) λ p →
+  curryScope (Data.I R p) (λ i → Set) λ i →
   FormUncurried R p i
 
 ----------------------------------------------------------------------
 
 injUncurried : (R : Data)
-  → UncurriedElᵀ (Data.P R) λ p
-  → let D = Data.D R p
-  in CurriedElᴰ D (μ D)
-injUncurried R p t = curryElᴰ (Data.C R p t)
-  (μ (Data.D R p))
-  (λ xs → init (t , xs))
+  → UncurriedScope (Data.P R) λ p
+  → CurriedFunc (Data.IS R p) (Data.D R p) (Data.F R p)
+injUncurried R p t = curryFunc (Data.IS R p) (Data.C R p t)
+  (Data.F R p)
+  (λ i xs → init (t , xs))
 
 inj : (R : Data)
-  → ICurriedElᵀ (Data.P R) λ p
-  → let D = Data.D R p
-  in CurriedElᴰ D (μ D)
-inj R = icurryElᵀ (Data.P R)
-  (λ p → let D = Data.D R p in CurriedElᴰ D (μ D))
+  → CurriedScope (Data.P R) λ p
+  → CurriedFunc (Data.IS R p) (Data.D R p) (Data.F R p)
+inj R = curryScope (Data.P R)
+  (λ p → CurriedFunc (Data.IS R p) (Data.D R p) (Data.F R p))
   (injUncurried R)
 
 ----------------------------------------------------------------------
 
-indCurried : {I : Set} (D : Desc I)
-  (M : (i : I) → μ D i → Set)
-  (f : CurriedHyps D (μ D) M init)
-  (i : I)
-  (x : μ D i)
+indCurried : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
+  (M : (i : I p) → μ ℓ P I p D i → Set)
+  (f : CurriedHyps (I p) D (μ ℓ P I p D) M (λ _ → init))
+  (i : I p)
+  (x : μ ℓ P I p D i)
   → M i x
-indCurried D M f i x =
-  ind D M (uncurryHyps D (μ D) M init f) i x
+indCurried ℓ P I p D M f i x =
+  ind ℓ P I p D M (uncurryHyps (I p) D (μ ℓ P I p D) M (λ _ → init) f) i x
 
 SumCurriedHyps : (R : Data)
-  → UncurriedElᵀ (Data.P R) λ p
-  → let D = Data.D R p in
-  (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
+  → UncurriedScope (Data.P R) λ p
+  → (M : CurriedScope (Data.I R p) (λ i → Data.F R p i → Set))
   → Tag (Data.E R) → Set
 SumCurriedHyps R p M t =
-  let unM = uncurryElᵀ (Data.I R p) (λ i → μ (Data.D R p) i → Set) M in
-  CurriedHyps (Data.C R p t) (μ (Data.D R p)) unM (λ xs → init (t , xs))
+  let unM = uncurryScope (Data.I R p) (λ i → Data.F R p i → Set) M in
+  CurriedHyps (Data.IS R p) (Data.C R p t) (Data.F R p) unM (λ i xs → init (t , xs))
 
 elimUncurried : (R : Data)
-  → UncurriedElᵀ (Data.P R) λ p
-  → let D = Data.D R p in
-  (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
-  → let unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
+  → UncurriedScope (Data.P R) λ p
+  → (M : CurriedScope (Data.I R p) (λ i → Data.F R p i → Set))
+  → let unM = uncurryScope (Data.I R p) (λ i → Data.F R p i → Set) M
   in UncurriedBranches (Data.E R)
      (SumCurriedHyps R p M)
-     (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x))
-elimUncurried R p M cs =
-  let D = Data.D R p
-      unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
+     (CurriedScope (Data.I R p) (λ i → (x : Data.F R p i) → unM i x))
+elimUncurried R p M cs = let
+    unM = uncurryScope (Data.I R p) (λ i → Data.F R p i → Set) M
   in
-  curryElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x) λ i x →
-  indCurried (Data.D R p) unM
+  curryScope (Data.I R p) (λ i → (x : Data.F R p i) → unM i x) λ i x →
+  indCurried (Data.N R) (Data.PS R) (Data.IS R) p (Data.D R p) unM
     (case (SumCurriedHyps R p M) cs)
     i x
 
 elim : (R : Data)
-  → ICurriedElᵀ (Data.P R) λ p
-  → let D = Data.D R p in
-  (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
-  → let unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
+  → CurriedScope (Data.P R) λ p
+  → (M : CurriedScope (Data.I R p) (λ i → Data.F R p i → Set))
+  → let unM = uncurryScope (Data.I R p) (λ i → Data.F R p i → Set) M
   in CurriedBranches (Data.E R)
      (SumCurriedHyps R p M)
-     (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x))
-elim R = icurryElᵀ (Data.P R)
-  (λ p → let D = Data.D R p in
-    (M : CurriedElᵀ (Data.I R p) (λ i → μ D i → Set))
-    → let unM = uncurryElᵀ (Data.I R p) (λ i → μ D i → Set) M
+     (CurriedScope (Data.I R p) (λ i → (x : Data.F R p i) → unM i x))
+elim R = curryScope (Data.P R)
+  (λ p → (M : CurriedScope (Data.I R p) (λ i → Data.F R p i → Set))
+    → let unM = uncurryScope (Data.I R p) (λ i → Data.F R p i → Set) M
     in CurriedBranches (Data.E R)
        (SumCurriedHyps R p M)
-       (CurriedElᵀ (Data.I R p) (λ i → (x : μ D i) → unM i x)))
+       (CurriedScope (Data.I R p) (λ i → (x : Data.F R p i) → unM i x)))
   (λ p M → curryBranches (Data.E R) _ _
     (elimUncurried R p M))
 

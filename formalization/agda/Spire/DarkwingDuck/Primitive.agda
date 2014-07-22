@@ -65,16 +65,16 @@ elimList P pnil pcons (x ∷ xs) = pcons x xs (elimList P pnil pcons xs)
 
 ----------------------------------------------------------------------
 
-data Elem {A : Set} : List A → Set where
-  here : ∀{x xs} → Elem (x ∷ xs)
-  there : ∀{x xs} → Elem xs → Elem (x ∷ xs)
+data Elem (A : Set) : List A → Set where
+  here : ∀{x xs} → Elem A (x ∷ xs)
+  there : ∀{x xs} → Elem A xs → Elem A (x ∷ xs)
 
-elimElem : {A : Set} (P : (xs : List A) → Elem xs → Set)
+elimElem : (A : Set) (P : (xs : List A) → Elem A xs → Set)
   (phere : (x : A) (xs : List A) → P (x ∷ xs) here)
-  (pthere : (x : A) (xs : List A) (t : Elem xs) → P xs t → P (x ∷ xs) (there t))
-  (xs : List A) (t : Elem xs) → P xs t
-elimElem P phere pthere (x ∷ xs) here = phere x xs
-elimElem P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimElem P phere pthere xs t)
+  (pthere : (x : A) (xs : List A) (t : Elem A xs) → P xs t → P (x ∷ xs) (there t))
+  (xs : List A) (t : Elem A xs) → P xs t
+elimElem A P phere pthere (x ∷ xs) here = phere x xs
+elimElem A P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimElem A P phere pthere xs t)
 
 ----------------------------------------------------------------------
 
