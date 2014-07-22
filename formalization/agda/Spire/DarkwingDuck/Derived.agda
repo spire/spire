@@ -20,12 +20,12 @@ proj₂ : ∀{A B} (ab : Σ A B) → B (proj₁ ab)
 proj₂ = elimPair _ (λ a b → b)
 
 Branches : (E : List String) (P : Tag E → Set) → Set
-Branches = elimList _
+Branches = elimList (λ E → (P : Tag E → Set) → Set)
   (λ P → ⊤)
   (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
 
 case' : (E : List String) (t : Tag E) (P : Tag E → Set) (cs : Branches E P) → P t
-case' = elimElem _ _
+case' = elimElem String (λ E t → (P : Tag E → Set) (cs : Branches E P) → P t)
   (λ l E P c,cs → elimPair (λ _ → P here) (λ a b → a) c,cs)
   (λ l E t ih P c,cs → ih (λ t → P (there t)) (elimPair (λ _ → Branches E (λ t → P (there t))) (λ a b → b) c,cs))
 
@@ -33,7 +33,7 @@ case : {E : List String} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) →
 case P cs t = case' _ t P cs
 
 Scope  : Tel → Set
-Scope = elimTel _ ⊤ (λ A B ih → Σ A ih)
+Scope = elimTel (λ _ → Set) ⊤ (λ A B ih → Σ A ih)
 
 ----------------------------------------------------------------------
 
@@ -43,13 +43,16 @@ UncurriedBranches E P X = Branches E P → X
 
 CurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → Set
-CurriedBranches = elimList _
+CurriedBranches = elimList
+  (λ E → (P : Tag E → Set) (X : Set) → Set)
   (λ P X → X)
   (λ l E ih P X → P here → ih (λ t → P (there t)) X)
 
-curryBranches : (E : Enum) (P : Tag E → Set) (X : Set)
-  → UncurriedBranches E P X → CurriedBranches E P X
-curryBranches = elimList _
+CurryBranches : Enum → Set
+CurryBranches E = (P : Tag E → Set) (X : Set) → UncurriedBranches E P X → CurriedBranches E P X
+
+curryBranches : (E : Enum) → CurryBranches E
+curryBranches = elimList CurryBranches
   (λ P X f → f tt)
   (λ l E ih P X f c → ih (λ t → P (there t)) X (λ cs → f (c , cs)))
 
@@ -59,19 +62,24 @@ UncurriedScope : (T : Tel) (X : Scope T → Set) → Set
 UncurriedScope T X = (xs : Scope T) → X xs
 
 CurriedScope : (T : Tel) (X : Scope T → Set) → Set
-CurriedScope = elimTel _
+CurriedScope = elimTel
+  (λ T → (X : Scope T → Set) → Set)
   (λ X → X tt)
   (λ A B ih X → (a : A) → ih a (λ b → X (a , b)))
 
-curryScope : (T : Tel) (X : Scope T → Set)
-  → UncurriedScope T X → CurriedScope T X
-curryScope = elimTel _
+CurryScope : Tel → Set
+CurryScope T = (X : Scope T → Set) → UncurriedScope T X → CurriedScope T X
+
+curryScope : (T : Tel) → CurryScope T
+curryScope = elimTel CurryScope
   (λ X f → f tt)
   (λ A B ih X f a → ih a (λ b → X (a , b)) (λ b → f (a , b)))
 
-uncurryScope : (T : Tel) (X : Scope T → Set)
-  → CurriedScope T X → UncurriedScope T X
-uncurryScope = elimTel _
+UncurryScope : Tel → Set
+UncurryScope T = (X : Scope T → Set) → CurriedScope T X → UncurriedScope T X
+
+uncurryScope : (T : Tel) → UncurryScope T
+uncurryScope = elimTel UncurryScope
   (λ X x → elimUnit X x)
   (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) (f a) b))
 
@@ -81,14 +89,16 @@ UncurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
 UncurriedFunc I D X = (i : I) → Func I D X i → X i
 
 CurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
-CurriedFunc I = elimDesc _
+CurriedFunc I = elimDesc
+  (λ _ → (X : ISet I) → Set)
   (λ i X → X i)
   (λ i D ih X → (x : X i) → ih X )
   (λ A B ih X → (a : A) → ih a X)
 
 curryFunc : (I : Set) (D : Desc I) (X : ISet I)
   → UncurriedFunc I D X → CurriedFunc I D X
-curryFunc I = elimDesc _
+curryFunc I = elimDesc
+  (λ D → (X : ISet I) → UncurriedFunc I D X → CurriedFunc I D X)
   (λ i X cn → cn i refl)
   (λ i D ih X cn x → ih X (λ j xs → cn j (x , xs)))
   (λ A B ih X cn a → ih a X (λ j xs → cn j (a , xs)))
@@ -106,17 +116,19 @@ CurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
   (P : (i : I) → X i → Set)
   (cn : UncurriedFunc I D X)
   → Set
-CurriedHyps I = elimDesc _
+CurriedHyps I = elimDesc
+  (λ D → (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc I D X) → Set)
   (λ i X P cn → P i (cn i refl))
   (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ j xs → cn j (x , xs)))
   (λ A B ih X P cn → (a : A) → ih a X P (λ j xs → cn j (a , xs)))
 
-uncurryHyps : (I : Set) (D : Desc I) (X : ISet I)
-  (P : (i : I) → X i → Set)
-  (cn : UncurriedFunc I D X)
-  → CurriedHyps I D X P cn
-  → UncurriedHyps I D X P cn
-uncurryHyps I = elimDesc _
+UncurryHyps : (I : Set) (D : Desc I) → Set
+UncurryHyps I D = (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc I D X)
+  → CurriedHyps I D X P cn → UncurriedHyps I D X P cn
+
+uncurryHyps : (I : Set) (D : Desc I) → UncurryHyps I D
+uncurryHyps I = elimDesc
+  (UncurryHyps I)
   (λ j X P cn pf →
     elimEq _ (λ u → pf))
   (λ j D ih X P cn pf i →
