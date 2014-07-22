@@ -19,18 +19,24 @@ proj₁ = elimPair _ (λ a b → a)
 proj₂ : ∀{A B} (ab : Σ A B) → B (proj₁ ab)
 proj₂ = elimPair _ (λ a b → b)
 
-Branches : (E : List String) (P : Tag E → Set) → Set
-Branches = elimList (λ E → (P : Tag E → Set) → Set)
+BranchesM : Enum → Set
+BranchesM E = (P : Tag E → Set) → Set
+
+Branches : (E : Enum) → BranchesM E
+Branches = elimList BranchesM
   (λ P → ⊤)
   (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
 
-case' : (E : List String) (t : Tag E) (P : Tag E → Set) (cs : Branches E P) → P t
-case' = elimElem String (λ E t → (P : Tag E → Set) (cs : Branches E P) → P t)
+Case : (E : Enum) → Tag E → Set
+Case E t = (P : Tag E → Set) (cs : Branches E P) → P t
+
+case' : (E : Enum) (t : Tag E) → Case E t
+case' = elimElem String Case
   (λ l E P c,cs → elimPair (λ _ → P here) (λ a b → a) c,cs)
   (λ l E t ih P c,cs → ih (λ t → P (there t)) (elimPair (λ _ → Branches E (λ t → P (there t))) (λ a b → b) c,cs))
 
-case : {E : List String} (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
-case P cs t = case' _ t P cs
+case : (E : Enum) (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
+case E P cs t = case' E t P cs
 
 Scope  : Tel → Set
 Scope = elimTel (λ _ → Set) ⊤ (λ A B ih → Σ A ih)
@@ -41,10 +47,11 @@ UncurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
   → Set
 UncurriedBranches E P X = Branches E P → X
 
-CurriedBranches : (E : Enum) (P : Tag E → Set) (X : Set)
-  → Set
-CurriedBranches = elimList
-  (λ E → (P : Tag E → Set) (X : Set) → Set)
+CurriedBranchesM : Enum → Set
+CurriedBranchesM E = (P : Tag E → Set) (X : Set) → Set
+
+CurriedBranches : (E : Enum) → CurriedBranchesM E
+CurriedBranches = elimList CurriedBranchesM
   (λ P X → X)
   (λ l E ih P X → P here → ih (λ t → P (there t)) X)
 
@@ -112,12 +119,11 @@ UncurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
 UncurriedHyps I D X P cn =
   (i : I) (xs : Func I D X i) (ihs : Hyps I D X P i xs) → P i (cn i xs)
 
-CurriedHyps : (I : Set) (D : Desc I) (X : ISet I)
-  (P : (i : I) → X i → Set)
-  (cn : UncurriedFunc I D X)
-  → Set
-CurriedHyps I = elimDesc
-  (λ D → (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc I D X) → Set)
+CurriedHypsM : (I : Set) (D : Desc I) → Set
+CurriedHypsM I D = (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc I D X) → Set
+
+CurriedHyps : (I : Set) (D : Desc I) → CurriedHypsM I D
+CurriedHyps I = elimDesc (CurriedHypsM I)
   (λ i X P cn → P i (cn i refl))
   (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ j xs → cn j (x , xs)))
   (λ A B ih X P cn → (a : A) → ih a X P (λ j xs → cn j (a , xs)))
@@ -154,7 +160,7 @@ record Data : Set where
   IS p = Scope (I p)
 
   C : (p : PS) → Tag E → Desc (IS p)
-  C p = case (λ _ → Desc (IS p)) (B p)
+  C p = case E (λ _ → Desc (IS p)) (B p)
 
   D : (p : PS) → Desc (IS p)
   D p = Arg (Tag E) (C p)
@@ -254,7 +260,7 @@ elimUncurried R p M cs = let
   in
   curryScope (Data.I R p) (λ i → (x : Data.F R p i) → unM i x) λ i x →
   indCurried (Data.N R) (Data.PS R) (Data.IS R) p (Data.D R p) unM
-    (case (SumCurriedHyps R p M) cs)
+    (case (Data.E R) (SumCurriedHyps R p M) cs)
     i x
 
 elim : (R : Data)
