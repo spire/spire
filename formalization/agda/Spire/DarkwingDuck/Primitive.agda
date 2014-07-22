@@ -1,3 +1,4 @@
+{-# OPTIONS --type-in-type --no-positivity-check #-}
 module Spire.DarkwingDuck.Primitive where
 
 ----------------------------------------------------------------------
@@ -78,15 +79,15 @@ elimElem P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimElem P phere p
 ----------------------------------------------------------------------
 
 data Tel : Set₁ where
-  End : Tel
-  Arg : (A : Set) (B : A → Tel) → Tel
+  Emp : Tel
+  Ext : (A : Set) (B : A → Tel) → Tel
 
 elimTel : (P : Tel → Set)
-  (pend : P End)
-  (parg  : (A : Set) (B : A → Tel) (pb : (a : A) → P (B a)) → P (Arg A B))
+  (pemp : P Emp)
+  (pext  : (A : Set) (B : A → Tel) (pb : (a : A) → P (B a)) → P (Ext A B))
   (T : Tel) → P T
-elimTel P pend parg End = pend
-elimTel P pend parg (Arg A B) = parg A B (λ a → elimTel P pend parg (B a))
+elimTel P pemp pext Emp = pemp
+elimTel P pemp pext (Ext A B) = pext A B (λ a → elimTel P pemp pext (B a))
 
 ----------------------------------------------------------------------
 
@@ -104,35 +105,39 @@ elimDesc P pend prec parg (End i) = pend i
 elimDesc P pend prec parg (Rec i D) = prec i D (elimDesc P pend prec parg D)
 elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg (B a))
 
-Elᴰ : {I : Set} (D : Desc I) → (I → Set) → I → Set
-Elᴰ (End j) X i = j ≡ i
-Elᴰ (Rec j D)  X i = Σ (X j) (λ _ → Elᴰ D X i)
-Elᴰ (Arg A B)  X i = Σ A (λ a → Elᴰ (B a) X i)
+Func : (I : Set) (D : Desc I) → (I → Set) → I → Set
+Func I = elimDesc
+  (λ D → (I → Set) → I → Set)
+  (λ j X i → j ≡ i)
+  (λ j D ih X i → Σ (X j) (λ _ → ih X i))
+  (λ A B ih X i → Σ A (λ a → ih a X i))
 
-Hyps : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Elᴰ D X i) → Set
-Hyps (End j) X P i q = ⊤
-Hyps (Rec j D)  X P i (x , xs) = Σ (P j x) (λ _ → Hyps D X P i xs)
-Hyps (Arg A B)  X P i (a , xs) = Hyps (B a) X P i xs
+Hyps : (I : Set) (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
+Hyps I = elimDesc
+  (λ D → (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set)
+  (λ j X P i q → ⊤)
+  (λ j D ih X P i x,xs → elimPair (λ ab → Set) (λ x xs → Σ (P j x) (λ _ → ih X P i xs)) x,xs)
+  (λ A B ih X P i a,xs → elimPair (λ ab → Set) (λ a xs → ih a X P i xs) a,xs)
 
 ----------------------------------------------------------------------
 
 data μ (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p)) (i : I p) : Set where
-  init : Elᴰ D (μ ℓ P I p D) i → μ ℓ P I p D i
+  init : Func (I p) D (μ ℓ P I p D) i → μ ℓ P I p D i
 
-map : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set)
-  (p : (i : I) (x : X i) → P i x) (i : I) (xs : Elᴰ D X i)
-  → Hyps D X P i xs
-map (End j) X P p i q = tt
-map (Rec j D) X P p i (x , xs) = p j x , map D X P p i xs
-map (Arg A B) X P p i (a , xs) = map (B a) X P p i xs
+all : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set)
+  (p : (i : I) (x : X i) → P i x) (i : I) (xs : Func I D X i)
+  → Hyps I D X P i xs
+all (End j) X P p i q = tt
+all (Rec j D) X P p i (x , xs) = p j x , all D X P p i xs
+all (Arg A B) X P p i (a , xs) = all (B a) X P p i xs
 
 {-# NO_TERMINATION_CHECK #-}
 ind : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
   (M : (i : I p) → μ ℓ P I p D i → Set)
-  (α : ∀ i (xs : Elᴰ D (μ ℓ P I p D) i) (ihs : Hyps D (μ ℓ P I p D) M i xs) → M i (init xs))
+  (α : ∀ i (xs : Func (I p) D (μ ℓ P I p D) i) (ihs : Hyps (I p) D (μ ℓ P I p D) M i xs) → M i (init xs))
   (i : I p)
   (x : μ ℓ P I p D i)
   → M i x
-ind ℓ P I p D M α i (init xs) = α i xs (map D (μ ℓ P I p D) M (ind ℓ P I p D M α) i xs)
+ind ℓ P I p D M α i (init xs) = α i xs (all D (μ ℓ P I p D) M (ind ℓ P I p D M α) i xs)
 
 ----------------------------------------------------------------------
