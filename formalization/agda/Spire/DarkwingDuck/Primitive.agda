@@ -94,42 +94,60 @@ elimTel P pemp pext (Ext A B) = pext A B (λ a → elimTel P pemp pext (B a))
 data Desc (I : Set) : Set₁ where
   End : (i : I) → Desc I
   Rec : (i : I) (D : Desc I) → Desc I
+  Ref : (A : Set) (i : A → I) (D : Desc I) → Desc I
   Arg : (A : Set) (B : A → Desc I) → Desc I
 
 elimDesc : {I : Set} (P : Desc I → Set)
   (pend : (i : I) → P (End i))
   (prec  : (i : I) (D : Desc I) (pd : P D) → P (Rec i D))
+  (pref : (A : Set) (i : A → I) (D : Desc I) (pd : P D) → P (Ref A i D))
   (parg : (A : Set) (B : A → Desc I) (pb : (a : A) → P (B a)) → P (Arg A B))
   (D : Desc I) → P D
-elimDesc P pend prec parg (End i) = pend i
-elimDesc P pend prec parg (Rec i D) = prec i D (elimDesc P pend prec parg D)
-elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg (B a))
+elimDesc P pend prec pref parg (End i) = pend i
+elimDesc P pend prec pref parg (Rec i D) = prec i D (elimDesc P pend prec pref parg D)
+elimDesc P pend prec pref parg (Ref A i D) = pref A i D (elimDesc P pend prec pref parg D)
+elimDesc P pend prec pref parg (Arg A B) = parg A B (λ a → elimDesc P pend prec pref parg (B a))
 
-Func : (I : Set) (D : Desc I) → (I → Set) → I → Set
-Func I = elimDesc
-  (λ D → (I → Set) → I → Set)
+FuncM : (I : Set) → Desc I → Set
+FuncM I D = (I → Set) → I → Set
+
+Func : (I : Set) (D : Desc I) → FuncM I D
+Func I = elimDesc (FuncM I)
   (λ j X i → j ≡ i)
   (λ j D ih X i → Σ (X j) (λ _ → ih X i))
+  (λ A j D ih X i → Σ ((a : A) → X (j a)) (λ _ → ih X i))
   (λ A B ih X i → Σ A (λ a → ih a X i))
 
-Hyps : (I : Set) (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
-Hyps I = elimDesc
-  (λ D → (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set)
+HypsM : (I : Set) → Desc I → Set
+HypsM I D = (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
+
+Hyps : (I : Set) (D : Desc I) → HypsM I D
+Hyps I = elimDesc (HypsM I)
   (λ j X P i q → ⊤)
-  (λ j D ih X P i x,xs → elimPair (λ ab → Set) (λ x xs → Σ (P j x) (λ _ → ih X P i xs)) x,xs)
-  (λ A B ih X P i a,xs → elimPair (λ ab → Set) (λ a xs → ih a X P i xs) a,xs)
+  (λ j D ih X P i → elimPair (λ _ → Set) (λ x xs → Σ (P j x) (λ _ → ih X P i xs)))
+  (λ A j D ih X P i → elimPair (λ _ → Set) (λ f xs → Σ ((a : A) → P (j a) (f a)) (λ _ → ih X P i xs)))
+  (λ A B ih X P i → elimPair (λ _ → Set) (λ a xs → ih a X P i xs))
 
 ----------------------------------------------------------------------
 
 data μ (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p)) (i : I p) : Set where
   init : Func (I p) D (μ ℓ P I p D) i → μ ℓ P I p D i
 
-all : {I : Set} (D : Desc I) (X : I → Set) (P : (i : I) → X i → Set)
-  (p : (i : I) (x : X i) → P i x) (i : I) (xs : Func I D X i)
+All : (I : Set) → Desc I → Set
+All I D = (X : I → Set) (P : (i : I) → X i → Set)
+  (p : (i : I) (x : X i) → P i x)
+  (i : I) (xs : Func I D X i)
   → Hyps I D X P i xs
-all (End j) X P p i q = tt
-all (Rec j D) X P p i (x , xs) = p j x , all D X P p i xs
-all (Arg A B) X P p i (a , xs) = all (B a) X P p i xs
+
+all : (I : Set) (D : Desc I) → All I D
+all I = elimDesc (All I)
+  (λ j X P p i q → tt)
+  (λ j D ih X P p i → elimPair (λ ab → Hyps I (Rec j D) X P i ab)
+    (λ x xs → p j x , ih X P p i xs))
+  (λ A j D ih X P p i → elimPair (λ ab → Hyps I (Ref A j D) X P i ab)
+    (λ f xs → (λ a → p (j a) (f a)) , ih X P p i xs))
+  (λ A B ih X P p i → elimPair (λ ab → Hyps I (Arg A B) X P i ab)
+    (λ a xs → ih a X P p i xs))
 
 {-# NO_TERMINATION_CHECK #-}
 ind : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
@@ -138,6 +156,6 @@ ind : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
   (i : I p)
   (x : μ ℓ P I p D i)
   → M i x
-ind ℓ P I p D M α i (init xs) = α i xs (all D (μ ℓ P I p D) M (ind ℓ P I p D M α) i xs)
+ind ℓ P I p D M α i (init xs) = α i xs (all (I p) D (μ ℓ P I p D) M (ind ℓ P I p D M α) i xs)
 
 ----------------------------------------------------------------------

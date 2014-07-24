@@ -32,7 +32,7 @@ Case E t = (P : Tag E → Set) (cs : Branches E P) → P t
 
 case' : (E : Enum) (t : Tag E) → Case E t
 case' = elimElem String Case
-  (λ l E P c,cs → elimPair (λ _ → P here) (λ a b → a) c,cs)
+  (λ l E P → elimPair (λ _ → P here) (λ a b → a))
   (λ l E t ih P c,cs → ih (λ t → P (there t)) (elimPair (λ _ → Branches E (λ t → P (there t))) (λ a b → b) c,cs))
 
 case : (E : Enum) (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
@@ -95,19 +95,24 @@ uncurryScope = elimTel UncurryScope
 UncurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
 UncurriedFunc I D X = (i : I) → Func I D X i → X i
 
+CurriedFuncM : (I : Set) → Desc I → Set
+CurriedFuncM I _ = (X : ISet I) → Set
+
 CurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
-CurriedFunc I = elimDesc
-  (λ _ → (X : ISet I) → Set)
+CurriedFunc I = elimDesc (CurriedFuncM I)
   (λ i X → X i)
-  (λ i D ih X → (x : X i) → ih X )
+  (λ i D ih X → (x : X i) → ih X)
+  (λ A i D ih X → (f : (a : A) → X (i a)) → ih X)
   (λ A B ih X → (a : A) → ih a X)
 
-curryFunc : (I : Set) (D : Desc I) (X : ISet I)
-  → UncurriedFunc I D X → CurriedFunc I D X
-curryFunc I = elimDesc
-  (λ D → (X : ISet I) → UncurriedFunc I D X → CurriedFunc I D X)
+CurryFunc : (I : Set) → Desc I → Set
+CurryFunc I D = (X : ISet I) → UncurriedFunc I D X → CurriedFunc I D X
+
+curryFunc : (I : Set) (D : Desc I) → CurryFunc I D
+curryFunc I = elimDesc (CurryFunc I)
   (λ i X cn → cn i refl)
   (λ i D ih X cn x → ih X (λ j xs → cn j (x , xs)))
+  (λ A j D ih X cn f → ih X (λ j xs → cn j (f , xs)))
   (λ A B ih X cn a → ih a X (λ j xs → cn j (a , xs)))
 
 ----------------------------------------------------------------------
@@ -126,6 +131,7 @@ CurriedHyps : (I : Set) (D : Desc I) → CurriedHypsM I D
 CurriedHyps I = elimDesc (CurriedHypsM I)
   (λ i X P cn → P i (cn i refl))
   (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ j xs → cn j (x , xs)))
+  (λ A i D ih X P cn → (f : (a : A) → X (i a)) → ((a : A) → P (i a) (f a)) → ih X P (λ j xs → cn j (f , xs)))
   (λ A B ih X P cn → (a : A) → ih a X P (λ j xs → cn j (a , xs)))
 
 UncurryHyps : (I : Set) (D : Desc I) → Set
@@ -139,9 +145,19 @@ uncurryHyps I = elimDesc
     elimEq _ (λ u → pf))
   (λ j D ih X P cn pf i →
     elimPair _ (λ x xs ih,ihs →
-      ih X P (λ j ys → cn j (x , ys)) (pf x (proj₁ ih,ihs)) i xs (proj₂ ih,ihs)))
+      ih X P (λ j ys → cn j (x , ys))
+        (pf x (proj₁ ih,ihs))
+        i xs (proj₂ ih,ihs)))
+  (λ A j D ih X P cn pf i →
+    elimPair _ (λ f xs ih,ihs →
+      ih X P (λ j ys → cn j (f , ys))
+        (pf f (proj₁ ih,ihs))
+        i xs (proj₂ ih,ihs)))
   (λ A B ih X P cn pf i →
-    elimPair _ (λ a xs → ih a X P (λ j ys → cn j (a , ys)) (pf a) i xs))
+    elimPair _ (λ a xs →
+      ih a X P (λ j ys → cn j (a , ys))
+        (pf a)
+        i xs))
 
 ----------------------------------------------------------------------
 
