@@ -130,8 +130,8 @@ Hyps I = elimDesc (HypsM I)
 
 ----------------------------------------------------------------------
 
-data μ (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p)) (i : I p) : Set where
-  init : Func (I p) D (μ ℓ P I p D) i → μ ℓ P I p D i
+data μ (ℓ : String) (P I : Set) (D : Desc I) (p : P) (i : I) : Set where
+  init : Func I D (μ ℓ P I D p) i → μ ℓ P I D p i
 
 All : (I : Set) → Desc I → Set
 All I D = (X : I → Set) (P : (i : I) → X i → Set)
@@ -150,12 +150,12 @@ all I = elimDesc (All I)
     (λ a xs → ih a X P p i xs))
 
 {-# NO_TERMINATION_CHECK #-}
-ind : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
-  (M : (i : I p) → μ ℓ P I p D i → Set)
-  (α : ∀ i (xs : Func (I p) D (μ ℓ P I p D) i) (ihs : Hyps (I p) D (μ ℓ P I p D) M i xs) → M i (init xs))
-  (i : I p)
-  (x : μ ℓ P I p D i)
+ind : (ℓ : String) (P I : Set) (D : Desc I) (p : P)
+  (M : (i : I) → μ ℓ P I D p i → Set)
+  (α : ∀ i (xs : Func I D (μ ℓ P I D p) i) (ihs : Hyps I D (μ ℓ P I D p) M i xs) → M i (init xs))
+  (i : I)
+  (x : μ ℓ P I D p i)
   → M i x
-ind ℓ P I p D M α i (init xs) = α i xs (all (I p) D (μ ℓ P I p D) M (ind ℓ P I p D M α) i xs)
+ind ℓ P I D p M α i (init xs) = α i xs (all I D (μ ℓ P I D p) M (ind ℓ P I D p M α) i xs)
 
 ----------------------------------------------------------------------

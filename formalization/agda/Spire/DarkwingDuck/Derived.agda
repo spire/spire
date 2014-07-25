@@ -182,7 +182,7 @@ record Data : Set where
   D p = Arg (Tag E) (C p)
 
   F : (p : PS) → IS p → Set
-  F p = μ N PS IS p (D p)
+  F p = μ N PS (IS p) (D p) p
 
 ----------------------------------------------------------------------
 
@@ -247,14 +247,12 @@ inj R = curryScope (Data.P R)
 
 ----------------------------------------------------------------------
 
-indCurried : (ℓ : String) (P : Set) (I : P → Set) (p : P) (D : Desc (I p))
-  (M : (i : I p) → μ ℓ P I p D i → Set)
-  (f : CurriedHyps (I p) D (μ ℓ P I p D) M (λ _ → init))
-  (i : I p)
-  (x : μ ℓ P I p D i)
-  → M i x
-indCurried ℓ P I p D M f i x =
-  ind ℓ P I p D M (uncurryHyps (I p) D (μ ℓ P I p D) M (λ _ → init) f) i x
+indCurried : (ℓ : String) (P I : Set) (D : Desc I) (p : P)
+  (M : (i : I) → μ ℓ P I D p i → Set)
+  (f : CurriedHyps I D (μ ℓ P I D p) M (λ _ → init))
+  (i : I) (x : μ ℓ P I D p i) → M i x
+indCurried ℓ P I D p M f i x =
+  ind ℓ P I D p M (uncurryHyps I D (μ ℓ P I D p) M (λ _ → init) f) i x
 
 SumCurriedHyps : (R : Data)
   → UncurriedScope (Data.P R) λ p
@@ -275,7 +273,7 @@ elimUncurried R p M cs = let
     unM = uncurryScope (Data.I R p) (λ i → Data.F R p i → Set) M
   in
   curryScope (Data.I R p) (λ i → (x : Data.F R p i) → unM i x) λ i x →
-  indCurried (Data.N R) (Data.PS R) (Data.IS R) p (Data.D R p) unM
+  indCurried (Data.N R) (Data.PS R) (Data.IS R p) (Data.D R p) p unM
     (case (Data.E R) (SumCurriedHyps R p M) cs)
     i x
 
