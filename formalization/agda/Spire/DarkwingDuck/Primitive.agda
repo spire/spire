@@ -96,20 +96,20 @@ data Desc (I : Set) : Set₁ where
   Rec : (i : I) (D : Desc I) → Desc I
   Arg : (A : Set) (B : A → Desc I) → Desc I
 
-elimDesc : {I : Set} (P : Desc I → Set)
+elimDesc : (I : Set) (P : Desc I → Set)
   (pend : (i : I) → P (End i))
   (prec  : (i : I) (D : Desc I) (pd : P D) → P (Rec i D))
   (parg : (A : Set) (B : A → Desc I) (pb : (a : A) → P (B a)) → P (Arg A B))
   (D : Desc I) → P D
-elimDesc P pend prec parg (End i) = pend i
-elimDesc P pend prec parg (Rec i D) = prec i D (elimDesc P pend prec parg D)
-elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg (B a))
+elimDesc I P pend prec parg (End i) = pend i
+elimDesc I P pend prec parg (Rec i D) = prec i D (elimDesc I P pend prec parg D)
+elimDesc I P pend prec parg (Arg A B) = parg A B (λ a → elimDesc I P pend prec parg (B a))
 
 FuncM : (I : Set) → Desc I → Set
 FuncM I D = (I → Set) → I → Set
 
 Func : (I : Set) (D : Desc I) → FuncM I D
-Func I = elimDesc (FuncM I)
+Func I = elimDesc I (FuncM I)
   (λ j X i → j ≡ i)
   (λ j D ih X i → Σ (X j) (λ _ → ih X i))
   (λ A B ih X i → Σ A (λ a → ih a X i))
@@ -118,7 +118,7 @@ HypsM : (I : Set) → Desc I → Set
 HypsM I D = (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
 
 Hyps : (I : Set) (D : Desc I) → HypsM I D
-Hyps I = elimDesc (HypsM I)
+Hyps I = elimDesc I (HypsM I)
   (λ j X P i q → ⊤)
   (λ j D ih X P i → elimPair (λ _ → Set) (λ x xs → Σ (P j x) (λ _ → ih X P i xs)))
   (λ A B ih X P i → elimPair (λ _ → Set) (λ a xs → ih a X P i xs))
@@ -135,7 +135,7 @@ All I D = (X : I → Set) (P : (i : I) → X i → Set)
   → Hyps I D X P i xs
 
 all : (I : Set) (D : Desc I) → All I D
-all I = elimDesc (All I)
+all I = elimDesc I (All I)
   (λ j X P p i q → tt)
   (λ j D ih X P p i → elimPair (λ ab → Hyps I (Rec j D) X P i ab)
     (λ x xs → p j x , ih X P p i xs))

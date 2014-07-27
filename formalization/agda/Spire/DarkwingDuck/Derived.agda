@@ -93,7 +93,7 @@ CurriedFuncM : (I : Set) → Desc I → Set
 CurriedFuncM I _ = (X : ISet I) → Set
 
 CurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
-CurriedFunc I = elimDesc (CurriedFuncM I)
+CurriedFunc I = elimDesc I (CurriedFuncM I)
   (λ i X → X i)
   (λ i D ih X → (x : X i) → ih X)
   (λ A B ih X → (a : A) → ih a X)
@@ -102,7 +102,7 @@ CurryFunc : (I : Set) → Desc I → Set
 CurryFunc I D = (X : ISet I) → UncurriedFunc I D X → CurriedFunc I D X
 
 curryFunc : (I : Set) (D : Desc I) → CurryFunc I D
-curryFunc I = elimDesc (CurryFunc I)
+curryFunc I = elimDesc I (CurryFunc I)
   (λ i X cn → cn i refl)
   (λ i D ih X cn x → ih X (λ j xs → cn j (x , xs)))
   (λ A B ih X cn a → ih a X (λ j xs → cn j (a , xs)))
@@ -120,7 +120,7 @@ CurriedHypsM : (I : Set) (D : Desc I) → Set
 CurriedHypsM I D = (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc I D X) → Set
 
 CurriedHyps : (I : Set) (D : Desc I) → CurriedHypsM I D
-CurriedHyps I = elimDesc (CurriedHypsM I)
+CurriedHyps I = elimDesc I (CurriedHypsM I)
   (λ i X P cn → P i (cn i refl))
   (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ j xs → cn j (x , xs)))
   (λ A B ih X P cn → (a : A) → ih a X P (λ j xs → cn j (a , xs)))
@@ -130,7 +130,7 @@ UncurryHyps I D = (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc
   → CurriedHyps I D X P cn → UncurriedHyps I D X P cn
 
 uncurryHyps : (I : Set) (D : Desc I) → UncurryHyps I D
-uncurryHyps I = elimDesc
+uncurryHyps I = elimDesc I
   (UncurryHyps I)
   (λ j X P cn pf →
     elimEq _ (λ u → pf))
