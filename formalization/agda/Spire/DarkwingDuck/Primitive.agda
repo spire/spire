@@ -52,29 +52,29 @@ elimEq P prefl x refl = prefl
 
 ----------------------------------------------------------------------
 
-data List (A : Set) : Set where
-  []  : List A
-  _∷_ : (x : A) (xs : List A) → List A
+data Enum : Set where
+  []  : Enum
+  _∷_ : (x : String) (xs : Enum) → Enum
 
-elimList : {A : Set} (P : List A → Set)
+elimEnum : (P : Enum → Set)
   (pnil : P [])
-  (pcons : (x : A) (xs : List A) → P xs → P (x ∷ xs))
-  (xs : List A) → P xs
-elimList P pnil pcons [] = pnil
-elimList P pnil pcons (x ∷ xs) = pcons x xs (elimList P pnil pcons xs)
+  (pcons : (x : String) (xs : Enum) → P xs → P (x ∷ xs))
+  (xs : Enum) → P xs
+elimEnum P pnil pcons [] = pnil
+elimEnum P pnil pcons (x ∷ xs) = pcons x xs (elimEnum P pnil pcons xs)
 
 ----------------------------------------------------------------------
 
-data Elem (A : Set) : List A → Set where
-  here : ∀{x xs} → Elem A (x ∷ xs)
-  there : ∀{x xs} → Elem A xs → Elem A (x ∷ xs)
+data Tag : Enum → Set where
+  here : ∀{x xs} → Tag (x ∷ xs)
+  there : ∀{x xs} → Tag xs → Tag (x ∷ xs)
 
-elimElem : {A : Set} (P : (xs : List A) → Elem A xs → Set)
-  (phere : (x : A) (xs : List A) → P (x ∷ xs) here)
-  (pthere : (x : A) (xs : List A) (t : Elem A xs) → P xs t → P (x ∷ xs) (there t))
-  (xs : List A) (t : Elem A xs) → P xs t
-elimElem P phere pthere (x ∷ xs) here = phere x xs
-elimElem P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimElem P phere pthere xs t)
+elimTag : (P : (xs : Enum) → Tag xs → Set)
+  (phere : (x : String) (xs : Enum) → P (x ∷ xs) here)
+  (pthere : (x : String) (xs : Enum) (t : Tag xs) → P xs t → P (x ∷ xs) (there t))
+  (xs : Enum) (t : Tag xs) → P xs t
+elimTag P phere pthere (x ∷ xs) here = phere x xs
+elimTag P phere pthere (x ∷ xs) (there t) = pthere x xs t (elimTag P phere pthere xs t)
 
 ----------------------------------------------------------------------
 

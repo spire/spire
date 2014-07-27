@@ -7,12 +7,6 @@ module Spire.DarkwingDuck.Derived where
 ISet : Set → Set
 ISet I = I → Set
 
-Enum : Set
-Enum = List String
-
-Tag : Enum → Set
-Tag xs = Elem String xs
-
 proj₁ : ∀{A B} → Σ A B → A
 proj₁ = elimPair _ (λ a b → a)
 
@@ -23,7 +17,7 @@ BranchesM : Enum → Set
 BranchesM E = (P : Tag E → Set) → Set
 
 Branches : (E : Enum) → BranchesM E
-Branches = elimList BranchesM
+Branches = elimEnum BranchesM
   (λ P → ⊤)
   (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
 
@@ -31,7 +25,7 @@ Case : (E : Enum) → Tag E → Set
 Case E t = (P : Tag E → Set) (cs : Branches E P) → P t
 
 case' : (E : Enum) (t : Tag E) → Case E t
-case' = elimElem Case
+case' = elimTag Case
   (λ l E P → elimPair (λ _ → P here) (λ a b → a))
   (λ l E t ih P c,cs → ih (λ t → P (there t)) (elimPair (λ _ → Branches E (λ t → P (there t))) (λ a b → b) c,cs))
 
@@ -51,7 +45,7 @@ CurriedBranchesM : Enum → Set
 CurriedBranchesM E = (P : Tag E → Set) (X : Set) → Set
 
 CurriedBranches : (E : Enum) → CurriedBranchesM E
-CurriedBranches = elimList CurriedBranchesM
+CurriedBranches = elimEnum CurriedBranchesM
   (λ P X → X)
   (λ l E ih P X → P here → ih (λ t → P (there t)) X)
 
@@ -59,7 +53,7 @@ CurryBranches : Enum → Set
 CurryBranches E = (P : Tag E → Set) (X : Set) → UncurriedBranches E P X → CurriedBranches E P X
 
 curryBranches : (E : Enum) → CurryBranches E
-curryBranches = elimList CurryBranches
+curryBranches = elimEnum CurryBranches
   (λ P X f → f tt)
   (λ l E ih P X f c → ih (λ t → P (there t)) X (λ cs → f (c , cs)))
 
