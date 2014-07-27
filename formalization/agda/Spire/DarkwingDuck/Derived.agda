@@ -96,7 +96,6 @@ CurriedFunc : (I : Set) (D : Desc I) (X : ISet I) → Set
 CurriedFunc I = elimDesc (CurriedFuncM I)
   (λ i X → X i)
   (λ i D ih X → (x : X i) → ih X)
-  (λ A i D ih X → (f : (a : A) → X (i a)) → ih X)
   (λ A B ih X → (a : A) → ih a X)
 
 CurryFunc : (I : Set) → Desc I → Set
@@ -106,7 +105,6 @@ curryFunc : (I : Set) (D : Desc I) → CurryFunc I D
 curryFunc I = elimDesc (CurryFunc I)
   (λ i X cn → cn i refl)
   (λ i D ih X cn x → ih X (λ j xs → cn j (x , xs)))
-  (λ A j D ih X cn f → ih X (λ j xs → cn j (f , xs)))
   (λ A B ih X cn a → ih a X (λ j xs → cn j (a , xs)))
 
 ----------------------------------------------------------------------
@@ -125,7 +123,6 @@ CurriedHyps : (I : Set) (D : Desc I) → CurriedHypsM I D
 CurriedHyps I = elimDesc (CurriedHypsM I)
   (λ i X P cn → P i (cn i refl))
   (λ i D ih X P cn → (x : X i) → P i x → ih X P (λ j xs → cn j (x , xs)))
-  (λ A i D ih X P cn → (f : (a : A) → X (i a)) → ((a : A) → P (i a) (f a)) → ih X P (λ j xs → cn j (f , xs)))
   (λ A B ih X P cn → (a : A) → ih a X P (λ j xs → cn j (a , xs)))
 
 UncurryHyps : (I : Set) (D : Desc I) → Set
@@ -141,11 +138,6 @@ uncurryHyps I = elimDesc
     elimPair _ (λ x xs ih,ihs →
       ih X P (λ j ys → cn j (x , ys))
         (pf x (proj₁ ih,ihs))
-        i xs (proj₂ ih,ihs)))
-  (λ A j D ih X P cn pf i →
-    elimPair _ (λ f xs ih,ihs →
-      ih X P (λ j ys → cn j (f , ys))
-        (pf f (proj₁ ih,ihs))
         i xs (proj₂ ih,ihs)))
   (λ A B ih X P cn pf i →
     elimPair _ (λ a xs →

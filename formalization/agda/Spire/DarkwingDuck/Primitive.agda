@@ -94,19 +94,16 @@ elimTel P pemp pext (Ext A B) = pext A B (λ a → elimTel P pemp pext (B a))
 data Desc (I : Set) : Set₁ where
   End : (i : I) → Desc I
   Rec : (i : I) (D : Desc I) → Desc I
-  Ref : (A : Set) (i : A → I) (D : Desc I) → Desc I
   Arg : (A : Set) (B : A → Desc I) → Desc I
 
 elimDesc : {I : Set} (P : Desc I → Set)
   (pend : (i : I) → P (End i))
   (prec  : (i : I) (D : Desc I) (pd : P D) → P (Rec i D))
-  (pref : (A : Set) (i : A → I) (D : Desc I) (pd : P D) → P (Ref A i D))
   (parg : (A : Set) (B : A → Desc I) (pb : (a : A) → P (B a)) → P (Arg A B))
   (D : Desc I) → P D
-elimDesc P pend prec pref parg (End i) = pend i
-elimDesc P pend prec pref parg (Rec i D) = prec i D (elimDesc P pend prec pref parg D)
-elimDesc P pend prec pref parg (Ref A i D) = pref A i D (elimDesc P pend prec pref parg D)
-elimDesc P pend prec pref parg (Arg A B) = parg A B (λ a → elimDesc P pend prec pref parg (B a))
+elimDesc P pend prec parg (End i) = pend i
+elimDesc P pend prec parg (Rec i D) = prec i D (elimDesc P pend prec parg D)
+elimDesc P pend prec parg (Arg A B) = parg A B (λ a → elimDesc P pend prec parg (B a))
 
 FuncM : (I : Set) → Desc I → Set
 FuncM I D = (I → Set) → I → Set
@@ -115,7 +112,6 @@ Func : (I : Set) (D : Desc I) → FuncM I D
 Func I = elimDesc (FuncM I)
   (λ j X i → j ≡ i)
   (λ j D ih X i → Σ (X j) (λ _ → ih X i))
-  (λ A j D ih X i → Σ ((a : A) → X (j a)) (λ _ → ih X i))
   (λ A B ih X i → Σ A (λ a → ih a X i))
 
 HypsM : (I : Set) → Desc I → Set
@@ -125,7 +121,6 @@ Hyps : (I : Set) (D : Desc I) → HypsM I D
 Hyps I = elimDesc (HypsM I)
   (λ j X P i q → ⊤)
   (λ j D ih X P i → elimPair (λ _ → Set) (λ x xs → Σ (P j x) (λ _ → ih X P i xs)))
-  (λ A j D ih X P i → elimPair (λ _ → Set) (λ f xs → Σ ((a : A) → P (j a) (f a)) (λ _ → ih X P i xs)))
   (λ A B ih X P i → elimPair (λ _ → Set) (λ a xs → ih a X P i xs))
 
 ----------------------------------------------------------------------
@@ -144,8 +139,6 @@ all I = elimDesc (All I)
   (λ j X P p i q → tt)
   (λ j D ih X P p i → elimPair (λ ab → Hyps I (Rec j D) X P i ab)
     (λ x xs → p j x , ih X P p i xs))
-  (λ A j D ih X P p i → elimPair (λ ab → Hyps I (Ref A j D) X P i ab)
-    (λ f xs → (λ a → p (j a) (f a)) , ih X P p i xs))
   (λ A B ih X P p i → elimPair (λ ab → Hyps I (Arg A B) X P i ab)
     (λ a xs → ih a X P p i xs))
 
