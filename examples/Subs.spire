@@ -4,9 +4,9 @@ myTrue = true
 myFalse : Bool
 myFalse = false
 
-bar : if myTrue then Bool else Unit
+bar : elimBool (\_ -> Type) Bool Unit myTrue
 bar = myFalse
 
-foo : if bar then Unit else Bool
+foo : elimBool (\_ -> Type) Unit Bool bar
 foo = bar
 

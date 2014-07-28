@@ -1,24 +1,22 @@
 
 not : Bool -> Bool
-not = \ b ->
-  if b then false else true
+not = \ b -> elimBool (\ _ -> Bool) false true b
 
 myTrue : Bool
 myTrue = true
 
 If : Bool -> Type
-If = \ b -> if b then Bool else Unit
+If = \ b -> elimBool (\ _ -> Type) Bool Unit b
 
 myFalse : If myTrue
-myFalse = if myTrue then false else true
+myFalse = elimBool (\ _ -> Bool) false true myTrue
 
 myFalse2 : Bool
 myFalse2 = not myTrue
 
---       (b : Bool) * if b then Unit else Bool
 myPair : (b : Bool) * If (not b)
 myPair = false, true
 
-myFun : (b : Bool) -> if b then Unit else Bool
+myFun : (b : Bool) -> elimBool (\ _ -> Type) Unit Bool b
 myFun = \ b ->
-  elimBool (\ x -> if x then Unit else Bool) tt false b
+  elimBool (\ x -> elimBool (\_ -> Type) Unit Bool x) tt false b

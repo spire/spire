@@ -1,18 +1,17 @@
 -- Long lines for testing the prettiness of the printer.
 longType : Type
 longType = Bool -> (b:Bool) -> Unit * (u:Unit) * Unit -> Unit -> Bool ->
-           (if b then Unit else Unit -> Unit)
+           (elimBool (\ _ -> Type) Unit (Unit -> Unit) b)
 
 longFunctionName : longType
 longFunctionName = \ _ -> \ b -> \ _ -> \ _ -> \ _ ->
-                   elimBool (\b -> if b then Unit else Unit -> Unit)
+                   elimBool (\b -> elimBool (\_ -> Type) Unit (Unit -> Unit) b)
                             tt
                             (\ u -> u)
                             b
 
 longIf : Unit
-longIf = if if if true then false else true
-            then false
-            else if false then true else true
-         then if true then if true then tt else tt else tt
-         else tt
+longIf = elimBool (\ _ -> Unit)
+           (elimBool (\ _ -> Unit) (elimBool (\ _ -> Unit) tt tt true) tt true) tt
+         (elimBool (\ _ -> Bool) false (elimBool (\ _ -> Bool) true true false)
+            (elimBool (\ _ -> Bool) false true true))

@@ -1,6 +1,5 @@
-
 not : Bool -> Bool
-not = \ b -> if b then false else true
+not = \ b -> elimBool (\ _ -> Bool) false true b
 
 notTrue : Bool
 notTrue = not true

@@ -1,5 +1,5 @@
 not : Bool -> Bool
-not = \ b -> if b then false else true
+not = \ b -> elimBool (\ _ -> Bool) false true b
 
 unit : Unit
 unit = tt
@@ -8,10 +8,10 @@ myFun : (b : Bool) -> Bool
 myFun = \ b -> (not $ b)
 
 foo : Type
-foo = (b : Bool) * (if (not $ true) then Bool else Unit)
+foo = (b : Bool) * (elimBool (\_ -> Type) Bool Unit (not $ true))
 
 bar : Unit -> Bool
-bar = \ u -> if not true then true else false
+bar = \ u -> elimBool (\_ -> Bool) true false (not true)
 
 myType : Type
-myType = (f : (b1 : Bool) -> Bool) -> ((u : Unit) -> (b2 : Bool) * (if (f $ true) then Bool else Unit))
+myType = (f : (b1 : Bool) -> Bool) -> ((u : Unit) -> (b2 : Bool) * (elimBool (\_ -> Type) Bool Unit (f $ true)))
