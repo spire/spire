@@ -13,25 +13,6 @@ proj₁ = elimPair _ (λ a b → a)
 proj₂ : ∀{A B} (ab : Σ A B) → B (proj₁ ab)
 proj₂ = elimPair _ (λ a b → b)
 
-BranchesM : Enum → Set
-BranchesM E = (P : Tag E → Set) → Set
-
-Branches : (E : Enum) → BranchesM E
-Branches = elimEnum BranchesM
-  (λ P → ⊤)
-  (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
-
-Case : (E : Enum) → Tag E → Set
-Case E t = (P : Tag E → Set) (cs : Branches E P) → P t
-
-case' : (E : Enum) (t : Tag E) → Case E t
-case' = elimTag Case
-  (λ l E P → elimPair (λ _ → P here) (λ a b → a))
-  (λ l E t ih P c,cs → ih (λ t → P (there t)) (elimPair (λ _ → Branches E (λ t → P (there t))) (λ a b → b) c,cs))
-
-case : (E : Enum) (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
-case E P cs t = case' E t P cs
-
 Scope  : Tel → Set
 Scope = elimTel (λ _ → Set) ⊤ (λ A B ih → Σ A ih)
 
