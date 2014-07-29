@@ -4,12 +4,13 @@ myTrue : Bool
 myTrue = true
 
 not : Bool -> Bool
-not = \ b -> elimBool (\ _ -> Bool) false true b
+not = \ b ->
+  if b then false else true
 
 myFalse : Bool
-myFalse = ((\ b -> elimBool (\_ -> Bool) false true b) : Bool -> Bool) true
+myFalse = (\ b -> if b then false else true : Bool -> Bool) true
 
-myPair : (b : Bool) * elimBool (\_ -> Type) Unit Bool b
+myPair : (b : Bool) * if b then Unit else Bool
 myPair = false , true
 
 swapped1 : Unit
