@@ -9,17 +9,17 @@ import Spire.Expression.Types
 
 embedV :: Value -> FreshM Check
 
-embedV VTT                = return $ Infer ITT
-embedV VTrue              = return $ Infer ITrue
-embedV VFalse             = return $ Infer IFalse
+embedV VTT                = return $ eVar "tt"
+embedV VTrue              = return $ eVar "true"
+embedV VFalse             = return $ eVar "false"
 embedV VNil               = return $ CNil
 embedV VRefl              = return $ CRefl
 embedV VHere              = return $ CHere
 embedV (VQuotes s)        = return $ Infer (IQuotes s)
-embedV VUnit              = return $ Infer IUnit
-embedV VBool              = return $ Infer IBool
-embedV VString            = return $ Infer IString
-embedV VType              = return $ Infer IType
+embedV VUnit              = return $ eVar "Unit"
+embedV VBool              = return $ eVar "Bool"
+embedV VString            = return $ eVar "String"
+embedV VType              = return $ eVar "Type"
                           
 embedV (VThere t)         = CThere <$> embedV t
 embedV (VEnd   i)         = CEnd   <$> embedV i

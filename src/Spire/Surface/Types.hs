@@ -14,7 +14,7 @@ import Unbound.LocallyNameless
 ----------------------------------------------------------------------
 
 data Syntax =
-    STT | STrue | SFalse | SNil | SRefl | SHere
+    SNil | SRefl | SHere
   | SQuotes String
   | SThere Syntax | SEnd Syntax
   | SRec Syntax Syntax | SInit Syntax
@@ -23,7 +23,6 @@ data Syntax =
   | SPair Syntax Syntax
   | SLam (Bind Nom Syntax)
 
-  | SUnit | SBool | SString | SType
   | SList Syntax | STag Syntax | SDesc Syntax
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)

@@ -43,11 +43,9 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
-  "Unit", "Bool", "String", "Type",
   "List", "Tag", "Desc",
   "Branches", "El", "Fix",
 
-  "tt", "true", "false",
   "refl", "here", "there", "init",
   "End", "Rec", "Arg",
 
@@ -135,16 +133,9 @@ parseAtom = choice
   , parseAnn
 
   , parseQuotes
-  , parseTT
-  , parseTrue
-  , parseFalse
   , parseNil
   , parseRefl
   , parseHere
-  , parseUnit
-  , parseBool
-  , parseString
-  , parseType
   , parseWildCard
   ]
 
@@ -300,15 +291,8 @@ parseElimBool = do
 
 parseNil      = parseOp      "[]"     >> return SNil
 
-parseTT       = parseKeyword "tt"     >> return STT
-parseTrue     = parseKeyword "true"   >> return STrue
-parseFalse    = parseKeyword "false"  >> return SFalse
 parseRefl     = parseKeyword "refl"   >> return SRefl
 parseHere     = parseKeyword "here"   >> return SHere
-parseUnit     = parseKeyword "Unit"   >> return SUnit
-parseBool     = parseKeyword "Bool"   >> return SBool
-parseString   = parseKeyword "String" >> return SString
-parseType     = parseKeyword "Type"   >> return SType
 parseWildCard = parseKeyword wildcard >> return SWildCard
 
 parseQuotes = return . SQuotes =<< parseStringLit

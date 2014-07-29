@@ -40,13 +40,6 @@ elabC (SCons  a as)  = CCons  <$> elabC  a  <*> elabC  as
 elabC (SPair  a b)   = CPair  <$> elabC  a  <*> elabC  b
 elabC (SLam   b)     = CLam   <$> elabBC b
 
-elabC x@STT                 = elabIC x
-elabC x@STrue               = elabIC x
-elabC x@SFalse              = elabIC x
-elabC x@SUnit               = elabIC x
-elabC x@SBool               = elabIC x
-elabC x@SString             = elabIC x
-elabC x@SType               = elabIC x
 elabC x@(SQuotes _)         = elabIC x
 elabC x@(SList _)           = elabIC x
 elabC x@(SDesc _)           = elabIC x
@@ -72,14 +65,6 @@ elabC x@(SSubst _ _ _)      = elabIC x
 ----------------------------------------------------------------------
 
 elabI :: Syntax -> SpireM' Infer
-
-elabI STT         = return ITT
-elabI STrue       = return ITrue
-elabI SFalse      = return IFalse
-elabI SUnit       = return IUnit
-elabI SBool       = return IBool
-elabI SString     = return IString
-elabI SType       = return IType
 
 elabI (SQuotes s) = return $ IQuotes s
 elabI (SVar nm)   = return $ IVar nm

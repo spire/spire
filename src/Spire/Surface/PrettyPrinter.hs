@@ -181,17 +181,9 @@ dElimBool o _P t f bool =
 
 instance Display Syntax where
   display s = case s of
-    STT    -> dTT
-    STrue  -> dTrue
-    SFalse -> dFalse
     SNil   -> dNil
     SRefl  -> dRefl
     SHere  -> dHere
-
-    SUnit   -> dUnit
-    SBool   -> dBool
-    SString -> dString
-    SType   -> dType
 
     SThere t   -> dThere s t
     SEnd   i   -> dEnd   s i
@@ -335,16 +327,9 @@ instance Precedence Syntax where
     SCase _ _ _         -> initialLevel
     SSubst _ _ _        -> initialLevel
 
-    STT                 -> atomicLevel
-    STrue               -> atomicLevel
-    SFalse              -> atomicLevel
     SNil                -> atomicLevel
     SRefl               -> atomicLevel
     SHere               -> atomicLevel
-    SUnit               -> atomicLevel
-    SBool               -> atomicLevel
-    SString             -> atomicLevel
-    SType               -> atomicLevel
     SWildCard           -> atomicLevel
     SVar _              -> atomicLevel
     SQuotes _           -> atomicLevel
@@ -377,16 +362,9 @@ instance Precedence Syntax where
     SElimList _ _ _ _    -> AssocNone
     SCase     _ _ _      -> AssocNone
     SSubst    _ _ _      -> AssocNone
-    STT                  -> AssocNone
-    STrue                -> AssocNone
-    SFalse               -> AssocNone
     SNil                 -> AssocNone
     SRefl                -> AssocNone
     SHere                -> AssocNone
-    SUnit                -> AssocNone
-    SBool                -> AssocNone
-    SString              -> AssocNone
-    SType                -> AssocNone
     SWildCard            -> AssocNone
     SVar _               -> AssocNone
     SQuotes _            -> AssocNone

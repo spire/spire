@@ -28,10 +28,8 @@ data Check =
   deriving Show
 
 data Infer =
-    ITT | ITrue | IFalse
-  | IQuotes String
+    IQuotes String
 
-  | IUnit | IBool | IString | IType
   | IList Check | ITag Check | IDesc Check
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
@@ -78,5 +76,8 @@ instance Show MVarDecls where
   show _ = "<mvar decls>"
 
 type CProg = [CDef]
+
+eVar :: String -> Check
+eVar = Infer . IVar . s2n
 
 ----------------------------------------------------------------------

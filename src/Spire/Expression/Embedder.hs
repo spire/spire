@@ -8,14 +8,6 @@ import Spire.Surface.Types
 ----------------------------------------------------------------------
 
 embedI :: Infer -> FreshM Syntax
-embedI ITT     = return STT
-embedI ITrue   = return STrue
-embedI IFalse  = return SFalse
-embedI IUnit   = return SUnit
-embedI IBool   = return SBool
-embedI IString = return SString
-embedI IType   = return SType
-
 embedI (ITag      _E)        = STag      <$> embedC _E
 embedI (IList     _A)        = SList     <$> embedC _A
 embedI (IDesc     _I)        = SDesc     <$> embedC _I

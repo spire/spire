@@ -30,36 +30,41 @@ runDebug conf = do
 
 checkFromFile :: (?conf::Conf) => FilePath -> IO ()
 checkFromFile file = do
-  code <- readFile file
-  case parseProgram file code of
-    Left error -> do
-      putStrLn "Parse error:"
-      putStrLn $ formatParseError error
-
-    Right program -> do
-      putStrLn $ "Parsed program:"
-      putStrLn ""
-      putStrLn $ prettyPrint program
-      putStrLn ""
-
-      case elabProgram program of
+  case checkInitEnv of
+    Left error -> do 
+      putStrLn "Error in initial environment:"
+      putStrLn error
+    Right () -> do
+      code <- readFile file
+      case parseProgram file code of
         Left error -> do
-          putStrLn "Elaboration error:"
-          putStrLn error
-
+          putStrLn "Parse error:"
+          putStrLn $ formatParseError error
+      
         Right program -> do
-          putStrLn $ "Elaborated program:"
+          putStrLn $ "Parsed program:"
           putStrLn ""
           putStrLn $ prettyPrint program
           putStrLn ""
-
-          case checkProgram program of
-            Left error -> putStrLn error
-            Right program' -> do
-              putStrLn "Well-typed!"
-              putStrLn $ "Evaluated program:"
+      
+          case elabProgram program of
+            Left error -> do
+              putStrLn "Elaboration error:"
+              putStrLn error
+      
+            Right program -> do
+              putStrLn $ "Elaborated program:"
               putStrLn ""
-              putStrLn $ prettyPrint program'
+              putStrLn $ prettyPrint program
+              putStrLn ""
+      
+              case checkProgram program of
+                Left error -> putStrLn error
+                Right program' -> do
+                  putStrLn "Well-typed!"
+                  putStrLn $ "Evaluated program:"
+                  putStrLn ""
+                  putStrLn $ prettyPrint program'
 
 ----------------------------------------------------------------------
 

@@ -421,16 +421,8 @@ check' (Infer a) _B = do
     "\n\nValue:\n" ++ prettyPrint a'
   return a'
 
-infer' ITT         = return (VTT       , VUnit)
-infer' ITrue       = return (VTrue     , VBool)
-infer' IFalse      = return (VFalse    , VBool)
 infer' (IQuotes s) = return (VQuotes s , VString)
                                  
-infer' IUnit   = return (VUnit   , VType)
-infer' IBool   = return (VBool   , VType)
-infer' IString = return (VString , VType)
-infer' IType   = return (VType   , VType)
-
 infer' (IList _A) = do
   _A' <- check _A VType
   return (VList _A' , VType)
