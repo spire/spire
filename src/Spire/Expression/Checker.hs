@@ -336,24 +336,6 @@ check' as@CRefl _T = throwError $
   "attempt to check refl " ++
   " at type " ++ prettyPrint _T
 
-check' CNil (VList _A) = do
-  return VNil
-
-check' as@CNil _T = throwError $
-  "Ill-typed!:\n" ++
-  "attempt to check list " ++ prettyPrint as ++
-  " at type " ++ prettyPrint _T
-
-check' (CCons a as) (VList _A) = do
-  a'     <- check a _A
-  as'    <- check as (VList _A)
-  return $  VCons a' as'
-
-check' as@(CCons _ _) _T = throwError $
-  "Ill-typed!:\n" ++
-  "attempt to check list " ++ prettyPrint as ++
-  " at type " ++ prettyPrint _T
-
 check' CHere (VTag (VCons l _E)) = do
   return VHere
 
@@ -423,18 +405,6 @@ check' (Infer a) _B = do
 
 infer' (IQuotes s) = return (VQuotes s , VString)
                                  
-infer' (IList _A) = do
-  _A' <- check _A VType
-  return (VList _A' , VType)
-
-infer' (IDesc _I) = do
-  _I' <- check _I VType
-  return (VDesc _I' , VType)
-
-infer' (ITag _E) = do
-  _E' <- check _E vEnum
-  return (VTag _E' , VType)
-
 infer' (ISg _A _B) = do
   _A' <- check _A VType
   _B' <- checkExtend _A' _B VType
@@ -532,31 +502,6 @@ infer' (IIf b ct cf) = do
   c <- elim b' (eIf _C ct' cf')
   return (c , _C)
 
-infer' (IElimList _P pnil pcons as) = do
-  (as' , _As') <- infer as
-  case _As' of
-    VList _A' -> do
-      _P'    <- checkExtend _As' _P VType
-      pnil'  <- check pnil =<< _P' `sub` VNil
-      pcons' <- checkPCons _A' _P' pcons
-      pas'   <- as' `elim` EElimList _P' pnil' pcons'
-      _Pas'  <- _P' `sub` as'
-      return (pas' , _Pas')
-    _ -> throwError $
-      "Ill-typed, elimination of non-list!\n" ++
-      "Eliminated value:\n" ++ show as' ++
-      "\nEliminated type:\n" ++ show _As'
-
-  where
-
-  checkPCons :: Type -> Bind Nom Type -> Bind Nom3 Check -> SpireM (Bind Nom3 Value)
-  checkPCons _A bnd_P bnd_pcons = do
-    ((nm_a , nm_as , nm_pas) , pcons) <- unbind bnd_pcons
-    _Pas    <- bnd_P `sub` vVar nm_as
-    _Pcons  <- bnd_P `sub` VCons (vVar nm_a) (vVar nm_as)
-    pcons'  <- extendCtx nm_a _A $ extendCtx nm_as (VList _A) $ extendCtx nm_pas _Pas $ check pcons _Pcons
-    return  $  bind (nm_a , nm_as , nm_pas) pcons'
-
 infer' (ISubst _P q px) = do
   (q' , _Q') <- infer q
   case _Q' of
@@ -577,27 +522,22 @@ infer' (ISubst _P q px) = do
       "Eliminated value:\n" ++ show q' ++
       "\nEliminated type:\n" ++ show _Q'
 
-infer' (IBranches _E _P) = do
-  _E' <- check _E vEnum
-  _P' <- checkExtend _E' _P VType
-  _BsEP <- _E' `elim` EBranches _P'
-  return (_BsEP , VType)
+infer' (ICase _P cs t) = undefined
+-- do
+--   (t' , _T') <- infer t
+--   case _T' of
+--     VTag _E -> do
+--       _P'   <- checkExtend _T' _P VType
+--       _BsEP <- _E `elim` EBranches _P'
+--       cs'   <- check cs _BsEP
+--       pt    <- t' `elim` ECase _P' cs'
+--       _Pt   <- _P' `sub` t'
+--       return (pt , _Pt)
 
-infer' (ICase _P cs t) = do
-  (t' , _T') <- infer t
-  case _T' of
-    VTag _E -> do
-      _P'   <- checkExtend _T' _P VType
-      _BsEP <- _E `elim` EBranches _P'
-      cs'   <- check cs _BsEP
-      pt    <- t' `elim` ECase _P' cs'
-      _Pt   <- _P' `sub` t'
-      return (pt , _Pt)
-
-    _ -> throwError $
-      "Ill-typed, case of non-tag!\n" ++
-      "Eliminated value:\n" ++ show t' ++
-      "\nEliminated type:\n" ++ show _T'
+--     _ -> throwError $
+--       "Ill-typed, case of non-tag!\n" ++
+--       "Eliminated value:\n" ++ show t' ++
+--       "\nEliminated type:\n" ++ show _T'
 
 ----------------------------------------------------------------------
 

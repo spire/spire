@@ -9,24 +9,22 @@
 
 module Spire.Surface.Types where
 import Spire.Canonical.Types
+import qualified Spire.Canonical.Builtins as B
 import Unbound.LocallyNameless
 
 ----------------------------------------------------------------------
 
 data Syntax =
-    SNil | SRefl | SHere
+    SRefl | SHere
   | SQuotes String
   | SThere Syntax | SEnd Syntax
   | SRec Syntax Syntax | SInit Syntax
   | SArg Syntax (Bind Nom Syntax)
-  | SCons Syntax Syntax
   | SPair Syntax Syntax
   | SLam (Bind Nom Syntax)
 
-  | SList Syntax | STag Syntax | SDesc Syntax
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
-  | SBranches Syntax (Bind Nom Syntax)
   | SEl Syntax (Bind Nom Syntax) Syntax
   | SFix Syntax Syntax
   | SEq Syntax Syntax
@@ -38,7 +36,6 @@ data Syntax =
   | SProj2 Syntax
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
-  | SElimList (Bind Nom Syntax) Syntax (Bind Nom3 Syntax) Syntax
   | SCase (Bind Nom Syntax) Syntax Syntax
   | SSubst (Bind Nom Syntax) Syntax Syntax
   | SAnn Syntax Syntax
@@ -59,6 +56,12 @@ type SProg = [SDef]
 sVar :: String -> Syntax
 sVar = SVar . s2n
 
+sNil :: Syntax
+sNil = sVar B.nil
+
+sCons :: Syntax -> Syntax -> Syntax
+sCons x xs = SApp (SApp (sVar B.cons) x) xs
+
 sLam :: String -> Syntax -> Syntax
 sLam nm x = SLam $ bind (s2n nm) x
 
@@ -67,5 +70,7 @@ sPi x nm y = SPi x $ bind (s2n nm) y
 
 sSg :: Syntax -> String -> Syntax -> Syntax
 sSg x nm y = SSg x $ bind (s2n nm) y
+
+
 
 ----------------------------------------------------------------------

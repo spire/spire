@@ -37,7 +37,7 @@ type NomType = (Nom , Embed Type)
 
 data Value =
     VUnit | VBool | VString | VType
-  | VList Value | VTag Value | VDesc Value
+  | VEnum | VTag Value | VDesc Value
 
   | VPi  Value (Bind Nom Value)
   | VSg  Value (Bind Nom Value)
@@ -64,11 +64,10 @@ data Elim =
     EApp Value
   | EProj1 | EProj2
 
-  | EBranches (Bind Nom Value)
   | EEl Value (Bind Nom Value) Value
 
   | EElimBool (Bind Nom Value) Value Value
-  | EElimList (Bind Nom Value) Value (Bind Nom3 Value)
+  | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
 
   | ESubst (Bind Nom Value) Value
   | ECase  (Bind Nom Value) Value
@@ -186,27 +185,48 @@ vProd _A _B = VSg _A (bind (s2n wildcard) _B)
 vArr :: Value -> Value -> Value
 vArr _A _B = VPi _A (bind (s2n wildcard) _B)
 
+eIf :: Value -> Value -> Value -> Elim
+eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
+
+----------------------------------------------------------------------
+
+rElimBool :: (Bind Nom Value) -> Value -> Value -> Nom -> Value
+rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
+
+rElimEnum :: (Bind Nom Value) -> Value -> (Bind Nom3 Value) -> Nom -> Value
+rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
+
+----------------------------------------------------------------------
+
 vLam :: String -> Value -> Value
 vLam s b = VLam (bind (s2n s) b)
 
-vEnum :: Value
-vEnum = VList VString
+vEta :: (Value -> Value) -> String -> Value
+vEta f s = vLam s (f (var s))
+
+vEta2 :: (Value -> Value -> Value) -> String -> String -> Value
+vEta2 f s1 s2 = vLam s1 $ vLam s2 $ f (var s1) (var s2)
 
 vApp :: String -> Value -> Value
 vApp f x = VNeut (s2n f) (Pipe Id (EApp x))
 
+vApp3 :: String -> Value -> Value -> Value -> Value
+vApp3 f x y z = VNeut (s2n f) (Pipe (Pipe (Pipe Id (EApp x)) (EApp y)) (EApp z))
+
+fbind :: String -> String -> Bind Nom Value
+fbind f x = bind (s2n x) $ vApp f (var x)
+
+fbind3 :: String -> String -> String -> String -> Bind Nom3 Value
+fbind3 f x y z = bind (s2n x , s2n y , s2n z) $ vApp3 f (var x) (var y) (var z)
+
 vElimBool :: String -> String -> String -> String -> Value
-vElimBool _P pt pf b = VNeut (s2n b) (Pipe Id (EElimBool (bind (s2n "x") (vApp _P (var "x"))) (var pt) (var pf)))
+vElimBool _P pt pf b = rElimBool (fbind _P "b") (var pt) (var pf) (s2n b)
 
-----------------------------------------------------------------------
-
-eBranchesD :: Type -> Elim
-eBranchesD _I = EBranches (bind (s2n wildcard) (VDesc _I))
-
-eCaseD :: Type -> Value -> Elim
-eCaseD _I _Ds = ECase (bind (s2n wildcard) (VDesc _I)) _Ds
-
-eIf :: Value -> Value -> Value -> Elim
-eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
+vElimEnum :: String -> String -> String -> String -> Value
+vElimEnum _P pnil pcons xs = rElimEnum
+  (fbind _P "xs")
+  (var pnil)
+  (fbind3 pcons "x" "xs" "pxs")
+  (s2n xs)
 
 ----------------------------------------------------------------------

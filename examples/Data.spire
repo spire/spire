@@ -1,11 +1,8 @@
 
 ----------------------------------------------------------------------
 
-Enum : Type
-Enum = List String
-
-BranchesD : Type -> Enum -> Type
-BranchesD = \ I -> \ E -> Branches E (\ _ -> Desc I)
+-- BranchesD : Type -> Enum -> Type
+-- BranchesD = \ I -> \ E -> Branches E (\ _ -> Desc I)
 
 ----------------------------------------------------------------------
 
@@ -23,34 +20,34 @@ sucT = there here
 
 ----------------------------------------------------------------------
 
-NatB : BranchesD Unit NatE
-NatB =
-    End tt
-  , Rec tt (End tt)
-  , tt
+-- NatB : BranchesD Unit NatE
+-- NatB =
+--     End tt
+--   , Rec tt (End tt)
+--   , tt
 
-NatD : Desc Unit
-NatD = Arg NatT (\ t -> case (\_ -> Desc Unit) NatB t)
+-- NatD : Desc Unit
+-- NatD = Arg NatT (\ t -> case (\_ -> Desc Unit) NatB t)
 
-Nat : Type
-Nat = Fix NatD tt
+-- Nat : Type
+-- Nat = Fix NatD tt
 
-zero : Nat
-zero = init (zeroT , refl)
+-- zero : Nat
+-- zero = init (zeroT , refl)
 
-suc : Nat -> Nat
-suc = \ n -> init (sucT , n , refl)
+-- suc : Nat -> Nat
+-- suc = \ n -> init (sucT , n , refl)
 
 ----------------------------------------------------------------------
 
-one : Nat
-one = suc zero
+-- one : Nat
+-- one = suc zero
 
-two : Nat
-two = suc one
+-- two : Nat
+-- two = suc one
 
-three : Nat
-three = suc two
+-- three : Nat
+-- three = suc two
 
 ----------------------------------------------------------------------
 
@@ -68,22 +65,22 @@ consT = there here
 
 ----------------------------------------------------------------------
 
-VecB : Type -> BranchesD Nat VecE
-VecB = \ A ->
-    End zero
-  , Arg Nat (\ m -> Arg A (\ _ -> Rec m (End (suc m))))
-  , tt
+-- VecB : Type -> BranchesD Nat VecE
+-- VecB = \ A ->
+--     End zero
+--   , Arg Nat (\ m -> Arg A (\ _ -> Rec m (End (suc m))))
+--   , tt
 
-VecD : Type -> Desc Nat
-VecD = \ A -> Arg VecT (\ t -> case (\_ -> Desc Nat) (VecB A) t)
+-- VecD : Type -> Desc Nat
+-- VecD = \ A -> Arg VecT (\ t -> case (\_ -> Desc Nat) (VecB A) t)
 
-Vec : Type -> Nat -> Type
-Vec = \ A -> \ n -> Fix (VecD A) n
+-- Vec : Type -> Nat -> Type
+-- Vec = \ A -> \ n -> Fix (VecD A) n
 
-nil : (A : Type) -> Vec A zero
-nil = \ _ -> init (nilT , refl)
+-- nil : (A : Type) -> Vec A zero
+-- nil = \ _ -> init (nilT , refl)
 
-cons : (A : Type) -> (n : Nat) -> (x : A) -> (xs : Vec A n) -> Vec A (suc n)
-cons = \ _ -> \ n -> \ x -> \ xs -> init (consT , n , x , xs , refl)
+-- cons : (A : Type) -> (n : Nat) -> (x : A) -> (xs : Vec A n) -> Vec A (suc n)
+-- cons = \ _ -> \ n -> \ x -> \ xs -> init (consT , n , x , xs , refl)
 
 ----------------------------------------------------------------------

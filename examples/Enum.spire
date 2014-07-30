@@ -1,0 +1,17 @@
+
+append : Enum -> Enum -> Enum
+append = elimEnum (\_ -> Enum -> Enum)
+  (\ ys -> ys)
+  (\ x -> \ xs -> \ ih -> \ ys -> x :: ih ys)
+
+ab : Enum
+ab = "a" :: "b" :: []
+
+cd : Enum
+cd = "c" :: "d" :: []
+
+abcd : Enum
+abcd = "a" :: "b" :: "c" :: "d" :: []
+
+testAppend : abcd == append ab cd
+testAppend = refl

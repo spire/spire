@@ -66,26 +66,18 @@ elim VTrue  (EElimBool _P pt _) = return pt
 elim VFalse (EElimBool _P _ pf) = return pf
 elim _      (EElimBool _P _  _) = throwError "Ill-typed evaluation of elimBool"
 
-elim VNil         (EElimList _P pn _)  =
+elim VNil         (EElimEnum _P pn _)  =
   return pn
-elim (VCons a as) (EElimList _P pn pc) = do
-  ih <- as `elim` EElimList _P pn pc
-  pc `sub3` (a , as , ih)
-elim _            (EElimList _P _ _)  =
-  throwError "Ill-typed evaluation of elimList"
+elim (VCons x xs) (EElimEnum _P pn pc) = do
+  ih <- xs `elim` EElimEnum _P pn pc
+  pc `sub3` (x , xs , ih)
+elim _            (EElimEnum _P _ _)  =
+  throwError "Ill-typed evaluation of elimEnum"
 
 elim VRefl         (ESubst _P px) =
   return px
 elim _             (ESubst _P px) =
   throwError "Ill-typed evaluation of subst"
-
-elim VNil            (EBranches _P) =
-  return VUnit
-elim (VCons l _E)    (EBranches _P) = do
-  _P' <- _P `subCompose` VThere
-  vProd <$> _P `sub` VHere <*> _E `elim` EBranches _P'
-elim _               (EBranches _P) =
-  throwError "Ill-typed evaluation of Branches"
 
 elim (VEnd j)        (EEl _I _X i) =
   return $ VEq _I j _I i

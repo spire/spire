@@ -35,7 +35,7 @@ checkV VFalse VBool        = return ()
 checkV VFalse _            = throwError "Ill-typed!"
 checkV (VQuotes _) VString = return ()
 checkV (VQuotes _) _       = throwError "Ill-typed!"
-checkV VNil   (VList _)    = return ()
+checkV VNil   VEnum        = return ()
 checkV VNil   _            = throwError "Ill-typed!"
 
 checkV VUnit   VType = return ()
@@ -44,16 +44,15 @@ checkV VBool   VType = return ()
 checkV VBool   _     = throwError "Ill-typed!"
 checkV VString VType = return ()
 checkV VString _     = throwError "Ill-typed!"
+checkV VEnum   VType = return ()
+checkV VEnum   _     = throwError "Ill-typed!"
 checkV VType   VType = return ()
 checkV VType   _     = throwError "Ill-typed!"
-
-checkV (VList _A) VType = checkV _A VType
-checkV (VList _A) _     = throwError "Ill-typed!"
 
 checkV (VDesc _I) VType = checkV _I VType
 checkV (VDesc _I) _     = throwError "Ill-typed!"
 
-checkV (VTag _E) VType = checkV _E vEnum
+checkV (VTag _E) VType = checkV _E VEnum
 checkV (VTag _E) _     = throwError "Ill-typed!"
 
 checkV VHere (VTag (VCons l _E)) = return ()
@@ -89,10 +88,10 @@ checkV (VFix _I _D i) VType = do
 checkV (VFix _I _D i) _ =
   throwError "Ill-typed!"
 
-checkV (VCons a as) (VList _A) = do
-  checkV a _A
-  checkV as (VList _A)
-checkV (VCons a as) _ =
+checkV (VCons x xs) VEnum = do
+  checkV x VString
+  checkV xs VEnum
+checkV (VCons x xs) _ =
   throwError "Ill-typed!"
 
 checkV (VLam bnd_b) (VPi _A bnd_B) = do
@@ -180,24 +179,21 @@ inferN nm (Pipe fs (EElimBool _P ptrue pfalse)) = do
   checkV b VBool
   _P `sub` b
 
-inferN nm (Pipe fs (EElimList _P pnil pcons)) = do
-  let as = VNeut nm fs
-  _ListA <- inferN nm fs
-  case _ListA of
-    VList _A -> do
-      checkVExtend _ListA _P VType
-      checkV pnil =<< _P `sub` VNil
-      checkVPCons _A _P pcons
-      _P `sub` as
-    _  -> throwError "Ill-typed!"
+inferN nm (Pipe fs (EElimEnum _P pnil pcons)) = do
+  let xs = VNeut nm fs
+  checkV xs VEnum
+  checkVExtend VEnum _P VType
+  checkV pnil =<< _P `sub` VNil
+  checkVPCons _P pcons
+  _P `sub` xs
   where
 
-  checkVPCons :: Type -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVPCons _A bnd_P bnd_pcons = do
-    ((nm_a , nm_as , nm_pas) , pcons) <- unbind bnd_pcons
-    _Pas   <- bnd_P `sub` vVar nm_as
-    _Pcons <- bnd_P `sub` VCons (vVar nm_a) (vVar nm_as)
-    extendCtx nm_a _A $ extendCtx nm_as (VList _A) $ extendCtx nm_pas _Pas $ checkV pcons _Pcons
+  checkVPCons :: Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVPCons bnd_P bnd_pcons = do
+    ((nm_x , nm_xs , nm_pxs) , pcons) <- unbind bnd_pcons
+    _Pxs   <- bnd_P `sub` vVar nm_xs
+    _Pcons <- bnd_P `sub` VCons (vVar nm_x) (vVar nm_xs)
+    extendCtx nm_x VString $ extendCtx nm_xs VEnum $ extendCtx nm_pxs _Pxs $ checkV pcons _Pcons
 
 inferN nm (Pipe fs (ESubst _P px)) = do
   _Q <- inferN nm fs
@@ -210,12 +206,6 @@ inferN nm (Pipe fs (ESubst _P px)) = do
       _P `sub` y
     _  -> throwError "Ill-typed!"
 
-inferN nm (Pipe fs (EBranches _P)) = do
-  let _E = VNeut nm fs
-  checkV _E vEnum
-  checkVExtend (VTag _E) _P VType
-  return VType
-
 inferN nm (Pipe fs (EEl _I _X i)) = do
   checkV _I VType
   let _D = VNeut nm fs
@@ -224,16 +214,17 @@ inferN nm (Pipe fs (EEl _I _X i)) = do
   checkV i _I
   return VType
 
-inferN nm (Pipe fs (ECase _P cs)) = do
-  let t = VNeut nm fs
-  _TagE <- inferN nm fs
-  case _TagE of
-    VTag _E -> do
-      checkVExtend _TagE _P VType
-      checkV cs =<< _E `elim` EBranches _P
-      checkV t _TagE
-      _P `sub` t
-    _  -> throwError "Ill-typed!"
+inferN nm (Pipe fs (ECase _P cs)) = undefined
+ -- do
+ --  let t = VNeut nm fs
+ --  _TagE <- inferN nm fs
+ --  case _TagE of
+ --    VTag _E -> do
+ --      checkVExtend _TagE _P VType
+ --      checkV cs =<< _E `elim` EBranches _P
+ --      checkV t _TagE
+ --      _P `sub` t
+ --    _  -> throwError "Ill-typed!"
 
 ----------------------------------------------------------------------
 

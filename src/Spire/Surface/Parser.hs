@@ -43,14 +43,12 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
-  "List", "Tag", "Desc",
-  "Branches", "El", "Fix",
+  "El", "Fix",
 
   "refl", "here", "there", "init",
   "End", "Rec", "Arg",
 
   "if", "then", "else",
-  "elimList",
   "subst", "case",
   "proj1", "proj2",
   wildcard
@@ -108,9 +106,6 @@ parseChoice :: ParserM Syntax
 parseChoice = try $ choice [
     parseAtom
   , parseIf
-  , parseList
-  , parseDesc
-  , parseTag
   , parseThere
   , parseEnd
   , parseProj1
@@ -120,7 +115,6 @@ parseChoice = try $ choice [
   , parseFix
   , parseLam
   , parseArg
-  , parseBranches
   , parseEl
   , parseCase
   , parseSubst
@@ -144,7 +138,7 @@ failIfStmt =
 
 table = [
     [Infix parseSpaceApp             AssocLeft]
-  , [Infix (parseInfix "::" SCons)   AssocRight]
+  , [Infix (parseInfix "::" sCons)   AssocRight]
   , [Infix (parseInfix ","  SPair)   AssocRight]
   , [Infix (parseInfix "$"  SApp)    AssocRight]
   , [Infix (parseInfix "*"  infixSg) AssocRight]
@@ -193,21 +187,6 @@ parseEnd = try $ do
   i <- parseAtom
   return $ SEnd i
 
-parseList = try $ do
-  parseKeyword "List"
-  _A <- parseAtom
-  return $ SList _A
-
-parseDesc = try $ do
-  parseKeyword "Desc"
-  _I <- parseAtom
-  return $ SDesc _I
-
-parseTag = try $ do
-  parseKeyword "Tag"
-  _E <- parseAtom
-  return $ STag _E
-
 parseRec = try $ do
   parseKeyword "Rec"
   i  <- parseAtom
@@ -251,12 +230,6 @@ parseArg = do
   _B <- parseLamArg
   return $ SArg _A _B
 
-parseBranches = do
-  parseKeyword "Branches"
-  _E <- parseAtom
-  _P <- parseLamArg
-  return $ SBranches _E _P
-
 parseEl = do
   parseKeyword "El"
   _D <- parseAtom
@@ -280,7 +253,7 @@ parseSubst = do
 
 ----------------------------------------------------------------------
 
-parseNil      = parseOp      "[]"     >> return SNil
+parseNil      = parseOp      "[]"     >> return sNil
 
 parseRefl     = parseKeyword "refl"   >> return SRefl
 parseHere     = parseKeyword "here"   >> return SHere

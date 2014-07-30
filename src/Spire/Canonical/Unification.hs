@@ -61,7 +61,7 @@ value2Tm v = case v of
   VFix _ _ _   -> unsupported
   VString      -> unsupported
   VQuotes _    -> unsupported
-  VList _      -> unsupported
+  VEnum        -> unsupported
   VDesc _      -> unsupported
   VTag _       -> unsupported
   VNil         -> unsupported
@@ -84,9 +84,8 @@ value2Tm v = case v of
       EProj2 -> return Tl
       EElimBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
 
-      EBranches _       -> unsupported
       EEl _ _ _         -> unsupported
-      EElimList _ _ _   -> unsupported
+      EElimEnum _ _ _   -> unsupported
       ESubst _ _        -> unsupported
       ECase  _ _        -> unsupported
 

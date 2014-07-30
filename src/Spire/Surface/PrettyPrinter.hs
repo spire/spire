@@ -135,8 +135,6 @@ dIf o c t f = alignSepM
 
 dThere o t   = dt "there" <+> ww o t
 dEnd   o i   = dt "End"   <+> ww o i
-dList  o _A  = dt "List"  <+> ww o _A
-dDesc  o _I  = dt "Desc"  <+> ww o _I
 dTag   o _E  = dt "Tag"   <+> ww o _E
 dProj1 o ab  = dt "proj1" <+> ww o ab
 dProj2 o ab  = dt "proj2" <+> ww o ab
@@ -157,10 +155,6 @@ dArg o _A _B =
   dt "Arg" <+> alignSepM
     [ ww o _A , dLamArg o _B ]
 
-dBranches o _E _P =
-  dt "Branches" <+> alignSepM
-    [ ww o _E , dLamArg o _P ]
-
 dEl o _D _X i =
   dt "El" <+> alignSepM
     [ ww o _D , dLamArg o _X , ww o i ]
@@ -177,16 +171,11 @@ dSubst o _P q p =
 
 instance Display Syntax where
   display s = case s of
-    SNil   -> dNil
     SRefl  -> dRefl
     SHere  -> dHere
 
     SThere t   -> dThere s t
     SEnd   i   -> dEnd   s i
-    SList _A   -> dList  s _A
-    SDesc _I   -> dDesc  s _I
-    STag  _E   -> dTag   s _E
-    SCons a as -> dCons  s a as
     SPair a b  -> dPair  s a b
     SLam  b    -> dLam s b
 
@@ -196,7 +185,6 @@ instance Display Syntax where
     SPi       _A _B    -> dPi       s _A _B
     SSg       _A _B    -> dSg       s _A _B
     SArg      _A _B    -> dArg      s _A _B
-    SBranches _E _P    -> dBranches s _E _P
     SEl       _D _X i  -> dEl       s _D _X  i
 
     SEq a b   -> dEq s a b
@@ -212,8 +200,6 @@ instance Display Syntax where
 
     SCase     _P cs t      -> dCase s _P cs t
     SSubst    _P q  p      -> dSubst s _P q p
-
-    SElimList _ _ _ _      -> error "elimList not supported"
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -295,7 +281,6 @@ instance Display Entry where
 instance Precedence Syntax where
   level s = case s of
     SPair _ _           -> pairLevel
-    SCons _ _           -> consLevel
     SEq _ _             -> eqLevel
     SLam _              -> lamLevel
     SPi _ _             -> piLevel
@@ -306,9 +291,6 @@ instance Precedence Syntax where
 
     SProj1 _            -> initialLevel
     SProj2 _            -> initialLevel
-    SDesc  _            -> initialLevel
-    STag   _            -> initialLevel
-    SList  _            -> initialLevel
     SThere _            -> initialLevel
     SEnd   _            -> initialLevel
     SRec   _ _          -> initialLevel
@@ -316,12 +298,9 @@ instance Precedence Syntax where
     SArg   _ _          -> initialLevel
     SEl    _ _ _        -> initialLevel
     SFix   _ _          -> initialLevel
-    SBranches _ _       -> initialLevel
-    SElimList _ _ _ _   -> initialLevel
     SCase _ _ _         -> initialLevel
     SSubst _ _ _        -> initialLevel
 
-    SNil                -> atomicLevel
     SRefl               -> atomicLevel
     SHere               -> atomicLevel
     SWildCard           -> atomicLevel
@@ -333,29 +312,22 @@ instance Precedence Syntax where
     SSg   _ _            -> sgAssoc
     SApp  _ _            -> appAssoc
     SPair _ _            -> pairAssoc
-    SCons _ _            -> consAssoc
     SEq   _ _            -> AssocNone
 
     SInit       _        -> AssocNone
     SRec        _ _      -> AssocNone
     SArg        _ _      -> AssocNone
-    SBranches   _ _      -> AssocNone
     SEl         _ _ _    -> AssocNone
     SFix        _ _      -> AssocNone
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone
     SThere _             -> AssocNone
     SEnd   _             -> AssocNone
-    STag   _             -> AssocNone
-    SDesc _              -> AssocNone
-    SList _              -> AssocNone
     SProj1 _             -> AssocNone
     SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
-    SElimList _ _ _ _    -> AssocNone
     SCase     _ _ _      -> AssocNone
     SSubst    _ _ _      -> AssocNone
-    SNil                 -> AssocNone
     SRefl                -> AssocNone
     SHere                -> AssocNone
     SWildCard            -> AssocNone
