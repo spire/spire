@@ -532,15 +532,6 @@ infer' (IIf b ct cf) = do
   c <- elim b' (eIf _C ct' cf')
   return (c , _C)
 
-infer' (IElimBool _P ct cf b) = do
-  _P' <- checkExtend VBool _P VType
-  ct' <- check ct =<< _P' `sub` VTrue
-  cf' <- check cf =<< _P' `sub` VFalse
-  b'  <- check b VBool
-  c   <- b' `elim` EElimBool _P' ct' cf'
-  _C  <- _P' `sub` b'
-  return (c , _C)
-
 infer' (IElimList _P pnil pcons as) = do
   (as' , _As') <- infer as
   case _As' of

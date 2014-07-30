@@ -9,17 +9,17 @@ import Spire.Expression.Types
 
 embedV :: Value -> FreshM Check
 
-embedV VTT                = return $ eVar "tt"
-embedV VTrue              = return $ eVar "true"
-embedV VFalse             = return $ eVar "false"
+embedV VTT                = return $ cVar "tt"
+embedV VTrue              = return $ cVar "true"
+embedV VFalse             = return $ cVar "false"
 embedV VNil               = return $ CNil
 embedV VRefl              = return $ CRefl
 embedV VHere              = return $ CHere
 embedV (VQuotes s)        = return $ Infer (IQuotes s)
-embedV VUnit              = return $ eVar "Unit"
-embedV VBool              = return $ eVar "Bool"
-embedV VString            = return $ eVar "String"
-embedV VType              = return $ eVar "Type"
+embedV VUnit              = return $ cVar "Unit"
+embedV VBool              = return $ cVar "Bool"
+embedV VString            = return $ cVar "String"
+embedV VType              = return $ cVar "Type"
                           
 embedV (VThere t)         = CThere <$> embedV t
 embedV (VEnd   i)         = CEnd   <$> embedV i
@@ -61,8 +61,12 @@ embedN nm (Pipe fs (EEl _I _X i)) =
     <*> embedVB _X <*> embedV i
 
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
-  IElimBool <$> embedVB _P <*>
-    embedV pt <*> embedV pf <*> (Infer <$> embedN nm fs)
+  iApps (iVar "elimBool") <$> sequence
+    [ CLam <$> embedVB _P
+    , embedV pt
+    , embedV pf
+    , Infer <$> embedN nm fs
+    ]
 embedN nm (Pipe fs (EElimList _P pn pc)) =
   IElimList <$> embedVB _P <*>
     embedV pn <*> embedVB pc <*> embedN nm fs

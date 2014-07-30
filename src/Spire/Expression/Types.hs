@@ -42,7 +42,6 @@ data Infer =
   | IProj1 Infer
   | IProj2 Infer
   | IIf Check Infer Infer
-  | IElimBool (Bind Nom Check) Check Check Check
   | IElimList (Bind Nom Check) Check (Bind Nom3 Check) Infer
   | ICase (Bind Nom Check) Check Infer
   | ISubst (Bind Nom Check) Infer Check
@@ -77,7 +76,13 @@ instance Show MVarDecls where
 
 type CProg = [CDef]
 
-eVar :: String -> Check
-eVar = Infer . IVar . s2n
+cVar :: String -> Check
+cVar = Infer . iVar
+
+iVar :: String -> Infer
+iVar = IVar . s2n
+
+iApps :: Infer -> [Check] -> Infer
+iApps = foldl IApp
 
 ----------------------------------------------------------------------

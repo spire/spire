@@ -164,10 +164,18 @@ mv2String nm = case name2String nm of
   '?':suffix -> suffix
   _          -> error $ "mv2String: not an mvar: " ++ show nm
 
+sbind s = bind (s2n s)
+
 ----------------------------------------------------------------------
+
+vPi :: String -> Value ->  Value -> Value
+vPi s x y = VPi x (bind (s2n s) y)
 
 vBind :: (Value -> Value) -> Bind Nom Value
 vBind f = bind vName (f (vVar vName))
+
+var :: String -> Value
+var = vVar . s2n
 
 vVar :: Nom -> Value
 vVar nm = VNeut nm Id
@@ -175,8 +183,20 @@ vVar nm = VNeut nm Id
 vProd :: Value -> Value -> Value
 vProd _A _B = VSg _A (bind (s2n wildcard) _B)
 
+vArr :: Value -> Value -> Value
+vArr _A _B = VPi _A (bind (s2n wildcard) _B)
+
+vLam :: String -> Value -> Value
+vLam s b = VLam (bind (s2n s) b)
+
 vEnum :: Value
 vEnum = VList VString
+
+vApp :: String -> Value -> Value
+vApp f x = VNeut (s2n f) (Pipe Id (EApp x))
+
+vElimBool :: String -> String -> String -> String -> Value
+vElimBool _P pt pf b = VNeut (s2n b) (Pipe Id (EElimBool (bind (s2n "x") (vApp _P (var "x"))) (var pt) (var pf)))
 
 ----------------------------------------------------------------------
 

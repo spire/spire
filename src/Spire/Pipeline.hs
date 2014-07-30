@@ -19,7 +19,7 @@ import Spire.Options
 ----------------------------------------------------------------------
 
 checkInitEnv :: (?conf::Conf) => Either String ()
-checkInitEnv = runSpireM $ recheckProg initEnv
+checkInitEnv = runSpireM $ checkCanonM initEnv
 
 elabProgram :: (?conf::Conf) => SProg -> Either String CProg
 elabProgram = runSpireM . elabProg
@@ -29,14 +29,18 @@ checkProgram = runSpireM . checkProgramM
 
 checkProgramM :: CProg -> SpireM VProg
 checkProgramM expression  = do
-  canonical    <- checkProg expression
-  ()           <- recheckProg canonical
+  canonical <- checkProg expression
+  checkCanonM canonical
+  return canonical
+
+checkCanonM :: Env -> SpireM ()
+checkCanonM canonical = do
+  recheckProg canonical
   let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical
   expression'  <- elabProg surface'
   canonical'   <- checkProg expression'
   unless (canonical == canonical') $
     throwError "Embedding is unstable!"
-  return canonical
 
 ----------------------------------------------------------------------
 

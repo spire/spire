@@ -173,10 +173,6 @@ dSubst o _P q p =
   dt "subst" <+> alignSepM
     [ dLamArg o _P , ww o q , ww o p ]
 
-dElimBool o _P t f bool =
-  dt "elimBool" <+> alignSepM
-    [ dLamArg o _P , ww o t , ww o f , ww o bool ]
-
 ----------------------------------------------------------------------
 
 instance Display Syntax where
@@ -214,7 +210,6 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
 
-    SElimBool bnd t f bool -> dElimBool s bnd t f bool
     SCase     _P cs t      -> dCase s _P cs t
     SSubst    _P q  p      -> dSubst s _P q p
 
@@ -322,7 +317,6 @@ instance Precedence Syntax where
     SEl    _ _ _        -> initialLevel
     SFix   _ _          -> initialLevel
     SBranches _ _       -> initialLevel
-    SElimBool _ _ _ _   -> initialLevel
     SElimList _ _ _ _   -> initialLevel
     SCase _ _ _         -> initialLevel
     SSubst _ _ _        -> initialLevel
@@ -358,7 +352,6 @@ instance Precedence Syntax where
     SProj1 _             -> AssocNone
     SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
-    SElimBool _ _ _ _    -> AssocNone
     SElimList _ _ _ _    -> AssocNone
     SCase     _ _ _      -> AssocNone
     SSubst    _ _ _      -> AssocNone

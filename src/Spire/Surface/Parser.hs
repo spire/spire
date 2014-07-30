@@ -50,7 +50,7 @@ keywords = [
   "End", "Rec", "Arg",
 
   "if", "then", "else",
-  "elimBool", "elimList",
+  "elimList",
   "subst", "case",
   "proj1", "proj2",
   wildcard
@@ -124,7 +124,6 @@ parseChoice = try $ choice [
   , parseEl
   , parseCase
   , parseSubst
-  , parseElimBool
   ]
 
 parseAtom = choice
@@ -278,14 +277,6 @@ parseSubst = do
   q  <- parseAtom
   p  <- parseAtom
   return $ SSubst _P q p
-
-parseElimBool = do
-  parseKeyword "elimBool"
-  _P <- parseLamArg
-  pt <- parseAtom
-  pf <- parseAtom
-  b  <- parseAtom
-  return $ SElimBool _P pt pf b
 
 ----------------------------------------------------------------------
 

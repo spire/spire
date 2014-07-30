@@ -20,5 +20,4 @@ myPair : (b : Bool) * If (not b)
 myPair = false, true
 
 myFun : (b : Bool) -> if b then Unit else Bool
-myFun = \ b ->
-  elimBool (\ x -> if x then Unit else Bool) tt false b
+myFun = elimBool (\ x -> if x then Unit else Bool) tt false

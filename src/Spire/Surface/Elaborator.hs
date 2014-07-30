@@ -57,7 +57,6 @@ elabC x@(SIf _ _ _)         = elabIC x
 elabC x@(SApp _ _)          = elabIC x
 elabC x@(SAnn _ _)          = elabIC x
 elabC x@(SWildCard)         = elabIC x
-elabC x@(SElimBool _ _ _ _) = elabIC x
 elabC x@(SElimList _ _ _ _) = elabIC x
 elabC x@(SCase _ _ _)       = elabIC x
 elabC x@(SSubst _ _ _)      = elabIC x
@@ -89,8 +88,6 @@ elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
 elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf
 elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
-elabI (SElimBool _P ptrue pfalse b) =
-  IElimBool <$> elabBC _P <*> elabC ptrue <*> elabC pfalse  <*> elabC b
 elabI (SElimList _P pnil pcons as) =
   IElimList <$> elabBC _P <*> elabC pnil  <*> elabBC3 pcons <*> elabI as
 elabI (SSubst _P q p) =

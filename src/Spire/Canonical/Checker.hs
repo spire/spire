@@ -12,6 +12,7 @@ import Control.Monad.Error
 import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
+import Spire.Surface.PrettyPrinter
 
 ----------------------------------------------------------------------
 
@@ -138,10 +139,13 @@ checkV (VInit xs) (VFix _I _D i) = do
 checkV (VInit xs) _ =
   throwError "Ill-typed!"
 
-checkV (VNeut nm fs) _B = do
-  _B' <- inferN nm fs
-  unless (_B == _B') $
-    throwError "Ill-typed!"
+checkV x@(VNeut nm fs) _A = do
+  _A' <- inferN nm fs
+  unless (_A == _A') $
+    throwError $ "Ill-typed, checked type not equal to inferred type!\n\n" ++
+    "Checked type:\n" ++ prettyPrint _A ++
+    "\nInferred type:\n" ++ prettyPrint _A' ++
+    "\nValue:\n" ++ prettyPrint x
 
 ----------------------------------------------------------------------
 
