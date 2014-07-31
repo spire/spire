@@ -1,4 +1,4 @@
-module Spire.Canonical.InitialEnv ( initEnv , initSpireR ) where
+module Spire.Canonical.InitialEnv ( _Branches , initEnv , initSpireR ) where
 import Control.Applicative
 import Data.Monoid (mempty)
 import Unbound.LocallyNameless hiding ( Spine )
@@ -26,6 +26,8 @@ initEnv =
   , def B._Tag (vEta VTag "E") (VEnum `vArr` VType)
   , def B.elimBool elimBool _ElimBool
   , def B.elimEnum elimEnum _ElimEnum
+  , def B._Branches _Branches __Branches
+  , def B._case _case _Case
   ]
 
 _ElimBool :: Type
@@ -59,6 +61,28 @@ elimEnum =
   vLam "pcons" $
   vLam "xs" $
   vElimEnum "P" "pnil" "pcons" "xs"
+
+__Branches :: Type
+__Branches =
+  vPi "E" VEnum $
+  vPi "P" (VTag (var "E") `vArr` VType) $
+  VType
+
+_Branches :: Value
+_Branches = vLam "E" $ vLam "P" $
+  rBranches (s2n "E") (var "P")
+
+_Case :: Type
+_Case =
+  vPi "E" VEnum $
+  vPi "P" (VTag (var "E") `vArr` VType) $
+  vPi "cs" (rBranches (s2n "E") (var "P")) $
+  vPi "t" (VTag (var "E")) $
+  vApp "P" (var "t")
+
+_case :: Value
+_case = vLam "E" $ vLam "P" $ vLam "cs" $ vLam "t" $
+  vCase "E" "P" "cs" "t"
 
 def :: String -> Value -> Type -> VDef
 def = VDef . s2n

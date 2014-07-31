@@ -87,7 +87,7 @@ value2Tm v = case v of
       EEl _ _ _         -> unsupported
       EElimEnum _ _ _   -> unsupported
       ESubst _ _        -> unsupported
-      ECase  _ _        -> unsupported
+      ECase _  _ _        -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e

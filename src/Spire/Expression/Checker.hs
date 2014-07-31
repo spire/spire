@@ -522,23 +522,6 @@ infer' (ISubst _P q px) = do
       "Eliminated value:\n" ++ show q' ++
       "\nEliminated type:\n" ++ show _Q'
 
-infer' (ICase _P cs t) = undefined
--- do
---   (t' , _T') <- infer t
---   case _T' of
---     VTag _E -> do
---       _P'   <- checkExtend _T' _P VType
---       _BsEP <- _E `elim` EBranches _P'
---       cs'   <- check cs _BsEP
---       pt    <- t' `elim` ECase _P' cs'
---       _Pt   <- _P' `sub` t'
---       return (pt , _Pt)
-
---     _ -> throwError $
---       "Ill-typed, case of non-tag!\n" ++
---       "Eliminated value:\n" ++ show t' ++
---       "\nEliminated type:\n" ++ show _T'
-
 ----------------------------------------------------------------------
 
 checkExtend :: Type -> Bind Nom Check -> Type -> SpireM (Bind Nom Value)

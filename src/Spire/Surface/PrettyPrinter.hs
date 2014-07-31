@@ -159,10 +159,6 @@ dEl o _D _X i =
   dt "El" <+> alignSepM
     [ ww o _D , dLamArg o _X , ww o i ]
 
-dCase o _P cs t =
-  dt "case" <+> alignSepM
-    [ dLamArg o _P , ww o cs , ww o t ]
-
 dSubst o _P q p =
   dt "subst" <+> alignSepM
     [ dLamArg o _P , ww o q , ww o p ]
@@ -198,7 +194,6 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
 
-    SCase     _P cs t      -> dCase s _P cs t
     SSubst    _P q  p      -> dSubst s _P q p
 
 instance Display SDef where
@@ -298,7 +293,6 @@ instance Precedence Syntax where
     SArg   _ _          -> initialLevel
     SEl    _ _ _        -> initialLevel
     SFix   _ _          -> initialLevel
-    SCase _ _ _         -> initialLevel
     SSubst _ _ _        -> initialLevel
 
     SRefl               -> atomicLevel
@@ -326,7 +320,6 @@ instance Precedence Syntax where
     SProj1 _             -> AssocNone
     SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
-    SCase     _ _ _      -> AssocNone
     SSubst    _ _ _      -> AssocNone
     SRefl                -> AssocNone
     SHere                -> AssocNone

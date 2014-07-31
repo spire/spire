@@ -70,7 +70,7 @@ data Elim =
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
 
   | ESubst (Bind Nom Value) Value
-  | ECase  (Bind Nom Value) Value
+  | ECase Value (Bind Nom Value) Value
   deriving Show
 
 type Spine = SpineFunctor Elim
@@ -163,7 +163,8 @@ mv2String nm = case name2String nm of
   '?':suffix -> suffix
   _          -> error $ "mv2String: not an mvar: " ++ show nm
 
-sbind s = bind (s2n s)
+sbind x = bind (s2n x)
+sbind3 x y z = bind (s2n x , s2n y , s2n z)
 
 ----------------------------------------------------------------------
 
@@ -196,10 +197,22 @@ rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 rElimEnum :: (Bind Nom Value) -> Value -> (Bind Nom3 Value) -> Nom -> Value
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 
+rBranches :: Nom -> Type -> Type
+rBranches _E _P = VNeut _E (Pipe (Pipe Id (EElimEnum
+  (sbind "E" (vPi "P" (VTag (var "E") `vArr` VType) VType))
+  (vLam "P" VUnit)
+  (sbind3 "l" "E" "ih" $ vLam "P" $
+    vApp "P" VHere `vProd` vApp "ih" (vLam "t" ("P" `vApp` VThere (var "t")))
+  )
+  )) (EApp _P))
+
+rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
+rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
+
 ----------------------------------------------------------------------
 
 vLam :: String -> Value -> Value
-vLam s b = VLam (bind (s2n s) b)
+vLam s b = VLam (sbind s b)
 
 vEta :: (Value -> Value) -> String -> Value
 vEta f s = vLam s (f (var s))
@@ -210,14 +223,17 @@ vEta2 f s1 s2 = vLam s1 $ vLam s2 $ f (var s1) (var s2)
 vApp :: String -> Value -> Value
 vApp f x = VNeut (s2n f) (Pipe Id (EApp x))
 
+vApp2 :: String -> Value -> Value -> Value
+vApp2 f x y = VNeut (s2n f) (Pipe (Pipe Id (EApp x)) (EApp y))
+
 vApp3 :: String -> Value -> Value -> Value -> Value
 vApp3 f x y z = VNeut (s2n f) (Pipe (Pipe (Pipe Id (EApp x)) (EApp y)) (EApp z))
 
 fbind :: String -> String -> Bind Nom Value
-fbind f x = bind (s2n x) $ vApp f (var x)
+fbind f x = sbind x $ vApp f (var x)
 
 fbind3 :: String -> String -> String -> String -> Bind Nom3 Value
-fbind3 f x y z = bind (s2n x , s2n y , s2n z) $ vApp3 f (var x) (var y) (var z)
+fbind3 f x y z = sbind3 x y z $ vApp3 f (var x) (var y) (var z)
 
 vElimBool :: String -> String -> String -> String -> Value
 vElimBool _P pt pf b = rElimBool (fbind _P "b") (var pt) (var pf) (s2n b)
@@ -228,5 +244,12 @@ vElimEnum _P pnil pcons xs = rElimEnum
   (var pnil)
   (fbind3 pcons "x" "xs" "pxs")
   (s2n xs)
+
+vCase :: String -> String -> String -> String -> Value
+vCase _E _P cs t = rCase
+  (var _E)
+  (fbind _P "t")
+  (var cs)
+  (s2n t)
 
 ----------------------------------------------------------------------

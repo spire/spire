@@ -51,7 +51,6 @@ elabC x@(SIf _ _ _)         = elabIC x
 elabC x@(SApp _ _)          = elabIC x
 elabC x@(SAnn _ _)          = elabIC x
 elabC x@(SWildCard)         = elabIC x
-elabC x@(SCase _ _ _)       = elabIC x
 elabC x@(SSubst _ _ _)      = elabIC x
 
 ----------------------------------------------------------------------
@@ -83,8 +82,6 @@ elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
 
 elabI (SSubst _P q p) =
   ISubst <$> elabBC _P <*> elabI q <*> elabC p
-elabI (SCase _P cs t) =
-  ICase <$> elabBC _P <*> elabC cs <*> elabI t
 
 elabI (SPi _A _B)       = IPi       <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B)       = ISg       <$> elabC _A <*> elabBC _B

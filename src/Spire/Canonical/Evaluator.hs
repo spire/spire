@@ -4,7 +4,9 @@
            , TupleSections
            #-}
 
-module Spire.Canonical.Evaluator (lookupValAndType , lookupType , sub , elim) where
+module Spire.Canonical.Evaluator
+  (lookupValAndType , lookupType , sub , elim , app , app2)
+where
 import PatternUnify.Context
 import Unbound.LocallyNameless hiding ( Spine )
 import Unbound.LocallyNameless.SubstM
@@ -51,6 +53,12 @@ sub3 b (x1 , x2 , x3) = do
   ((nm1 , nm2 , nm3) , f) <- unbind b
   substsM [(nm1 , x1) , (nm2 , x2) , (nm3 , x3)] f
 
+app :: Value -> Value -> SpireM Value
+app f x = elim f (EApp x)
+
+app2 :: Value -> Value -> Value -> SpireM Value
+app2 f x y = elims f (Pipe (Pipe Id (EApp x)) (EApp y))
+
 ----------------------------------------------------------------------
 
 elim :: Value -> Elim -> SpireM Value
@@ -88,12 +96,12 @@ elim (VArg _A _B)    (EEl _I _X i) =
 elim _               (EEl _I _X i) =
   throwError "Ill-typed evaluation of El"
 
-elim VHere         (ECase _P (VPair c cs)) =
+elim VHere         (ECase (VCons l _E) _P (VPair c cs)) =
   return c
-elim (VThere t)    (ECase _P (VPair c cs)) = do
+elim (VThere t)    (ECase (VCons l _E) _P (VPair c cs)) = do
   _P' <- _P `subCompose` VThere
-  t `elim` ECase _P' cs
-elim _             (ECase _P cs) =
+  t `elim` ECase _E _P' cs
+elim _             (ECase _E _P cs) =
   throwError "Ill-typed evaluation of case"
 
 elims :: Value -> Spine -> SpireM Value

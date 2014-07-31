@@ -19,7 +19,6 @@ embedI (IQuotes s) = return $ SQuotes s
 
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
 embedI (ISubst _P q  p) = SSubst <$> embedCB _P <*> embedI q <*> embedC p
-embedI (ICase  _P cs t) = SCase  <$> embedCB _P <*> embedC cs <*> embedI t
 embedI (IProj1 ab) = SProj1 <$> embedI ab
 embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a

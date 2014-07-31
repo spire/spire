@@ -36,7 +36,6 @@ data Syntax =
   | SProj2 Syntax
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
-  | SCase (Bind Nom Syntax) Syntax Syntax
   | SSubst (Bind Nom Syntax) Syntax Syntax
   | SAnn Syntax Syntax
  deriving Show

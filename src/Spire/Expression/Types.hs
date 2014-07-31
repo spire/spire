@@ -39,7 +39,6 @@ data Infer =
   | IProj1 Infer
   | IProj2 Infer
   | IIf Check Infer Infer
-  | ICase (Bind Nom Check) Check Infer
   | ISubst (Bind Nom Check) Infer Check
   | IApp Infer Check
   | IAnn Check Check

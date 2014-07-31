@@ -116,7 +116,6 @@ parseChoice = try $ choice [
   , parseLam
   , parseArg
   , parseEl
-  , parseCase
   , parseSubst
   ]
 
@@ -236,13 +235,6 @@ parseEl = do
   _X <- parseLamArg
   i  <- parseAtom
   return $ SEl _D _X i
-
-parseCase = do
-  parseKeyword "case"
-  _P <- parseLamArg
-  cs <- parseAtom
-  t  <- parseAtom
-  return $ SCase _P cs t
 
 parseSubst = do
   parseKeyword "subst"

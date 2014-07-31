@@ -13,6 +13,7 @@ import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Canonical.Types
 import Spire.Canonical.Evaluator
 import Spire.Surface.PrettyPrinter
+import Spire.Canonical.InitialEnv
 
 ----------------------------------------------------------------------
 
@@ -214,17 +215,13 @@ inferN nm (Pipe fs (EEl _I _X i)) = do
   checkV i _I
   return VType
 
-inferN nm (Pipe fs (ECase _P cs)) = undefined
- -- do
- --  let t = VNeut nm fs
- --  _TagE <- inferN nm fs
- --  case _TagE of
- --    VTag _E -> do
- --      checkVExtend _TagE _P VType
- --      checkV cs =<< _E `elim` EBranches _P
- --      checkV t _TagE
- --      _P `sub` t
- --    _  -> throwError "Ill-typed!"
+inferN nm (Pipe fs (ECase _E _P cs)) = do
+  let t = VNeut nm fs
+  checkV _E VEnum
+  checkV t (VTag _E)
+  checkVExtend (VTag _E) _P VType
+  checkV cs =<< app2 _Branches _E (VLam _P)
+  _P `sub` t
 
 ----------------------------------------------------------------------
 
