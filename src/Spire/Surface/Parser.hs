@@ -49,7 +49,7 @@ keywords = [
   "End", "Rec", "Arg",
 
   "if", "then", "else",
-  "subst", "case",
+  "subst",
   "proj1", "proj2",
   wildcard
   ]

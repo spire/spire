@@ -215,12 +215,18 @@ inferN nm (Pipe fs (EEl _I _X i)) = do
   checkV i _I
   return VType
 
+inferN nm (Pipe fs (EBranches _P)) = do
+  let _E = VNeut nm fs
+  checkV _E VEnum
+  checkVExtend (VTag _E) _P VType
+  return VType
+
 inferN nm (Pipe fs (ECase _E _P cs)) = do
   let t = VNeut nm fs
   checkV _E VEnum
   checkV t (VTag _E)
   checkVExtend (VTag _E) _P VType
-  checkV cs =<< app2 _Branches _E (VLam _P)
+  checkV cs =<< _E `elim` EBranches _P
   _P `sub` t
 
 ----------------------------------------------------------------------

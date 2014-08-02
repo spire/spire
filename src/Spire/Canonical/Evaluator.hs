@@ -96,6 +96,14 @@ elim (VArg _A _B)    (EEl _I _X i) =
 elim _               (EEl _I _X i) =
   throwError "Ill-typed evaluation of El"
 
+elim VNil         (EBranches _P) =
+  return VUnit
+elim (VCons l _E)    (EBranches _P) = do
+  _P' <- _P `subCompose` VThere
+  vProd <$> _P `sub` VHere  <*> _E `elim` EBranches _P'
+elim _             (EBranches _P) =
+  throwError "Ill-typed evaluation of Branches"
+
 elim VHere         (ECase (VCons l _E) _P (VPair c cs)) =
   return c
 elim (VThere t)    (ECase (VCons l _E) _P (VPair c cs)) = do

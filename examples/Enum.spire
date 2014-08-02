@@ -15,3 +15,16 @@ abcd = "a" :: "b" :: "c" :: "d" :: []
 
 testAppend : abcd == append ab cd
 testAppend = refl
+
+a : Tag abcd
+a = here
+
+c : Tag abcd
+c = there (there here)
+
+myTrue : Bool
+myTrue = case abcd (\_ -> Bool) (false , false , true , false , tt) c
+
+testCase : myTrue == true
+testCase = refl
+

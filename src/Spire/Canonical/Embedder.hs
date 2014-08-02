@@ -77,6 +77,11 @@ embedN nm (Pipe fs (EElimEnum _P pn pc)) =
 embedN nm (Pipe fs (ESubst _P p)) =
   ISubst <$> embedVB _P <*>
     embedN nm fs <*> embedV p
+embedN nm (Pipe fs (EBranches _P)) =
+  iApps (iVar B._Branches) <$> sequence
+    [ Infer <$> embedN nm fs
+    , embedVF _P
+    ]
 embedN nm (Pipe fs (ECase _E _P cs)) =
   iApps (iVar B._case) <$> sequence
     [ embedV _E

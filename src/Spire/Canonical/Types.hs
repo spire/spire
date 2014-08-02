@@ -70,6 +70,7 @@ data Elim =
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
 
   | ESubst (Bind Nom Value) Value
+  | EBranches (Bind Nom Value)
   | ECase Value (Bind Nom Value) Value
   deriving Show
 
@@ -197,14 +198,8 @@ rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 rElimEnum :: (Bind Nom Value) -> Value -> (Bind Nom3 Value) -> Nom -> Value
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 
-rBranches :: Nom -> Type -> Type
-rBranches _E _P = VNeut _E (Pipe (Pipe Id (EElimEnum
-  (sbind "E" (vPi "P" (VTag (var "E") `vArr` VType) VType))
-  (vLam "P" VUnit)
-  (sbind3 "l" "E" "ih" $ vLam "P" $
-    vApp "P" VHere `vProd` vApp "ih" (vLam "t" ("P" `vApp` VThere (var "t")))
-  )
-  )) (EApp _P))
+rBranches :: Nom -> Bind Nom Value -> Type
+rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
 
 rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
 rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
@@ -244,6 +239,11 @@ vElimEnum _P pnil pcons xs = rElimEnum
   (var pnil)
   (fbind3 pcons "x" "xs" "pxs")
   (s2n xs)
+
+vBranches :: String -> String -> Value
+vBranches _E _P = rBranches
+  (s2n _E)
+  (fbind _P "t")
 
 vCase :: String -> String -> String -> String -> Value
 vCase _E _P cs t = rCase

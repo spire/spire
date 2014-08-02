@@ -70,13 +70,13 @@ __Branches =
 
 _Branches :: Value
 _Branches = vLam "E" $ vLam "P" $
-  rBranches (s2n "E") (var "P")
+  vBranches "E" "P"
 
 _Case :: Type
 _Case =
   vPi "E" VEnum $
   vPi "P" (VTag (var "E") `vArr` VType) $
-  vPi "cs" (rBranches (s2n "E") (var "P")) $
+  vPi "cs" (vBranches "E" "P") $
   vPi "t" (VTag (var "E")) $
   vApp "P" (var "t")
 

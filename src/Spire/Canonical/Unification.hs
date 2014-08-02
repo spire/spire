@@ -87,6 +87,7 @@ value2Tm v = case v of
       EEl _ _ _         -> unsupported
       EElimEnum _ _ _   -> unsupported
       ESubst _ _        -> unsupported
+      EBranches _       -> unsupported
       ECase _  _ _        -> unsupported
 
     spine2BwdElim Id = return B0

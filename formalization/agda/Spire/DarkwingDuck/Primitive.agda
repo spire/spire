@@ -70,10 +70,8 @@ data Tag : Enum → Set where
   there : ∀{x xs} → Tag xs → Tag (x ∷ xs)
 
 Branches : (E : Enum) (P : Tag E → Set) → Set
-Branches E P = elimEnum (λ E → (P : Tag E → Set) → Set)
-  (λ P → ⊤)
-  (λ l E ih P → Σ (P here) (λ _ → ih (λ t → P (there t))))
-  E P
+Branches [] P = ⊤
+Branches (l ∷ E) P = Σ (P here) (λ _ → Branches E (λ t → P (there t)))
 
 case : (E : Enum) (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
 case (ℓ ∷ E) P (c , cs) here = c
