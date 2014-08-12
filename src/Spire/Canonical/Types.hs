@@ -26,10 +26,10 @@ import Spire.Options
 
 type Type = Value
 
-type Nom  = Name Value
-type Nom2 = (Nom , Nom)
-type Nom3 = (Nom , Nom , Nom)
-type Nom4 = (Nom , Nom , Nom , Nom)
+type Nom   = Name Value
+type Nom2  = (Nom , Nom)
+type Nom3  = (Nom , Nom , Nom)
+type Nom4  = (Nom , Nom , Nom , Nom)
 
 type NomType = (Nom , Embed Type)
 
@@ -64,7 +64,7 @@ data Elim =
     EApp Value
   | EProj1 | EProj2
 
-  | EEl Value (Bind Nom Value) Value
+  | EFunc Value (Bind Nom Value) Value
 
   | EElimBool (Bind Nom Value) Value Value
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
@@ -201,6 +201,9 @@ rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 rBranches :: Nom -> Bind Nom Value -> Type
 rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
 
+rFunc :: Value -> Nom -> Bind Nom Value -> Value -> Type
+rFunc _I _D _X i = VNeut _D (Pipe Id (EFunc _I _X i))
+
 rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
 rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
 
@@ -244,6 +247,13 @@ vBranches :: String -> String -> Value
 vBranches _E _P = rBranches
   (s2n _E)
   (fbind _P "t")
+
+vFunc :: String -> String -> String -> String -> Value
+vFunc _I _D _X i = rFunc
+  (var _I)
+  (s2n _D)
+  (fbind _X "i")
+  (var i)
 
 vCase :: String -> String -> String -> String -> Value
 vCase _E _P cs t = rCase

@@ -28,6 +28,7 @@ initEnv =
   , def B.elimEnum elimEnum _ElimEnum
   , def B._Branches _Branches __Branches
   , def B._case _case _Case
+  , def B._Func _Func __Func
   ]
 
 _ElimBool :: Type
@@ -83,6 +84,18 @@ _Case =
 _case :: Value
 _case = vLam "E" $ vLam "P" $ vLam "cs" $ vLam "t" $
   vCase "E" "P" "cs" "t"
+
+__Func :: Type
+__Func =
+  vPi "I" VType $
+  vPi "D" (VDesc (var "I")) $
+  vPi "X" (var "I" `vArr` VType) $
+  vPi "i" (var "I") $
+  VType
+
+_Func :: Value
+_Func = vLam "I" $ vLam "D" $ vLam "X" $ vLam "i" $
+  vFunc "I" "D" "X" "i"
 
 def :: String -> Value -> Type -> VDef
 def = VDef . s2n

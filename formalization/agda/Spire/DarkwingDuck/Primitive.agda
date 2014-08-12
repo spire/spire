@@ -106,14 +106,10 @@ elimDesc I P pend prec parg (End i) = pend i
 elimDesc I P pend prec parg (Rec i D) = prec i D (elimDesc I P pend prec parg D)
 elimDesc I P pend prec parg (Arg A B) = parg A B (λ a → elimDesc I P pend prec parg (B a))
 
-FuncM : (I : Set) → Desc I → Set
-FuncM I D = (I → Set) → I → Set
-
-Func : (I : Set) (D : Desc I) → FuncM I D
-Func I = elimDesc I (FuncM I)
-  (λ j X i → j ≡ i)
-  (λ j D ih X i → Σ (X j) (λ _ → ih X i))
-  (λ A B ih X i → Σ A (λ a → ih a X i))
+Func : (I : Set) (D : Desc I) → (I → Set) → I → Set
+Func I (End j) X i = j ≡ i
+Func I (Rec j D) X i = Σ (X j) (λ _ → Func I D X i)
+Func I (Arg A B) X i = Σ A (λ a → Func I (B a) X i)
 
 HypsM : (I : Set) → Desc I → Set
 HypsM I D = (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set

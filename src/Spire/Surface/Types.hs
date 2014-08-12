@@ -25,7 +25,6 @@ data Syntax =
 
   | SPi Syntax (Bind Nom Syntax)
   | SSg Syntax (Bind Nom Syntax)
-  | SEl Syntax (Bind Nom Syntax) Syntax
   | SFix Syntax Syntax
   | SEq Syntax Syntax
 

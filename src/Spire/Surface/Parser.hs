@@ -43,7 +43,7 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
-  "El", "Fix",
+  "Fix",
 
   "refl", "here", "there", "init",
   "End", "Rec", "Arg",
@@ -115,7 +115,6 @@ parseChoice = try $ choice [
   , parseFix
   , parseLam
   , parseArg
-  , parseEl
   , parseSubst
   ]
 
@@ -228,13 +227,6 @@ parseArg = do
   _A <- parseAtom
   _B <- parseLamArg
   return $ SArg _A _B
-
-parseEl = do
-  parseKeyword "El"
-  _D <- parseAtom
-  _X <- parseLamArg
-  i  <- parseAtom
-  return $ SEl _D _X i
 
 parseSubst = do
   parseKeyword "subst"

@@ -10,7 +10,6 @@ import Spire.Surface.Types
 embedI :: Infer -> FreshM Syntax
 embedI (IPi       _A _B)     = SPi       <$> embedC _A <*> embedCB _B
 embedI (ISg       _A _B)     = SSg       <$> embedC _A <*> embedCB _B
-embedI (IEl       _D _X  i)  = SEl       <$> embedI _D <*> embedCB _X  <*> embedC i
 embedI (IFix      _D i)      = SFix      <$> embedC _D <*> embedI  i
 embedI (IEq       a  b)      = SEq       <$> embedI a  <*> embedI b
 

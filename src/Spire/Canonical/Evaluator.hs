@@ -87,14 +87,14 @@ elim VRefl         (ESubst _P px) =
 elim _             (ESubst _P px) =
   throwError "Ill-typed evaluation of subst"
 
-elim (VEnd j)        (EEl _I _X i) =
+elim (VEnd j)        (EFunc _I _X i) =
   return $ VEq _I j _I i
-elim (VRec j _D)     (EEl _I _X i) =
-  vProd <$> _X `sub` j <*> _D `elim` EEl _I _X i
-elim (VArg _A _B)    (EEl _I _X i) =
-  VSg _A <$> _B `elimB` EEl _I _X i
-elim _               (EEl _I _X i) =
-  throwError "Ill-typed evaluation of El"
+elim (VRec j _D)     (EFunc _I _X i) =
+  vProd <$> _X `sub` j <*> _D `elim` EFunc _I _X i
+elim (VArg _A _B)    (EFunc _I _X i) =
+  VSg _A <$> _B `elimB` EFunc _I _X i
+elim _               (EFunc _I _X i) =
+  throwError "Ill-typed evaluation of Func"
 
 elim VNil         (EBranches _P) =
   return VUnit

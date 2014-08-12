@@ -31,7 +31,6 @@ data Infer =
 
   | IPi Check (Bind Nom Check)
   | ISg Check (Bind Nom Check)
-  | IEl Infer (Bind Nom Check) Check
   | IFix Check Infer
   | IEq Infer Infer
 

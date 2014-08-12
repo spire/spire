@@ -723,3 +723,29 @@ elaborator???
 Solution: 'name2String' is just a projection function for extracting
 the string part of the abstract type of names :P Above I used 'show'.
 So, the pretty printer was wrong.
+* Unification Challenges
+** Sum types
+Unification that we have considered works up to β-equality for function
+and pair types. The examples below are accepted by Agda, which require
+to solve unify for Booleans (sums) up to β equality:
+
+open import Data.Bool
+open import Data.Nat
+module UnifyBool where
+
+Foo : Bool → Set
+-- Foo b = if b then Bool else ℕ
+Foo true = Bool
+Foo false = ℕ
+
+test₁ : Foo _
+test₁ = zero
+
+foo : (b : Bool) → Foo b
+foo true = true
+foo false = zero
+
+test₂ : ℕ
+test₂ = foo _
+
+

@@ -155,10 +155,6 @@ dArg o _A _B =
   dt "Arg" <+> alignSepM
     [ ww o _A , dLamArg o _B ]
 
-dEl o _D _X i =
-  dt "El" <+> alignSepM
-    [ ww o _D , dLamArg o _X , ww o i ]
-
 dSubst o _P q p =
   dt "subst" <+> alignSepM
     [ dLamArg o _P , ww o q , ww o p ]
@@ -181,7 +177,6 @@ instance Display Syntax where
     SPi       _A _B    -> dPi       s _A _B
     SSg       _A _B    -> dSg       s _A _B
     SArg      _A _B    -> dArg      s _A _B
-    SEl       _D _X i  -> dEl       s _D _X  i
 
     SEq a b   -> dEq s a b
 
@@ -291,7 +286,6 @@ instance Precedence Syntax where
     SRec   _ _          -> initialLevel
     SInit  _            -> initialLevel
     SArg   _ _          -> initialLevel
-    SEl    _ _ _        -> initialLevel
     SFix   _ _          -> initialLevel
     SSubst _ _ _        -> initialLevel
 
@@ -311,7 +305,6 @@ instance Precedence Syntax where
     SInit       _        -> AssocNone
     SRec        _ _      -> AssocNone
     SArg        _ _      -> AssocNone
-    SEl         _ _ _    -> AssocNone
     SFix        _ _      -> AssocNone
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone

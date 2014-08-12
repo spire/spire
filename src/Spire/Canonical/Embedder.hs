@@ -56,10 +56,13 @@ embedN nm (Pipe fs (EApp a)) = IApp   <$> embedN nm fs <*> embedV a
 embedN nm (Pipe fs EProj1)   = IProj1 <$> embedN nm fs
 embedN nm (Pipe fs EProj2)   = IProj2 <$> embedN nm fs
 
-embedN nm (Pipe fs (EEl _I _X i)) =
-  IEl <$> embedN nm fs
-    <*> embedVB _X <*> embedV i
-
+embedN nm (Pipe fs (EFunc _I _X i)) =
+  iApps (iVar B._Func) <$> sequence
+    [ embedV _I
+    , Infer <$> embedN nm fs
+    , embedVF _X
+    , embedV i
+    ]
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   iApps (iVar B.elimBool) <$> sequence
     [ embedVF _P

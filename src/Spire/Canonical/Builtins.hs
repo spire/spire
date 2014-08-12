@@ -20,5 +20,6 @@ elimBool = "elimBool"
 elimEnum = "elimEnum"
 _Branches = "Branches"
 _case = "case"
+_Func = "Func"
 
 ----------------------------------------------------------------------

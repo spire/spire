@@ -384,7 +384,7 @@ check' _D@(CArg _ _) _A = throwError $
 
 check' (CInit xs) (VFix _I _D i) = do
   let _X = vBind (\j -> VFix _I _D j)
-  xs' <- check xs =<< _D `elim` EEl _I _X i
+  xs' <- check xs =<< _D `elim` EFunc _I _X i
   return $ VInit xs'
 
 check' x@(CInit _) _A = throwError $
@@ -424,19 +424,6 @@ infer' (IFix _D i) = do
   (i' , _I') <- infer i
   _D'  <- check _D $ VDesc _I'
   return (VFix _I' _D' i' , VType)
-
-infer' (IEl _D _X i) = do
-  (_D' , _A) <- infer _D
-  case _A of
-    VDesc _I' -> do
-      _X' <- checkExtend _I' _X VType
-      i'  <- check i _I'
-      _ElD'  <- _D' `elim` EEl _I' _X' i'
-      return (_ElD' , VType)
-    _ -> throwError $
-      "Ill-typed, interpreation of non-description!\n" ++
-      "Interpreted value:\n" ++ show _D ++
-      "\nInterpreted type:\n" ++ show _A
 
 infer' (IVar nm) = lookupValAndType nm
 

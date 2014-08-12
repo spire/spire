@@ -135,7 +135,7 @@ checkV (VArg _A _B) _ =
 
 checkV (VInit xs) (VFix _I _D i) = do
   let _X = vBind (\j -> VFix _I _D j)
-  checkV xs =<< _D `elim` EEl _I _X i
+  checkV xs =<< _D `elim` EFunc _I _X i
 checkV (VInit xs) _ =
   throwError "Ill-typed!"
 
@@ -207,7 +207,7 @@ inferN nm (Pipe fs (ESubst _P px)) = do
       _P `sub` y
     _  -> throwError "Ill-typed!"
 
-inferN nm (Pipe fs (EEl _I _X i)) = do
+inferN nm (Pipe fs (EFunc _I _X i)) = do
   checkV _I VType
   let _D = VNeut nm fs
   checkV _D (VDesc _I)
