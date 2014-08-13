@@ -8,6 +8,7 @@ _String = "String"
 _Enum = "Enum"
 _Tag = "Tag"
 _Desc = "Desc"
+_Fix = "Fix"
 _Type = "Type"
 
 tt = "tt"

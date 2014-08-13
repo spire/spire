@@ -30,6 +30,7 @@ initEnv =
   , def B._Branches _Branches __Branches
   , def B._case _case _Case
   , def B._Func _Func __Func
+  , def B._Fix _Fix __Fix
   ]
 
 _ElimBool :: Type
@@ -122,6 +123,20 @@ __Func =
 _Func :: Value
 _Func = vLam "I" $ vLam "D" $ vLam "X" $ vLam "i" $
   vFunc "I" "D" "X" "i"
+
+__Fix :: Type
+__Fix =
+  vPi "l" VString $
+  vPi "P" VType $
+  vPi "I" VType $
+  vPi "D" (VDesc (var "I")) $
+  vPi "p" (var "P") $
+  vPi "i" (var "I") $
+  VType
+
+_Fix :: Value
+_Fix = vLam "l" $ vLam "P" $ vLam "I" $ vLam "D" $ vLam "p" $ vLam "i" $
+  vFix "l" "P" "I" "D" "p" "i"
 
 def :: String -> Value -> Type -> VDef
 def = VDef . s2n

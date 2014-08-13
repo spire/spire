@@ -58,7 +58,7 @@ value2Tm v = case v of
   VTT   -> return $ C Tt
 
   VEq  _ _ _ _ -> unsupported
-  VFix _ _ _   -> unsupported
+  VFix _ _ _ _ _ _   -> unsupported
   VString      -> unsupported
   VQuotes _    -> unsupported
   VEnum        -> unsupported

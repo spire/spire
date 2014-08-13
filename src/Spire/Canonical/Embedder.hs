@@ -34,8 +34,15 @@ embedV (VPi       _A _B)  = Infer <$> (IPi       <$> embedV _A <*> embedVB _B)
                           
 embedV (VEq _A a _B b)    = Infer <$>
   (IEq <$> (IAnn <$> embedV a <*> embedV _A) <*> (IAnn <$> embedV b <*> embedV _B))
-embedV (VFix _I _D i) = Infer <$>
-  (IFix <$> embedV _D <*> (IAnn <$> embedV i <*> embedV _I))
+embedV (VFix l _P _I _D p i) = Infer <$>
+  iApps (iVar B._Fix) <$> sequence
+    [ embedV l
+    , embedV _P
+    , embedV _I
+    , embedV _D
+    , embedV p
+    , embedV i
+    ]
 
 embedV (VRec  i  _D)      = CRec  <$> embedV i  <*> embedV  _D
 embedV (VInit xs)         = CInit <$> embedV xs

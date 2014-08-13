@@ -43,7 +43,7 @@ data Value =
   | VPi  Value (Bind Nom Value)
   | VSg  Value (Bind Nom Value)
 
-  | VFix Value Value Value
+  | VFix Value Value Value Value Value Value
   | VEq  Value Value Value Value
 
   | VTT | VTrue | VFalse | VNil | VRefl | VHere
@@ -149,9 +149,6 @@ wildcard = "_"
 isWildcard :: Nom -> Bool
 isWildcard nm = name2String nm == wildcard
 
-vName :: Nom
-vName = s2n "x"
-
 ----------------------------------------------------------------------
 
 freshMV :: Fresh m => String -> m Nom
@@ -174,8 +171,8 @@ sbind3 x y z = bind (s2n x , s2n y , s2n z)
 vPi :: String -> Value ->  Value -> Value
 vPi s x y = VPi x (bind (s2n s) y)
 
-vBind :: (Value -> Value) -> Bind Nom Value
-vBind f = bind vName (f (vVar vName))
+vBind :: String -> (Value -> Value) -> Bind Nom Value
+vBind s f = bind (s2n s) (f (var s))
 
 var :: String -> Value
 var = vVar . s2n
@@ -281,5 +278,14 @@ vCase _E _P cs t = rCase
   (fbind _P "t")
   (var cs)
   (s2n t)
+
+vFix :: String -> String -> String -> String -> String -> String -> Value
+vFix l _P _I _D p i = VFix
+  (var l)
+  (var _P)
+  (var _I)
+  (var _D)
+  (var p)
+  (var i)
 
 ----------------------------------------------------------------------

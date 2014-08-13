@@ -382,8 +382,8 @@ check' _D@(CArg _ _) _A = throwError $
   "attempt to check description " ++ prettyPrint _D ++
   " at type " ++ prettyPrint _A
 
-check' (CInit xs) (VFix _I _D i) = do
-  let _X = vBind (\j -> VFix _I _D j)
+check' (CInit xs) (VFix l _P _I _D p i) = do
+  let _X = vBind "i" (\j -> VFix l _P _I _D p j)
   xs' <- check xs =<< _D `elim` EFunc _I _X i
   return $ VInit xs'
 
@@ -419,11 +419,6 @@ infer' (IEq a b) = do
   (a' , _A') <- infer a
   (b' , _B') <- infer b
   return (VEq _A' a' _B' b' , VType)
-
-infer' (IFix _D i) = do
-  (i' , _I') <- infer i
-  _D'  <- check _D $ VDesc _I'
-  return (VFix _I' _D' i' , VType)
 
 infer' (IVar nm) = lookupValAndType nm
 

@@ -140,10 +140,6 @@ dRec o i _D =
   dt "Rec" <+> alignSepM
     [ ww o i , ww o _D ]
 
-dFix o _D i =
-  dt "Fix" <+> alignSepM
-    [ ww o _D , ww o i ]
-
 dArg o _A _B =
   dt "Arg" <+> alignSepM
     [ ww o _A , dLamArg o _B ]
@@ -166,7 +162,6 @@ instance Display Syntax where
 
     SRec      i  _D    -> dRec      s i  _D
     SInit     xs       -> dInit     s xs
-    SFix      _D i     -> dFix      s _D i
     SPi       _A _B    -> dPi       s _A _B
     SSg       _A _B    -> dSg       s _A _B
     SArg      _A _B    -> dArg      s _A _B
@@ -279,7 +274,6 @@ instance Precedence Syntax where
     SRec   _ _          -> initialLevel
     SInit  _            -> initialLevel
     SArg   _ _          -> initialLevel
-    SFix   _ _          -> initialLevel
     SSubst _ _ _        -> initialLevel
 
     SRefl               -> atomicLevel
@@ -298,7 +292,6 @@ instance Precedence Syntax where
     SInit       _        -> AssocNone
     SRec        _ _      -> AssocNone
     SArg        _ _      -> AssocNone
-    SFix        _ _      -> AssocNone
     SLam _               -> AssocNone
     SIf _ _ _            -> AssocNone
     SThere _             -> AssocNone

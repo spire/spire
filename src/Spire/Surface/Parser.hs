@@ -43,8 +43,6 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
-  "Fix",
-
   "refl", "here", "there", "init",
   "End", "Rec", "Arg",
 
@@ -112,7 +110,6 @@ parseChoice = try $ choice [
   , parseProj2
   , parseRec
   , parseInit
-  , parseFix
   , parseLam
   , parseArg
   , parseSubst
@@ -195,12 +192,6 @@ parseInit = try $ do
   parseKeyword "init"
   xs <- parseAtom
   return $ SInit xs
-
-parseFix = try $ do
-  parseKeyword "Fix"
-  _D  <- parseAtom
-  i   <- parseAtom
-  return $ SFix _D i
 
 parseAnn = parseParens $ do
   --    binding   or  annotation

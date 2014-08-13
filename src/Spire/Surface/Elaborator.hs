@@ -41,7 +41,6 @@ elabC (SLam   b)     = CLam   <$> elabBC b
 elabC x@(SQuotes _)         = elabIC x
 elabC x@(SPi _ _)           = elabIC x
 elabC x@(SSg _ _)           = elabIC x
-elabC x@(SFix _ _)          = elabIC x
 elabC x@(SEq _ _)           = elabIC x
 elabC x@(SVar _)            = elabIC x
 elabC x@(SProj1 _)          = elabIC x
@@ -85,7 +84,6 @@ elabI (SSubst _P q p) =
 elabI (SPi _A _B)       = IPi       <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B)       = ISg       <$> elabC _A <*> elabBC _B
 elabI (SEq a b)         = IEq       <$> elabI a  <*> elabI b
-elabI (SFix _D i)       = IFix      <$> elabC _D <*> elabI i
 
 -- once we have meta variables, we should always be able to infer a type for 
 -- a lambda, by inserting a meta variable to type the domain of the lambda,
