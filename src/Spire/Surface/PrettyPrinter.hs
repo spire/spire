@@ -93,16 +93,9 @@ ww = wrapNonAssoc -- Mnemonic: (w)rapped (w)rapped display
 -- ... except now all but one printer is defined by embedding.
 
 -- Constructors with no arguments have printers with no arguments.
-dTT       = dt "tt"
-dTrue     = dt "true"
-dFalse    = dt "false"
 dNil      = dt "[]"
 dRefl     = dt "refl"
 dHere     = dt "here"
-dUnit     = dt "Unit"
-dBool     = dt "Bool"
-dString   = dt "String"
-dType     = dt "Type"
 dWildCard = dt wildcard
 
 dQuotes :: String -> DisplayM Doc

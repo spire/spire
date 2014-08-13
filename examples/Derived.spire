@@ -1,0 +1,26 @@
+
+IType : Type -> Type
+IType = \ I -> I -> Type
+
+UncurriedFunc : (I : Type) -> (D : Desc I) -> (X : IType I) -> Type
+UncurriedFunc = \ I D X -> (i : I) -> Func I D X i -> X i
+
+CurriedFuncM : (I : Type) -> Desc I -> Type
+CurriedFuncM = \ I _ -> IType I -> Type
+
+CurriedFunc : (I : Type) -> (D : Desc I) -> (X : IType I) -> Type
+CurriedFunc = \ I -> elimDesc I (CurriedFuncM I)
+  (\ i X -> X i)
+  (\ i D ih X -> (x : X i) -> ih X)
+  (\ A B ih X -> (a : A) -> ih a X)
+
+CurryFunc : (I : Type) -> Desc I -> Type
+CurryFunc = \ I D -> (X : IType I) -> UncurriedFunc I D X -> CurriedFunc I D X
+
+curryFunc : (I : Type) -> (D : Desc I) -> CurryFunc I D
+curryFunc = \ I -> elimDesc I (CurryFunc I)
+  (\ i X cn -> cn i refl)
+  (\ i D ih X cn x -> ih X (\ j xs -> cn j (x , xs)))
+  (\ A B ih X cn a -> ih a X (\ j xs -> cn j (a , xs)))
+
+

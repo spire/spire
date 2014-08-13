@@ -132,7 +132,7 @@ parseAtom = choice
 
 failIfStmt =
   -- a type declaration or assignment (as part of a definition) is next
-  try . notFollowedBy $ parseIdent >> (parseOp ":" <|> parseOp "=")
+  try . notFollowedBy $ parseIdent >> (parseOp ":" <|> (parseOp "="))
 
 table = [
     [Infix parseSpaceApp             AssocLeft]
@@ -213,10 +213,10 @@ parseAnn = parseParens $ do
 -- \ _ -> e
 parseLam = try $ do
   parseOp "\\"
-  l <- parseWildOrIdent
+  ls <- many1 parseWildOrIdent
   parseOp "->"
   tm <- parseSyntax
-  return $ sLam l tm
+  return $ foldr sLam tm ls
 
 parseLamArg = do
   SLam _P <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
