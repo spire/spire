@@ -27,6 +27,7 @@ import Spire.Options
 type Type = Value
 
 type Nom   = Name Value
+type HNom  = Name (Rebind Nom Value)
 type Nom2  = (Nom , Nom)
 type Nom3  = (Nom , Nom , Nom)
 type Nom4  = (Nom , Nom , Nom , Nom)
@@ -68,6 +69,7 @@ data Elim =
 
   | EElimBool (Bind Nom Value) Value Value
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
+  | EElimDesc Value (Bind Nom Value) (Bind Nom Value) (Bind Nom3 Value) (Bind Nom3 Value)
 
   | ESubst (Bind Nom Value) Value
   | EBranches (Bind Nom Value)
@@ -192,11 +194,14 @@ eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
 
 ----------------------------------------------------------------------
 
-rElimBool :: (Bind Nom Value) -> Value -> Value -> Nom -> Value
+rElimBool :: Bind Nom Value -> Value -> Value -> Nom -> Value
 rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 
-rElimEnum :: (Bind Nom Value) -> Value -> (Bind Nom3 Value) -> Nom -> Value
+rElimEnum :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
+
+rElimDesc :: Value -> Bind Nom Value -> Bind Nom Value -> Bind Nom3 Value -> Bind Nom3 Value -> Nom -> Value
+rElimDesc _I _P pend prec parg _D = VNeut _D (Pipe Id (EElimDesc _I _P pend prec parg))
 
 rBranches :: Nom -> Bind Nom Value -> Type
 rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
@@ -219,7 +224,10 @@ vEta2 :: (Value -> Value -> Value) -> String -> String -> Value
 vEta2 f s1 s2 = vLam s1 $ vLam s2 $ f (var s1) (var s2)
 
 vApp :: String -> Value -> Value
-vApp f x = VNeut (s2n f) (Pipe Id (EApp x))
+vApp = vApp' . s2n
+
+vApp' :: Nom -> Value -> Value
+vApp' f x = VNeut f (Pipe Id (EApp x))
 
 vApp2 :: String -> Value -> Value -> Value
 vApp2 f x y = VNeut (s2n f) (Pipe (Pipe Id (EApp x)) (EApp y))
@@ -228,7 +236,10 @@ vApp3 :: String -> Value -> Value -> Value -> Value
 vApp3 f x y z = VNeut (s2n f) (Pipe (Pipe (Pipe Id (EApp x)) (EApp y)) (EApp z))
 
 fbind :: String -> String -> Bind Nom Value
-fbind f x = sbind x $ vApp f (var x)
+fbind = fbind' . s2n
+
+fbind' :: Nom -> String -> Bind Nom Value
+fbind' f x = sbind x $ vApp' f (var x)
 
 fbind3 :: String -> String -> String -> String -> Bind Nom3 Value
 fbind3 f x y z = sbind3 x y z $ vApp3 f (var x) (var y) (var z)
@@ -242,6 +253,15 @@ vElimEnum _P pnil pcons xs = rElimEnum
   (var pnil)
   (fbind3 pcons "x" "xs" "pxs")
   (s2n xs)
+
+vElimDesc :: String -> String -> String -> String -> String -> String -> Value
+vElimDesc _I _P pend prec parg _D = rElimDesc
+  (var _I)
+  (fbind _P "D")
+  (fbind pend "i")
+  (fbind3 prec "i" "D" "pd")
+  (fbind3 parg "A" "B" "pb")
+  (s2n _D)
 
 vBranches :: String -> String -> Value
 vBranches _E _P = rBranches

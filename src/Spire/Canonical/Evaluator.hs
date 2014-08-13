@@ -82,6 +82,18 @@ elim (VCons x xs) (EElimEnum _P pn pc) = do
 elim _            (EElimEnum _P _ _)  =
   throwError "Ill-typed evaluation of elimEnum"
 
+elim (VEnd i)        (EElimDesc _I _P pend prec parg) =
+  pend `sub` i
+elim (VRec i _D)     (EElimDesc _I _P pend prec parg) = do
+  ih <- _D `elim` EElimDesc _I _P pend prec parg
+  prec `sub3` (i , _D , ih)
+elim (VArg _A bnd_B) (EElimDesc _I _P pend prec parg) = do
+  (nm_a , _B) <- unbind bnd_B
+  ih <- elim _B (EElimDesc _I _P pend prec parg)
+  parg `sub3` (_A , VLam (bind nm_a _B) , VLam (bind nm_a ih))
+elim _            (EElimDesc _I _P pend prec parg)  =
+  throwError "Ill-typed evaluation of elimDesc"
+
 elim VRefl         (ESubst _P px) =
   return px
 elim _             (ESubst _P px) =

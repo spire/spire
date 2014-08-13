@@ -18,6 +18,7 @@ cons = "econs"
 
 elimBool = "elimBool"
 elimEnum = "elimEnum"
+elimDesc = "elimDesc"
 _Branches = "Branches"
 _case = "case"
 _Func = "Func"

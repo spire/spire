@@ -26,6 +26,7 @@ initEnv =
   , def B._Tag (vEta VTag "E") (VEnum `vArr` VType)
   , def B.elimBool elimBool _ElimBool
   , def B.elimEnum elimEnum _ElimEnum
+  , def B.elimDesc elimDesc _ElimDesc
   , def B._Branches _Branches __Branches
   , def B._case _case _Case
   , def B._Func _Func __Func
@@ -62,6 +63,31 @@ elimEnum =
   vLam "pcons" $
   vLam "xs" $
   vElimEnum "P" "pnil" "pcons" "xs"
+
+_ElimDesc :: Type
+_ElimDesc =
+  vPi "I" VType $
+  vPi "P" (VDesc (var "I") `vArr` VType) $
+  vPi "pend" (vPi "i" (var "I") $ vApp "P" (VEnd (var "i"))) $
+  vPi "prec" (vPi "i" (var "I") $ vPi "D" (VDesc (var "I")) $ vApp "P" (var "D") `vArr` vApp "P" (VRec (var "i") (var "D"))) $
+  vPi "parg" (
+    vPi "A" VType $
+    vPi "B" (var "A" `vArr` VDesc (var "I")) $
+    vArr (vPi "a" (var "A") ("P" `vApp` (vApp "B" (var "a")))) $
+    vApp "P" (VArg (var "A") (fbind "B" "a"))
+  ) $
+  vPi "D" (VDesc (var "I")) $
+  vApp "P" (var "D")
+
+elimDesc :: Value
+elimDesc =
+  vLam "I" $
+  vLam "P" $
+  vLam "pend" $
+  vLam "prec" $
+  vLam "parg" $
+  vLam "D" $
+  vElimDesc "I" "P" "pend" "prec" "parg" "D"
 
 __Branches :: Type
 __Branches =

@@ -77,6 +77,15 @@ embedN nm (Pipe fs (EElimEnum _P pn pc)) =
     , embedVF3 pc
     , Infer <$> embedN nm fs
     ]
+embedN nm (Pipe fs (EElimDesc _I _P pend prec parg)) =
+  iApps (iVar B.elimDesc) <$> sequence
+    [ embedV _I
+    , embedVF _P
+    , embedVF pend
+    , embedVF3 prec
+    , embedVF3 parg
+    , Infer <$> embedN nm fs
+    ]
 embedN nm (Pipe fs (ESubst _P p)) =
   ISubst <$> embedVB _P <*>
     embedN nm fs <*> embedV p

@@ -196,6 +196,39 @@ inferN nm (Pipe fs (EElimEnum _P pnil pcons)) = do
     _Pcons <- bnd_P `sub` VCons (vVar nm_x) (vVar nm_xs)
     extendCtx nm_x VString $ extendCtx nm_xs VEnum $ extendCtx nm_pxs _Pxs $ checkV pcons _Pcons
 
+inferN nm (Pipe fs (EElimDesc _I _P pend prec parg)) = do
+  let _D = VNeut nm fs
+  checkV _I VType
+  checkV _D (VDesc _I)
+  checkVExtend (VDesc _I) _P VType
+  checkVPEnd _I _P pend
+  checkVPRec _I _P prec
+  checkVPArg _I _P parg
+  _P `sub` _D
+  where
+
+  checkVPEnd :: Value -> Bind Nom Type -> Bind Nom Value -> SpireM ()
+  checkVPEnd _I bnd_P bnd_pend = do
+    (i , pend) <- unbind bnd_pend
+    _Pi <- _P `sub` VEnd (vVar i)
+    extendCtx i _I $ checkV pend _Pi
+
+  checkVPRec :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVPRec _I bnd_P bnd_prec = do
+    ((i , _D , pd) , prec) <- unbind bnd_prec
+    _PD <- _P `sub` (vVar _D)
+    _PRec <- _P `sub` VRec (vVar i) (vVar _D)
+    extendCtx i _I $ extendCtx _D (VDesc _I) $ extendCtx pd _PD $ checkV prec _PRec
+
+  checkVPArg :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVPArg _I bnd_P bnd_parg = do
+    ((_A , _B , pb) , parg) <- unbind bnd_parg
+    let nm_a = "a"
+    _Ba <- _P `sub` vApp' _B (var nm_a)
+    let _PB = VPi (vVar _A) (sbind nm_a _Ba)
+    _PArg <- _P `sub` VArg (vVar _A) (fbind' _B "a")
+    extendCtx _A VType $ extendCtx _B (vVar _A `vArr` VDesc _I) $ extendCtx pb _PB $ checkV parg _PArg
+
 inferN nm (Pipe fs (ESubst _P px)) = do
   _Q <- inferN nm fs
   case _Q of
