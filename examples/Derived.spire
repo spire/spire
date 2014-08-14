@@ -1,6 +1,10 @@
 
+----------------------------------------------------------------------
+
 IType : Type -> Type
 IType = \ I -> I -> Type
+
+----------------------------------------------------------------------
 
 UncurriedFunc : (I : Type) -> (D : Desc I) -> (X : IType I) -> Type
 UncurriedFunc = \ I D X -> (i : I) -> Func I D X i -> X i
@@ -23,4 +27,26 @@ curryFunc = \ I -> elimDesc I (CurryFunc I)
   (\ i D ih X cn x -> ih X (\ j xs -> cn j (x , xs)))
   (\ A B ih X cn a -> ih a X (\ j xs -> cn j (a , xs)))
 
+----------------------------------------------------------------------
 
+UncurriedHyps : (I : Type) -> (D : Desc I) -> (X : IType I)
+  -> (P : (i : I) -> X i -> Type) -> UncurriedFunc I D X -> Type
+UncurriedHyps = \ I D X P cn -> (i : I) -> (xs : Func I D X i)
+  -> Hyps I D X P i xs -> P i (cn i xs)
+
+CurriedHypsM : (I : Type) -> (D : Desc I) -> Type
+CurriedHypsM = \ I D -> (X : IType I) -> (P : (i : I) -> X i -> Type)
+  -> UncurriedFunc I D X -> Type
+
+CurriedHyps : (I : Type) -> (D : Desc I) -> CurriedHypsM I D
+CurriedHyps = \ I -> elimDesc I (CurriedHypsM I)
+  (\ i X P cn -> P i (cn i refl))
+  (\ i D ih X P cn -> (x : X i) -> P i x -> ih X P (\ j xs -> cn j (x , xs)))
+  (\ A B ih X P cn -> (a : A) -> ih a X P (\ j xs -> cn j (a , xs)))
+
+UncurryHyps : (I : Type) -> (D : Desc I) -> Type
+UncurryHyps = \ I D -> (X : IType I) -> (P : (i : I) -> X i -> Type)
+  -> (cn : UncurriedFunc I D X)
+  -> CurriedHyps I D X P cn -> UncurriedHyps I D X P cn
+
+----------------------------------------------------------------------
