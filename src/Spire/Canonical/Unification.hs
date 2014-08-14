@@ -91,6 +91,7 @@ value2Tm v = case v of
       ESubst _ _          -> unsupported
       EBranches _         -> unsupported
       ECase _  _ _        -> unsupported
+      EProve _ _ _ _ _ _  -> unsupported
 
     spine2BwdElim Id = return B0
     spine2BwdElim (Pipe s e) = (:<) <$> spine2BwdElim s <*> elim2Elim e

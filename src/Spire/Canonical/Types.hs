@@ -75,6 +75,7 @@ data Elim =
   | ESubst (Bind Nom Value) Value
   | EBranches (Bind Nom Value)
   | ECase Value (Bind Nom Value) Value
+  | EProve Value (Bind Nom Value) (Bind Nom2 Value) (Bind Nom2 Value) Value Value
   deriving Show
 
 type Spine = SpineFunctor Elim
@@ -211,6 +212,9 @@ rFunc _I _D _X i = VNeut _D (Pipe Id (EFunc _I _X i))
 rHyps :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Value -> Value -> Type
 rHyps _I _D _X _M i xs = VNeut _D (Pipe Id (EHyps _I _X _M i xs))
 
+rProve :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Bind Nom2 Value -> Value -> Value -> Type
+rProve _I _D _X _M m i xs = VNeut _D (Pipe Id (EProve _I _X _M m i xs))
+
 rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
 rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
 
@@ -286,6 +290,16 @@ vHyps _I _D _X _M i xs = rHyps
   (s2n _D)
   (fbind _X "i")
   (fbind2 _M "i" "x")
+  (var i)
+  (var xs)
+
+vProve :: String -> String -> String -> String -> String -> String -> String -> Value
+vProve _I _D _X _M m i xs = rProve
+  (var _I)
+  (s2n _D)
+  (fbind _X "i")
+  (fbind2 _M "i" "x")
+  (fbind2 m "i" "x")
   (var i)
   (var xs)
 

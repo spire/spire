@@ -79,6 +79,16 @@ embedN nm (Pipe fs (EHyps _I _X _M i xs)) =
     , embedV i
     , embedV xs
     ]
+embedN nm (Pipe fs (EProve _I _X _M m i xs)) =
+  iApps (iVar B.prove) <$> sequence
+    [ embedV _I
+    , Infer <$> embedN nm fs
+    , embedVF _X
+    , embedVF2 _M
+    , embedVF2 m
+    , embedV i
+    , embedV xs
+    ]
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   iApps (iVar B.elimBool) <$> sequence
     [ embedVF _P

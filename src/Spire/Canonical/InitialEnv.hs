@@ -31,6 +31,7 @@ initEnv =
   , def B._case _case _Case
   , def B._Func _Func __Func
   , def B._Hyps _Hyps __Hyps
+  , def B.prove prove _Prove
   , def B._Fix _Fix __Fix
   ]
 
@@ -138,6 +139,21 @@ __Hyps =
 _Hyps :: Value
 _Hyps = vLam "I" $ vLam "D" $ vLam "X" $ vLam "M" $ vLam "i" $ vLam "xs" $
   vHyps "I" "D" "X" "M" "i" "xs"
+
+_Prove :: Type
+_Prove =
+  vPi "I" VType $
+  vPi "D" (VDesc (var "I")) $
+  vPi "X" (var "I" `vArr` VType) $
+  vPi "M" (vPi "i" (var "I") $ ("X" `vApp` var "i") `vArr` VType) $
+  vPi "m" (vPi "i" (var "I") $ vPi "x" ("X" `vApp` var "i") $ vApp2 "M" (var "i") (var "x")) $
+  vPi "i" (var "I") $
+  vPi "xs" (vFunc "I" "D" "X" "i") $
+  vHyps "I" "D" "X" "M" "i" "xs"
+
+prove :: Value
+prove = vLam "I" $ vLam "D" $ vLam "X" $ vLam "M" $ vLam "m" $ vLam "i" $ vLam "xs" $
+  vProve "I" "D" "X" "M" "m" "i" "xs"
 
 __Fix :: Type
 __Fix =

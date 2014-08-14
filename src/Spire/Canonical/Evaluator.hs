@@ -5,7 +5,7 @@
            #-}
 
 module Spire.Canonical.Evaluator
-  (lookupValAndType , lookupType , sub , elim , app , app2)
+  (lookupValAndType , lookupType , sub , sub2 , elim , app , app2)
 where
 import PatternUnify.Context
 import Unbound.LocallyNameless hiding ( Spine )
@@ -122,6 +122,16 @@ elim (VArg _A _B)    (EHyps _I _X _M i (VCons a xs)) = do
   _Ba `elim` EHyps _I _X _M i xs
 elim _               (EHyps _I _X _M i xs) =
   throwError "Ill-typed evaluation of Hyps"
+
+elim (VEnd j)        (EProve _I _X _M m i q) =
+  return $ VTT
+elim (VRec j _D)     (EProve _I _X _M m i (VCons x xs)) =
+  vProd <$> m `sub2` (j , x) <*> _D `elim` EProve _I _X _M m i xs
+elim (VArg _A _B)    (EProve _I _X _M m i (VCons a xs)) = do
+  _Ba <- _B `sub` a
+  _Ba `elim` EProve _I _X _M m i xs
+elim _               (EProve _I _X _M m i xs) =
+  throwError "Ill-typed evaluation of prove"
 
 elim VNil         (EBranches _P) =
   return VUnit

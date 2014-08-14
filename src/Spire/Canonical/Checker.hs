@@ -188,12 +188,12 @@ inferN nm (Pipe fs (EElimEnum _P pnil pcons)) = do
   checkV xs VEnum
   checkVExtend VEnum _P VType
   checkV pnil =<< _P `sub` VNil
-  checkVPCons _P pcons
+  checkVpcons _P pcons
   _P `sub` xs
   where
 
-  checkVPCons :: Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVPCons bnd_P bnd_pcons = do
+  checkVpcons :: Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVpcons bnd_P bnd_pcons = do
     ((nm_x , nm_xs , nm_pxs) , pcons) <- unbind bnd_pcons
     _Pxs   <- bnd_P `sub` vVar nm_xs
     _Pcons <- bnd_P `sub` VCons (vVar nm_x) (vVar nm_xs)
@@ -204,27 +204,27 @@ inferN nm (Pipe fs (EElimDesc _I _P pend prec parg)) = do
   checkV _I VType
   checkV _D (VDesc _I)
   checkVExtend (VDesc _I) _P VType
-  checkVPEnd _I _P pend
-  checkVPRec _I _P prec
-  checkVPArg _I _P parg
+  checkVpend _I _P pend
+  checkVprec _I _P prec
+  checkVparg _I _P parg
   _P `sub` _D
   where
 
-  checkVPEnd :: Value -> Bind Nom Type -> Bind Nom Value -> SpireM ()
-  checkVPEnd _I bnd_P bnd_pend = do
+  checkVpend :: Value -> Bind Nom Type -> Bind Nom Value -> SpireM ()
+  checkVpend _I bnd_P bnd_pend = do
     (i , pend) <- unbind bnd_pend
     _Pi <- _P `sub` VEnd (vVar i)
     extendCtx i _I $ checkV pend _Pi
 
-  checkVPRec :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVPRec _I bnd_P bnd_prec = do
+  checkVprec :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVprec _I bnd_P bnd_prec = do
     ((i , _D , pd) , prec) <- unbind bnd_prec
     _PD <- _P `sub` (vVar _D)
     _PRec <- _P `sub` VRec (vVar i) (vVar _D)
     extendCtx i _I $ extendCtx _D (VDesc _I) $ extendCtx pd _PD $ checkV prec _PRec
 
-  checkVPArg :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVPArg _I bnd_P bnd_parg = do
+  checkVparg :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVparg _I bnd_P bnd_parg = do
     ((_A , _B , pb) , parg) <- unbind bnd_parg
     let nm_a = "a"
     _Ba <- _P `sub` vApp' _B (var nm_a)
@@ -260,13 +260,25 @@ inferN nm (Pipe fs (EHyps _I _X _M i xs)) = do
   checkV i _I
   checkV xs =<< _D `elim` EFunc _I _X i
   return VType
+
+inferN nm (Pipe fs (EProve _I _X _M m i xs)) = do
+  checkV _I VType
+  let _D = VNeut nm fs
+  checkV _D (VDesc _I)
+  checkVExtend _I _X VType
+  checkVM _I _X _M
+  checkVm _I _X _M m
+  checkV i _I
+  checkV xs =<< _D `elim` EFunc _I _X i
+  _D `elim` EHyps _I _X _M i xs
   where
 
-  checkVM :: Type -> Bind Nom Type -> Bind Nom2 Type -> SpireM ()
-  checkVM _I _X bnd_M = do
-    ((i , x) , _M) <- unbind bnd_M
+  checkVm :: Type -> Bind Nom Type -> Bind Nom2 Type -> Bind Nom2 Type -> SpireM ()
+  checkVm _I _X _M bnd_m = do
+    ((i , x) , m) <- unbind bnd_m
     _Xi <- _X `sub` vVar i
-    extendCtx i _I $ extendCtx x _Xi $ checkV _M VType
+    _Mix <- _M `sub2` (vVar i , vVar x)
+    extendCtx i _I $ extendCtx x _Xi $ checkV m _Mix
 
 inferN nm (Pipe fs (EBranches _P)) = do
   let _E = VNeut nm fs
@@ -281,6 +293,14 @@ inferN nm (Pipe fs (ECase _E _P cs)) = do
   checkVExtend (VTag _E) _P VType
   checkV cs =<< _E `elim` EBranches _P
   _P `sub` t
+
+----------------------------------------------------------------------
+
+checkVM :: Type -> Bind Nom Type -> Bind Nom2 Type -> SpireM ()
+checkVM _I _X bnd_M = do
+  ((i , x) , _M) <- unbind bnd_M
+  _Xi <- _X `sub` vVar i
+  extendCtx i _I $ extendCtx x _Xi $ checkV _M VType
 
 ----------------------------------------------------------------------
 
