@@ -1,4 +1,3 @@
-{-# OPTIONS --type-in-type --no-positivity-check #-}
 module Spire.DarkwingDuck.Primitive where
 
 ----------------------------------------------------------------------
@@ -111,33 +110,23 @@ Func I (End j) X i = j ≡ i
 Func I (Rec j D) X i = Σ (X j) (λ _ → Func I D X i)
 Func I (Arg A B) X i = Σ A (λ a → Func I (B a) X i)
 
-HypsM : (I : Set) → Desc I → Set
-HypsM I D = (X : I → Set) (P : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
-
-Hyps : (I : Set) (D : Desc I) → HypsM I D
-Hyps I = elimDesc I (HypsM I)
-  (λ j X P i q → ⊤)
-  (λ j D ih X P i → elimPair (λ _ → Set) (λ x xs → Σ (P j x) (λ _ → ih X P i xs)))
-  (λ A B ih X P i → elimPair (λ _ → Set) (λ a xs → ih a X P i xs))
+Hyps : (I : Set) (D : Desc I) (X : I → Set) (M : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
+Hyps I (End j) X M i q = ⊤
+Hyps I (Rec j D) X M i (x , xs) = Σ (M j x) (λ _ → Hyps I D X M i xs)
+Hyps I (Arg A B) X M i (a , xs) = Hyps I (B a) X M i xs
 
 ----------------------------------------------------------------------
 
 data μ (ℓ : String) (P I : Set) (D : Desc I) (p : P) (i : I) : Set where
   init : Func I D (μ ℓ P I D p) i → μ ℓ P I D p i
 
-All : (I : Set) → Desc I → Set
-All I D = (X : I → Set) (P : (i : I) → X i → Set)
-  (p : (i : I) (x : X i) → P i x)
+prove : (I : Set) (D : Desc I) (X : I → Set) (M : (i : I) → X i → Set)
+  (m : (i : I) (x : X i) → M i x)
   (i : I) (xs : Func I D X i)
-  → Hyps I D X P i xs
-
-all : (I : Set) (D : Desc I) → All I D
-all I = elimDesc I (All I)
-  (λ j X P p i q → tt)
-  (λ j D ih X P p i → elimPair (λ ab → Hyps I (Rec j D) X P i ab)
-    (λ x xs → p j x , ih X P p i xs))
-  (λ A B ih X P p i → elimPair (λ ab → Hyps I (Arg A B) X P i ab)
-    (λ a xs → ih a X P p i xs))
+  → Hyps I D X M i xs
+prove I (End j) X M m i q = tt
+prove I (Rec j D) X M m i (x , xs) = m j x , prove I D X M m i xs
+prove I (Arg A B) X M m i (a , xs) = prove I (B a) X M m i xs
 
 {-# NO_TERMINATION_CHECK #-}
 ind : (ℓ : String) (P I : Set) (D : Desc I) (p : P)
@@ -146,6 +135,6 @@ ind : (ℓ : String) (P I : Set) (D : Desc I) (p : P)
   (i : I)
   (x : μ ℓ P I D p i)
   → M i x
-ind ℓ P I D p M α i (init xs) = α i xs (all I D (μ ℓ P I D p) M (ind ℓ P I D p M α) i xs)
+ind ℓ P I D p M α i (init xs) = α i xs (prove I D (μ ℓ P I D p) M (ind ℓ P I D p M α) i xs)
 
 ----------------------------------------------------------------------

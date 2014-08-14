@@ -251,6 +251,23 @@ inferN nm (Pipe fs (EFunc _I _X i)) = do
   checkV i _I
   return VType
 
+inferN nm (Pipe fs (EHyps _I _X _M i xs)) = do
+  checkV _I VType
+  let _D = VNeut nm fs
+  checkV _D (VDesc _I)
+  checkVExtend _I _X VType
+  checkVM _I _X _M
+  checkV i _I
+  checkV xs =<< _D `elim` EFunc _I _X i
+  return VType
+  where
+
+  checkVM :: Type -> Bind Nom Type -> Bind Nom2 Type -> SpireM ()
+  checkVM _I _X bnd_M = do
+    ((i , x) , _M) <- unbind bnd_M
+    _Xi <- _X `sub` vVar i
+    extendCtx i _I $ extendCtx x _Xi $ checkV _M VType
+
 inferN nm (Pipe fs (EBranches _P)) = do
   let _E = VNeut nm fs
   checkV _E VEnum

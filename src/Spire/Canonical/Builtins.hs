@@ -23,5 +23,6 @@ elimDesc = "elimDesc"
 _Branches = "Branches"
 _case = "case"
 _Func = "Func"
+_Hyps = "Hyps"
 
 ----------------------------------------------------------------------

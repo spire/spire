@@ -70,6 +70,15 @@ embedN nm (Pipe fs (EFunc _I _X i)) =
     , embedVF _X
     , embedV i
     ]
+embedN nm (Pipe fs (EHyps _I _X _M i xs)) =
+  iApps (iVar B._Hyps) <$> sequence
+    [ embedV _I
+    , Infer <$> embedN nm fs
+    , embedVF _X
+    , embedVF2 _M
+    , embedV i
+    , embedV xs
+    ]
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   iApps (iVar B.elimBool) <$> sequence
     [ embedVF _P
@@ -113,6 +122,15 @@ embedN nm (Pipe fs (ECase _E _P cs)) =
 
 embedVF :: Bind Nom Value -> FreshM Check
 embedVF bnd = CLam <$> embedVB bnd
+
+embedVF2 :: Bind Nom2 Value -> FreshM Check
+embedVF2 bnd_a = do
+  ((nm_x , nm_y) , a) <- unbind bnd_a
+  a' <- embedV a
+  return $
+    CLam $ bind nm_x $
+    CLam $ bind nm_y $
+    a'
 
 embedVF3 :: Bind Nom3 Value -> FreshM Check
 embedVF3 bnd_a = do

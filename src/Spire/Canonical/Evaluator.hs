@@ -48,6 +48,11 @@ subCompose bnd_f g = do
   (nm , f) <- unbind bnd_f
   bind nm <$> substM nm (g (vVar nm)) f
 
+sub2 :: Bind Nom2 Value -> (Value , Value) -> SpireM Value
+sub2 b (x1 , x2) = do
+  ((nm1 , nm2) , f) <- unbind b
+  substsM [(nm1 , x1) , (nm2 , x2)] f
+
 sub3 :: Bind Nom3 Value -> (Value , Value , Value) -> SpireM Value
 sub3 b (x1 , x2 , x3) = do
   ((nm1 , nm2 , nm3) , f) <- unbind b
@@ -107,6 +112,16 @@ elim (VArg _A _B)    (EFunc _I _X i) =
   VSg _A <$> _B `elimB` EFunc _I _X i
 elim _               (EFunc _I _X i) =
   throwError "Ill-typed evaluation of Func"
+
+elim (VEnd j)        (EHyps _I _X _M i q) =
+  return $ VUnit
+elim (VRec j _D)     (EHyps _I _X _M i (VCons x xs)) =
+  vProd <$> _M `sub2` (j , x) <*> _D `elim` EHyps _I _X _M i xs
+elim (VArg _A _B)    (EHyps _I _X _M i (VCons a xs)) = do
+  _Ba <- _B `sub` a
+  _Ba `elim` EHyps _I _X _M i xs
+elim _               (EHyps _I _X _M i xs) =
+  throwError "Ill-typed evaluation of Hyps"
 
 elim VNil         (EBranches _P) =
   return VUnit

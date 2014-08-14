@@ -66,6 +66,7 @@ data Elim =
   | EProj1 | EProj2
 
   | EFunc Value (Bind Nom Value) Value
+  | EHyps Value (Bind Nom Value) (Bind Nom2 Value) Value Value
 
   | EElimBool (Bind Nom Value) Value Value
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
@@ -164,6 +165,7 @@ mv2String nm = case name2String nm of
   _          -> error $ "mv2String: not an mvar: " ++ show nm
 
 sbind x = bind (s2n x)
+sbind2 x y = bind (s2n x , s2n y)
 sbind3 x y z = bind (s2n x , s2n y , s2n z)
 
 ----------------------------------------------------------------------
@@ -206,6 +208,9 @@ rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
 rFunc :: Value -> Nom -> Bind Nom Value -> Value -> Type
 rFunc _I _D _X i = VNeut _D (Pipe Id (EFunc _I _X i))
 
+rHyps :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Value -> Value -> Type
+rHyps _I _D _X _M i xs = VNeut _D (Pipe Id (EHyps _I _X _M i xs))
+
 rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
 rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
 
@@ -237,6 +242,9 @@ fbind = fbind' . s2n
 
 fbind' :: Nom -> String -> Bind Nom Value
 fbind' f x = sbind x $ vApp' f (var x)
+
+fbind2 :: String -> String -> String -> Bind Nom2 Value
+fbind2 f x y = sbind2 x y $ vApp2 f (var x) (var y)
 
 fbind3 :: String -> String -> String -> String -> Bind Nom3 Value
 fbind3 f x y z = sbind3 x y z $ vApp3 f (var x) (var y) (var z)
@@ -271,6 +279,15 @@ vFunc _I _D _X i = rFunc
   (s2n _D)
   (fbind _X "i")
   (var i)
+
+vHyps :: String -> String -> String -> String -> String -> String -> Value
+vHyps _I _D _X _M i xs = rHyps
+  (var _I)
+  (s2n _D)
+  (fbind _X "i")
+  (fbind2 _M "i" "x")
+  (var i)
+  (var xs)
 
 vCase :: String -> String -> String -> String -> Value
 vCase _E _P cs t = rCase

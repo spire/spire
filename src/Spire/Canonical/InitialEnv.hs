@@ -30,6 +30,7 @@ initEnv =
   , def B._Branches _Branches __Branches
   , def B._case _case _Case
   , def B._Func _Func __Func
+  , def B._Hyps _Hyps __Hyps
   , def B._Fix _Fix __Fix
   ]
 
@@ -123,6 +124,20 @@ __Func =
 _Func :: Value
 _Func = vLam "I" $ vLam "D" $ vLam "X" $ vLam "i" $
   vFunc "I" "D" "X" "i"
+
+__Hyps :: Type
+__Hyps =
+  vPi "I" VType $
+  vPi "D" (VDesc (var "I")) $
+  vPi "X" (var "I" `vArr` VType) $
+  vPi "M" (vPi "i" (var "I") $ ("X" `vApp` var "i") `vArr` VType) $
+  vPi "i" (var "I") $
+  vPi "xs" (vFunc "I" "D" "X" "i") $
+  VType
+
+_Hyps :: Value
+_Hyps = vLam "I" $ vLam "D" $ vLam "X" $ vLam "M" $ vLam "i" $ vLam "xs" $
+  vHyps "I" "D" "X" "M" "i" "xs"
 
 __Fix :: Type
 __Fix =
