@@ -280,6 +280,35 @@ inferN nm (Pipe fs (EProve _I _X _M m i xs)) = do
     _Mix <- _M `sub2` (vVar i , vVar x)
     extendCtx i _I $ extendCtx x _Xi $ checkV m _Mix
 
+inferN nm (Pipe fs (EInd l _P _I _D p _M m i)) = do
+  checkV l VString
+  checkV _P VType
+  checkV _I VType
+  checkV _D (VDesc _I)
+  checkV p _P
+  checkVM l _P _I _D p i _M
+  checkVm l _P _I _D p i _M m
+  checkV i _I
+  let x = VNeut nm fs
+  checkV x (VFix l _P _I _D p i)
+  _M `sub2` (i , x)
+  where
+
+  checkVM :: Value -> Type -> Type -> Value -> Value -> Value -> Bind Nom2 Type -> SpireM ()
+  checkVM l _P _I _D p i bnd_M = do
+    ((i , x) , _M) <- unbind bnd_M
+    let _X = VFix l _P _I _D p (vVar i)
+    extendCtx i _I $ extendCtx x _X $ checkV _M VType
+
+  checkVm :: Value -> Type -> Type -> Value -> Value -> Value -> Bind Nom2 Type -> Bind Nom3 Type -> SpireM ()
+  checkVm l _P _I _D p i _M bnd_m = do
+    ((i , xs , ihs) , m) <- unbind bnd_m
+    let _X = vBind "i" (\j -> VFix l _P _I _D p j)
+    _Xs <- _D `elim` EFunc _I _X (vVar i)
+    _IHs <- _D `elim` EHyps _I _X _M (vVar i) (vVar xs)
+    _Mix <- _M `sub2` (vVar i , VInit (vVar xs))
+    extendCtx i _I $ extendCtx xs _Xs $ extendCtx ihs _IHs $ checkV m _Mix
+
 inferN nm (Pipe fs (EBranches _P)) = do
   let _E = VNeut nm fs
   checkV _E VEnum

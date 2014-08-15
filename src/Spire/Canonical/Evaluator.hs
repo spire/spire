@@ -99,6 +99,14 @@ elim (VArg _A bnd_B) (EElimDesc _I _P pend prec parg) = do
 elim _            (EElimDesc _I _P pend prec parg)  =
   throwError "Ill-typed evaluation of elimDesc"
 
+elim (VInit xs) (EInd l _P _I _D p _M m i) = do
+  let _X = vBind "i" (VFix l _P _I _D p)
+  let ih = rBind2 "i" "x" $ \ j x -> rInd l _P _I _D p _M m (vVar j) x
+  ihs <- _D `elim` EProve _I _X _M ih i xs
+  m `sub3` (i , xs , ihs)
+elim _            (EInd l _P _I _D p _M m i)  =
+  throwError "Ill-typed evaluation of ind"
+
 elim VRefl         (ESubst _P px) =
   return px
 elim _             (ESubst _P px) =

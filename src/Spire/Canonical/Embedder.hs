@@ -89,6 +89,18 @@ embedN nm (Pipe fs (EProve _I _X _M m i xs)) =
     , embedV i
     , embedV xs
     ]
+embedN nm (Pipe fs (EInd l _P _I _D p _M m i)) =
+  iApps (iVar B.ind) <$> sequence
+    [ embedV l
+    , embedV _P
+    , embedV _I
+    , embedV _D
+    , embedV p
+    , embedVF2 _M
+    , embedVF3 m
+    , embedV i
+    , Infer <$> embedN nm fs
+    ]
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   iApps (iVar B.elimBool) <$> sequence
     [ embedVF _P

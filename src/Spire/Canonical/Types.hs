@@ -76,6 +76,7 @@ data Elim =
   | EBranches (Bind Nom Value)
   | ECase Value (Bind Nom Value) Value
   | EProve Value (Bind Nom Value) (Bind Nom2 Value) (Bind Nom2 Value) Value Value
+  | EInd Value Value Value Value Value (Bind Nom2 Value) (Bind Nom3 Value) Value
   deriving Show
 
 type Spine = SpineFunctor Elim
@@ -165,6 +166,7 @@ mv2String nm = case name2String nm of
   '?':suffix -> suffix
   _          -> error $ "mv2String: not an mvar: " ++ show nm
 
+sbind :: (Alpha t, Rep a) => String -> t -> Bind (Name a) t
 sbind x = bind (s2n x)
 sbind2 x y = bind (s2n x , s2n y)
 sbind3 x y z = bind (s2n x , s2n y , s2n z)
@@ -175,7 +177,10 @@ vPi :: String -> Value ->  Value -> Value
 vPi s x y = VPi x (bind (s2n s) y)
 
 vBind :: String -> (Value -> Value) -> Bind Nom Value
-vBind s f = bind (s2n s) (f (var s))
+vBind x f = bind (s2n x) (f (var x))
+
+rBind2 :: String -> String -> (Nom -> Nom -> Value) -> Bind Nom2 Value
+rBind2 x y f = sbind2 x y (f (s2n x) (s2n y))
 
 var :: String -> Value
 var = vVar . s2n
@@ -214,6 +219,9 @@ rHyps _I _D _X _M i xs = VNeut _D (Pipe Id (EHyps _I _X _M i xs))
 
 rProve :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Bind Nom2 Value -> Value -> Value -> Type
 rProve _I _D _X _M m i xs = VNeut _D (Pipe Id (EProve _I _X _M m i xs))
+
+rInd :: Value -> Value -> Value -> Value -> Value -> Bind Nom2 Value -> Bind Nom3 Value -> Value -> Nom -> Type
+rInd l _P _I _D p _M m i x = VNeut x (Pipe Id (EInd l _P _I _D p _M m i))
 
 rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
 rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
@@ -302,6 +310,18 @@ vProve _I _D _X _M m i xs = rProve
   (fbind2 m "i" "x")
   (var i)
   (var xs)
+
+vInd :: String -> String -> String -> String -> String -> String -> String -> String -> String -> Value
+vInd l _P _I _D p _M m i x = rInd
+  (var l)
+  (var _P)
+  (var _I)
+  (var _D)
+  (var p)
+  (fbind2 _M "i" "x")
+  (fbind3 m "i" "xs" "ihs")
+  (var i)
+  (s2n x)
 
 vCase :: String -> String -> String -> String -> Value
 vCase _E _P cs t = rCase

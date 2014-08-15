@@ -32,6 +32,7 @@ initEnv =
   , def B._Func _Func __Func
   , def B._Hyps _Hyps __Hyps
   , def B.prove prove _Prove
+  , def B.ind ind _Ind
   , def B._Fix _Fix __Fix
   ]
 
@@ -154,6 +155,26 @@ _Prove =
 prove :: Value
 prove = vLam "I" $ vLam "D" $ vLam "X" $ vLam "M" $ vLam "m" $ vLam "i" $ vLam "xs" $
   vProve "I" "D" "X" "M" "m" "i" "xs"
+
+_Ind :: Type
+_Ind =
+  vPi "l" VString $
+  vPi "P" VType $
+  vPi "I" VType $
+  vPi "D" (VDesc (var "I")) $
+  vPi "p" (var "P") $
+  vPi "M" (vPi "i" (var "I") $ (vFix "l" "P" "I" "D" "p" "i") `vArr` VType) $
+  vPi "m" (vPi "i" (var "I") $
+    vPi "xs" (rFunc (var "I") (s2n "D") (sbind "j" (vFix "l" "P" "I" "D" "p" "j")) (var "i")) $
+    vPi "ihs" (rHyps (var "I") (s2n "D") (sbind "j" (vFix "l" "P" "I" "D" "p" "j")) (fbind2 "M" "j" "x") (var "i") (var "xs")) $
+    vApp2 "M" (var "i") (VInit (var "xs"))) $
+  vPi "i" (var "I") $
+  vPi "x" (vFix "l" "P" "I" "D" "p" "i") $
+  vApp2 "M" (var "i") (var "x")
+
+ind :: Value
+ind = vLam "l" $ vLam "P" $ vLam "I" $ vLam "D" $ vLam "p" $ vLam "M" $ vLam "m" $ vLam "i" $ vLam "x" $
+  vInd "l" "P" "I" "D" "p" "M" "m" "i" "x"
 
 __Fix :: Type
 __Fix =
