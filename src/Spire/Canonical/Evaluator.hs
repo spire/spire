@@ -218,7 +218,7 @@ lookupMV nm [] = do
     "Variable not in context, environment, or unifier context!\n" ++
     "Referenced variable:\n" ++ prettyPrintError nm ++ "\n" ++
     "\nCurrent context:\n" ++ prettyPrintError ctx ++ "\n" ++
-    "\nCurrent environment:\n" ++ prettyPrintError env ++ "\n" ++
+    -- "\nCurrent environment:\n" ++ prettyPrintError env ++ "\n" ++
     "\nCurrent unifier context:\n" ++ prettyPrintError uCtx
 
 ----------------------------------------------------------------------

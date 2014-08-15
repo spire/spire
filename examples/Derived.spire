@@ -4,6 +4,57 @@
 IType : Type -> Type
 IType = \ I -> I -> Type
 
+Scope : Tel -> Type
+Scope = elimTel (\ _ -> Type) Unit (\ A B ih -> (a : A) * ih a)
+
+----------------------------------------------------------------------
+
+UncurriedScope : (T : Tel) -> (X : Scope T -> Type) -> Type
+UncurriedScope = \ T X -> (xs : Scope T) -> X xs
+
+CurriedScope : (T : Tel) -> (X : Scope T -> Type) -> Type
+CurriedScope = elimTel
+  (\ T -> (X : Scope T -> Type) -> Type)
+  (\ X -> X tt)
+  (\ A B ih X -> (a : A) -> ih a (\ b -> X (a , b)))
+
+CurryScope : Tel -> Type
+CurryScope = \ T -> (X : Scope T -> Type) ->
+  UncurriedScope T X -> CurriedScope T X
+
+curryScope : (T : Tel) -> CurryScope T
+curryScope = elimTel CurryScope
+  (\ X f -> f tt)
+  (\ A B ih X f a -> ih a (\ b -> X (a , b)) (\ b -> f (a , b)))
+
+UncurryScope : Tel -> Type
+UncurryScope = \ T -> (X : Scope T -> Type) ->
+  CurriedScope T X -> UncurriedScope T X
+
+-- TODO uncurryScope
+
+----------------------------------------------------------------------
+
+UncurriedBranches : (E : Enum) -> (P : Tag E -> Type) -> (X : Type) -> Type
+UncurriedBranches = \ E P X -> Branches E P -> X
+
+CurriedBranchesM : Enum -> Type
+CurriedBranchesM = \ E -> (P : Tag E -> Type) -> Type -> Type
+
+CurriedBranches : (E : Enum) -> CurriedBranchesM E
+CurriedBranches = elimEnum CurriedBranchesM
+  (\ P X -> X)
+  (\ l E ih P X -> P here -> ih (\ t -> P (there t)) X)
+
+CurryBranches : Enum -> Type
+CurryBranches = \ E -> (P : Tag E -> Type) -> (X : Type) ->
+  UncurriedBranches E P X -> CurriedBranches E P X
+
+curryBranches : (E : Enum) -> CurryBranches E
+curryBranches = elimEnum CurryBranches
+  (\ P X f -> f tt)
+  (\ l E ih P X f c -> ih (\ t -> P (there t)) X (\ cs -> f (c , cs)))
+
 ----------------------------------------------------------------------
 
 UncurriedFunc : (I : Type) -> (D : Desc I) -> (X : IType I) -> Type
@@ -48,5 +99,7 @@ UncurryHyps : (I : Type) -> (D : Desc I) -> Type
 UncurryHyps = \ I D -> (X : IType I) -> (P : (i : I) -> X i -> Type)
   -> (cn : UncurriedFunc I D X)
   -> CurriedHyps I D X P cn -> UncurriedHyps I D X P cn
+
+-- TODO uncurryHyps
 
 ----------------------------------------------------------------------
