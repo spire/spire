@@ -24,9 +24,9 @@
 (define-generic-mode 'spire-mode
   '("--") ;; comments
   '("in") ;; keywords
-  '(("\\<\\(Unit\\|Bool\\|Enum\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
-    ("\\<\\(if\\|then\\|else\\|elimBool\\|elimEnum\\|elimDesc\\|Func\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
-    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\)\\>" . 'font-lock-constant-face) ;; constants
+  '(("\\<\\(Unit\\|Bool\\|Enum\\|Tel\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
+    ("\\<\\(if\\|then\\|else\\|elimBool\\|elimEnum\\|elimTel\\|elimDesc\\|Func\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
+    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\|Emp\\|Ext\\)\\>" . 'font-lock-constant-face) ;; constants
     )
   '("\\.spire$") ;; file extension
   (list 'spire-bind-keys) ;; other functions to call

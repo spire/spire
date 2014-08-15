@@ -19,13 +19,17 @@ initEnv =
   , def B._Bool VBool VType
   , def B._String VString VType
   , def B._Enum VEnum VType
+  , def B._Tel VTel VType
   , def B._Type VType VType
   , def B.nil VNil VEnum
   , def B.cons (vEta2 VCons "x" "xs") (vArr VString (VEnum `vArr` VEnum))
+  , def B._Emp VEmp VTel
+  , def B._Ext _Ext __Ext
   , def B._Desc (vEta VDesc "I" ) (VType `vArr` VType)
   , def B._Tag (vEta VTag "E") (VEnum `vArr` VType)
   , def B.elimBool elimBool _ElimBool
   , def B.elimEnum elimEnum _ElimEnum
+  , def B.elimTel elimTel _ElimTel
   , def B.elimDesc elimDesc _ElimDesc
   , def B._Branches _Branches __Branches
   , def B._case _case _Case
@@ -35,6 +39,16 @@ initEnv =
   , def B.ind ind _Ind
   , def B._Fix _Fix __Fix
   ]
+
+__Ext :: Type
+__Ext =
+  vPi "A" VType $
+  vPi "B" (var "A" `vArr` VTel) $
+  VTel
+
+_Ext :: Value
+_Ext = vLam "A" $ vLam "B" $
+  VExt (var "A") (fbind "B" "a")
 
 _ElimBool :: Type
 _ElimBool =
@@ -67,6 +81,27 @@ elimEnum =
   vLam "pcons" $
   vLam "xs" $
   vElimEnum "P" "pnil" "pcons" "xs"
+
+_ElimTel :: Type
+_ElimTel =
+  vPi "P" (VTel `vArr` VType) $
+  vPi "pemp" ("P" `vApp` VEmp) $
+  vPi "pext" (
+    vPi "A" VType $
+    vPi "B" (var "A" `vArr` VTel) $
+    vArr (vPi "a" (var "A") ("P" `vApp` (vApp "B" (var "a")))) $
+    vApp "P" (VExt (var "A") (fbind "B" "a"))
+  ) $
+  vPi "T" VTel $
+  vApp "P" (var "T")
+
+elimTel :: Value
+elimTel =
+  vLam "P" $
+  vLam "pemp" $
+  vLam "pext" $
+  vLam "T" $
+  vElimTel "P" "pemp" "pext" "T"
 
 _ElimDesc :: Type
 _ElimDesc =

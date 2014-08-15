@@ -62,16 +62,19 @@ value2Tm v = case v of
   VString      -> unsupported
   VQuotes _    -> unsupported
   VEnum        -> unsupported
+  VTel         -> unsupported
   VDesc _      -> unsupported
   VTag _       -> unsupported
   VNil         -> unsupported
   VRefl        -> unsupported
   VHere        -> unsupported
+  VEmp         -> unsupported
   VThere _     -> unsupported
   VEnd   _     -> unsupported
   VCons _ _    -> unsupported
   VRec  _ _    -> unsupported
   VInit _      -> unsupported
+  VExt  _ _    -> unsupported
   VArg  _ _    -> unsupported
   where
     nom2Head x = if isMV x
@@ -87,6 +90,7 @@ value2Tm v = case v of
       EFunc _ _ _          -> unsupported
       EHyps _ _ _ _ _      -> unsupported
       EElimEnum _ _ _      -> unsupported
+      EElimTel _ _ _      -> unsupported
       EElimDesc _ _ _ _ _  -> unsupported
       ESubst _ _           -> unsupported
       EBranches _          -> unsupported

@@ -37,8 +37,8 @@ type NomType = (Nom , Embed Type)
 ----------------------------------------------------------------------
 
 data Value =
-    VUnit | VBool | VString | VType
-  | VEnum | VTag Value | VDesc Value
+    VUnit | VBool | VEnum | VTel | VString | VType
+  | VTag Value | VDesc Value
 
   | VPi  Value (Bind Nom Value)
   | VSg  Value (Bind Nom Value)
@@ -46,13 +46,14 @@ data Value =
   | VFix Value Value Value Value Value Value
   | VEq  Value Value Value Value
 
-  | VTT | VTrue | VFalse | VNil | VRefl | VHere
+  | VTT | VTrue | VFalse | VNil | VRefl | VHere | VEmp
   | VThere Value | VEnd Value
 
   | VRec Value Value | VInit Value
   | VCons Value Value
   | VPair Value Value
 
+  | VExt Value (Bind Nom Value)
   | VArg Value (Bind Nom Value)
 
   | VLam (Bind Nom Value)
@@ -70,6 +71,7 @@ data Elim =
 
   | EElimBool (Bind Nom Value) Value Value
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
+  | EElimTel  (Bind Nom Value) Value (Bind Nom3 Value)
   | EElimDesc Value (Bind Nom Value) (Bind Nom Value) (Bind Nom3 Value) (Bind Nom3 Value)
 
   | ESubst (Bind Nom Value) Value
@@ -205,6 +207,9 @@ rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 rElimEnum :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 
+rElimTel :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
+rElimTel _P pemp pext _T = VNeut _T (Pipe Id (EElimTel _P pemp pext))
+
 rElimDesc :: Value -> Bind Nom Value -> Bind Nom Value -> Bind Nom3 Value -> Bind Nom3 Value -> Nom -> Value
 rElimDesc _I _P pend prec parg _D = VNeut _D (Pipe Id (EElimDesc _I _P pend prec parg))
 
@@ -270,6 +275,13 @@ vElimEnum _P pnil pcons xs = rElimEnum
   (var pnil)
   (fbind3 pcons "x" "xs" "pxs")
   (s2n xs)
+
+vElimTel :: String -> String -> String -> String -> Value
+vElimTel _P pemp pext _T = rElimTel
+  (fbind _P "T")
+  (var pemp)
+  (fbind3 pext "A" "B" "pb")
+  (s2n _T)
 
 vElimDesc :: String -> String -> String -> String -> String -> String -> Value
 vElimDesc _I _P pend prec parg _D = rElimDesc

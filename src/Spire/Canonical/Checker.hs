@@ -47,6 +47,8 @@ checkV VString VType = return ()
 checkV VString _     = throwError "Ill-typed!"
 checkV VEnum   VType = return ()
 checkV VEnum   _     = throwError "Ill-typed!"
+checkV VTel    VType = return ()
+checkV VTel    _     = throwError "Ill-typed!"
 checkV VType   VType = return ()
 checkV VType   _     = throwError "Ill-typed!"
 
@@ -117,6 +119,15 @@ checkV VRefl (VEq _A a _B b) = do
   unless (a == b) $
     throwError "Ill-typed!"
 checkV VRefl _ =
+  throwError "Ill-typed!"
+
+checkV VEmp VTel = return ()
+checkV VEmp _    = throwError "Ill-typed!"
+
+checkV (VExt _A _B) VTel = do
+  checkV _A VType
+  checkVExtend _A _B VTel
+checkV (VExt _A _B) _ =
   throwError "Ill-typed!"
 
 checkV (VEnd i) (VDesc _I) = do
@@ -193,11 +204,29 @@ inferN nm (Pipe fs (EElimEnum _P pnil pcons)) = do
   where
 
   checkVpcons :: Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVpcons bnd_P bnd_pcons = do
+  checkVpcons _P bnd_pcons = do
     ((nm_x , nm_xs , nm_pxs) , pcons) <- unbind bnd_pcons
-    _Pxs   <- bnd_P `sub` vVar nm_xs
-    _Pcons <- bnd_P `sub` VCons (vVar nm_x) (vVar nm_xs)
+    _Pxs   <- _P `sub` vVar nm_xs
+    _Pcons <- _P `sub` VCons (vVar nm_x) (vVar nm_xs)
     extendCtx nm_x VString $ extendCtx nm_xs VEnum $ extendCtx nm_pxs _Pxs $ checkV pcons _Pcons
+
+inferN nm (Pipe fs (EElimTel _P pemp pext)) = do
+  checkVExtend VTel _P VType
+  checkV pemp =<< _P `sub` VEmp
+  checkVpext _P pext
+  let _T = VNeut nm fs
+  checkV _T VTel
+  _P `sub` _T
+  where
+
+  checkVpext :: Bind Nom Type -> Bind Nom3 Value -> SpireM ()
+  checkVpext _P bnd_pext = do
+    ((_A , _B , pb) , pext) <- unbind bnd_pext
+    let nm_a = "a"
+    _Ba <- _P `sub` vApp' _B (var nm_a)
+    let _PB = VPi (vVar _A) (sbind nm_a _Ba)
+    _PExt <- _P `sub` VExt (vVar _A) (fbind' _B nm_a)
+    extendCtx _A VType $ extendCtx _B (vVar _A `vArr` VTel) $ extendCtx pb _PB $ checkV pext _PExt
 
 inferN nm (Pipe fs (EElimDesc _I _P pend prec parg)) = do
   let _D = VNeut nm fs
@@ -211,25 +240,25 @@ inferN nm (Pipe fs (EElimDesc _I _P pend prec parg)) = do
   where
 
   checkVpend :: Value -> Bind Nom Type -> Bind Nom Value -> SpireM ()
-  checkVpend _I bnd_P bnd_pend = do
+  checkVpend _I _P bnd_pend = do
     (i , pend) <- unbind bnd_pend
     _Pi <- _P `sub` VEnd (vVar i)
     extendCtx i _I $ checkV pend _Pi
 
   checkVprec :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVprec _I bnd_P bnd_prec = do
+  checkVprec _I _P bnd_prec = do
     ((i , _D , pd) , prec) <- unbind bnd_prec
     _PD <- _P `sub` (vVar _D)
     _PRec <- _P `sub` VRec (vVar i) (vVar _D)
     extendCtx i _I $ extendCtx _D (VDesc _I) $ extendCtx pd _PD $ checkV prec _PRec
 
   checkVparg :: Value -> Bind Nom Type -> Bind Nom3 Value -> SpireM ()
-  checkVparg _I bnd_P bnd_parg = do
+  checkVparg _I _P bnd_parg = do
     ((_A , _B , pb) , parg) <- unbind bnd_parg
     let nm_a = "a"
     _Ba <- _P `sub` vApp' _B (var nm_a)
     let _PB = VPi (vVar _A) (sbind nm_a _Ba)
-    _PArg <- _P `sub` VArg (vVar _A) (fbind' _B "a")
+    _PArg <- _P `sub` VArg (vVar _A) (fbind' _B nm_a)
     extendCtx _A VType $ extendCtx _B (vVar _A `vArr` VDesc _I) $ extendCtx pb _PB $ checkV parg _PArg
 
 inferN nm (Pipe fs (ESubst _P px)) = do

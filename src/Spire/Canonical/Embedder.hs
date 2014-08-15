@@ -14,10 +14,12 @@ embedV VTT                = return $ cVar B.tt
 embedV VTrue              = return $ cVar B.true
 embedV VFalse             = return $ cVar B.false
 embedV VNil               = return $ cVar B.nil
+embedV VEmp               = return $ cVar B._Emp
 embedV VUnit              = return $ cVar B._Unit
 embedV VBool              = return $ cVar B._Bool
 embedV VString            = return $ cVar B._String
 embedV VEnum              = return $ cVar B._Enum
+embedV VTel               = return $ cVar B._Tel
 embedV VType              = return $ cVar B._Type
                           
 embedV VRefl              = return $ CRefl
@@ -49,6 +51,8 @@ embedV (VInit xs)         = CInit <$> embedV xs
 embedV (VArg  _A _B)      = CArg  <$> embedV _A <*> embedVB _B
 embedV (VCons x xs)       = Infer <$>
   iApps (iVar B.cons) <$> sequence [embedV x , embedV xs]
+embedV (VExt _A _B) = Infer <$>
+  iApps (iVar B._Ext) <$> sequence [ embedV _A , embedVF _B ]
 embedV (VPair a b)        = CPair <$> embedV a  <*> embedV  b
 embedV (VLam b)           = CLam  <$> embedVB b
 
@@ -113,6 +117,13 @@ embedN nm (Pipe fs (EElimEnum _P pn pc)) =
     [ embedVF _P
     , embedV pn
     , embedVF3 pc
+    , Infer <$> embedN nm fs
+    ]
+embedN nm (Pipe fs (EElimTel _P pemp pext)) =
+  iApps (iVar B.elimTel) <$> sequence
+    [ embedVF _P
+    , embedV pemp
+    , embedVF3 pext
     , Infer <$> embedN nm fs
     ]
 embedN nm (Pipe fs (EElimDesc _I _P pend prec parg)) =
