@@ -186,6 +186,12 @@ inferN nm (Pipe fs EProj2) = do
     VSg _A _B -> _B `sub` VNeut nm (Pipe fs EProj1)
     _         -> throwError "Ill-typed!"
 
+inferN nm (Pipe fs (EElimUnit _P ptt)) = do
+  checkVExtend VUnit _P VType
+  let u = VNeut nm fs
+  checkV u VUnit
+  _P `sub` u
+
 inferN nm (Pipe fs (EElimBool _P ptrue pfalse)) = do
   checkVExtend VBool _P VType
   checkV ptrue  =<< _P `sub` VTrue
@@ -193,6 +199,23 @@ inferN nm (Pipe fs (EElimBool _P ptrue pfalse)) = do
   let b = VNeut nm fs
   checkV b VBool
   _P `sub` b
+
+inferN nm (Pipe fs (EElimPair _A _B _P ppair)) = do
+  checkV _A VType       
+  checkVExtend _A _B VType
+  checkVExtend (VSg _A _B) _P VType
+  checkVppair _A _B _P ppair
+  let ab = VNeut nm fs
+  checkV ab (VSg _A _B)
+  _P `sub` ab
+  where
+
+  checkVppair :: Type -> Bind Nom Type -> Bind Nom Type -> Bind Nom2 Value -> SpireM ()
+  checkVppair _A _B _P bnd_ppair = do
+    ((a , b) , ppair) <- unbind bnd_ppair
+    _Ba    <- _B `sub` vVar a
+    _Ppair <- _P `sub` VPair (vVar a) (vVar b)
+    extendCtx a _A $ extendCtx b _Ba $ checkV ppair _Ppair
 
 inferN nm (Pipe fs (EElimEnum _P pnil pcons)) = do
   let xs = VNeut nm fs

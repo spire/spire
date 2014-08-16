@@ -75,9 +75,17 @@ elim _             EProj1   = throwError "Ill-typed evaluation of proj1"
 elim (VPair _ b)   EProj2   = return b
 elim _             EProj2   = throwError "Ill-typed evaluation of proj2"
 
+elim VTT    (EElimUnit _P ptt)  = return ptt
+elim _      (EElimUnit _P ptt)  = throwError "Ill-typed evaluation of elimUnit"
+
 elim VTrue  (EElimBool _P pt _) = return pt
 elim VFalse (EElimBool _P _ pf) = return pf
 elim _      (EElimBool _P _  _) = throwError "Ill-typed evaluation of elimBool"
+
+elim (VPair a b) (EElimPair _A _B _P ppair) = do
+  ppair `sub2` (a , b)
+elim _               (EElimPair _A _B _P ppair)  =
+  throwError "Ill-typed evaluation of elimPair"
 
 elim VNil         (EElimEnum _P pn _)  =
   return pn

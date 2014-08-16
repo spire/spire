@@ -105,11 +105,25 @@ embedN nm (Pipe fs (EInd l _P _I _D p _M m i)) =
     , embedV i
     , Infer <$> embedN nm fs
     ]
+embedN nm (Pipe fs (EElimUnit _P ptt)) =
+  iApps (iVar B.elimUnit) <$> sequence
+    [ embedVF _P
+    , embedV ptt
+    , Infer <$> embedN nm fs
+    ]
 embedN nm (Pipe fs (EElimBool _P pt pf)) =
   iApps (iVar B.elimBool) <$> sequence
     [ embedVF _P
     , embedV pt
     , embedV pf
+    , Infer <$> embedN nm fs
+    ]
+embedN nm (Pipe fs (EElimPair _A _B _P ppair)) =
+  iApps (iVar B.elimPair) <$> sequence
+    [ embedV _A
+    , embedVF _B
+    , embedVF _P
+    , embedVF2 ppair
     , Infer <$> embedN nm fs
     ]
 embedN nm (Pipe fs (EElimEnum _P pn pc)) =

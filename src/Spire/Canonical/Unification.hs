@@ -89,6 +89,8 @@ value2Tm v = case v of
 
       EFunc _ _ _          -> unsupported
       EHyps _ _ _ _ _      -> unsupported
+      EElimUnit _ _        -> unsupported
+      EElimPair _ _ _ _    -> unsupported
       EElimEnum _ _ _      -> unsupported
       EElimTel _ _ _      -> unsupported
       EElimDesc _ _ _ _ _  -> unsupported

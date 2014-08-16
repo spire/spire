@@ -27,7 +27,9 @@ initEnv =
   , def B._Ext _Ext __Ext
   , def B._Desc (vEta VDesc "I" ) (VType `vArr` VType)
   , def B._Tag (vEta VTag "E") (VEnum `vArr` VType)
+  , def B.elimUnit elimUnit _ElimUnit
   , def B.elimBool elimBool _ElimBool
+  , def B.elimPair elimPair _ElimPair
   , def B.elimEnum elimEnum _ElimEnum
   , def B.elimTel elimTel _ElimTel
   , def B.elimDesc elimDesc _ElimDesc
@@ -49,6 +51,30 @@ __Ext =
 _Ext :: Value
 _Ext = vLam "A" $ vLam "B" $
   VExt (var "A") (fbind "B" "a")
+
+_ElimUnit :: Type
+_ElimUnit =
+  vPi "P" (VUnit `vArr` VType) $
+  vArr (vApp "P" VTT) $
+  vPi "u" VUnit $
+  vApp "P" (var "u")
+
+elimUnit :: Value
+elimUnit = vLam "P" $ vLam "ptt" $ vLam "u" $
+  vElimUnit "P" "ptt" "u"
+
+_ElimPair :: Type
+_ElimPair =
+  vPi "A" VType $
+  vPi "B" (var "A" `vArr` VType) $
+  vPi "P" (VSg (var "A") (fbind "B" "a") `vArr` VType) $
+  vArr (vPi "a" (var "A") $ vPi "b" ("B" `vApp` var "a") $ ("P" `vApp` VPair (var "a") (var "b"))) $
+  vPi "ab" (VSg (var "A") (fbind "B" "a")) $
+  vApp "P" (var "ab")
+
+elimPair :: Value
+elimPair = vLam "A" $ vLam "B" $ vLam "P" $ vLam "ppair" $ vLam "ab" $
+  vElimPair "A" "B" "P" "ppair" "ab"
 
 _ElimBool :: Type
 _ElimBool =

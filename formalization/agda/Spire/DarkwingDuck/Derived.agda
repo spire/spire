@@ -4,14 +4,17 @@ module Spire.DarkwingDuck.Derived where
 
 ----------------------------------------------------------------------
 
-ISet : Set → Set
-ISet I = I → Set
+subst : (A : Set) (x : A) (y : A) (P : A → Set) → P x → x ≡ y → P y
+subst A x y P p = elimEq A x (λ y _ → P y) p y
 
 proj₁ : ∀{A B} → Σ A B → A
-proj₁ = elimPair _ (λ a b → a)
+proj₁ = elimPair _ _ _ (λ a b → a)
 
 proj₂ : ∀{A B} (ab : Σ A B) → B (proj₁ ab)
-proj₂ = elimPair _ (λ a b → b)
+proj₂ = elimPair _ _ _ (λ a b → b)
+
+ISet : Set → Set
+ISet I = I → Set
 
 Scope  : Tel → Set
 Scope = elimTel (λ _ → Set) ⊤ (λ A B ih → Σ A ih)
@@ -63,7 +66,7 @@ UncurryScope T = (X : Scope T → Set) → CurriedScope T X → UncurriedScope T
 uncurryScope : (T : Tel) → UncurryScope T
 uncurryScope = elimTel UncurryScope
   (λ X x → elimUnit X x)
-  (λ A B ih X f → elimPair X (λ a b → ih a (λ b → X (a , b)) (f a) b))
+  (λ A B ih X f → elimPair A (λ a → Scope (B a)) X (λ a b → ih a (λ b → X (a , b)) (f a) b))
 
 ----------------------------------------------------------------------
 
@@ -113,20 +116,21 @@ UncurryHyps I D = (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc
 uncurryHyps : (I : Set) (D : Desc I) → UncurryHyps I D
 uncurryHyps I = elimDesc I
   (UncurryHyps I)
-  (λ j X P cn pf →
-    elimEq _ (λ u → pf))
+  (λ j X P cn pf i q u →
+    elimEq I j (λ k r → P k (cn k r))
+      pf i q)
   (λ j D ih X P cn pf i →
-    elimPair _ (λ x xs ih,ihs →
+    elimPair _ _ _ (λ x xs ih,ihs →
       ih X P (λ j ys → cn j (x , ys))
         (pf x (proj₁ ih,ihs))
         i xs (proj₂ ih,ihs)))
   (λ A B ih X P cn pf i →
-    elimPair _ (λ a xs →
+    elimPair _ _ _ (λ a xs →
       ih a X P (λ j ys → cn j (a , ys))
         (pf a)
         i xs))
 
-----------------------------------------------------------------------
+
 
 record Data : Set where
   field

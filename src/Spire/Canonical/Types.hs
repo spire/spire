@@ -69,6 +69,8 @@ data Elim =
   | EFunc Value (Bind Nom Value) Value
   | EHyps Value (Bind Nom Value) (Bind Nom2 Value) Value Value
 
+  | EElimUnit (Bind Nom Value) Value
+  | EElimPair Value (Bind Nom Value) (Bind Nom Value) (Bind Nom2 Value)
   | EElimBool (Bind Nom Value) Value Value
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
   | EElimTel  (Bind Nom Value) Value (Bind Nom3 Value)
@@ -201,8 +203,14 @@ eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
 
 ----------------------------------------------------------------------
 
+rElimUnit :: Bind Nom Value -> Value -> Nom -> Value
+rElimUnit _P ptt u = VNeut u (Pipe Id (EElimUnit _P ptt))
+
 rElimBool :: Bind Nom Value -> Value -> Value -> Nom -> Value
 rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
+
+rElimPair :: Type -> Bind Nom Type -> Bind Nom Type -> Bind Nom2 Value -> Nom -> Value
+rElimPair _A _B _P ppair ab = VNeut ab (Pipe Id (EElimPair _A _B _P ppair))
 
 rElimEnum :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
@@ -266,8 +274,19 @@ fbind2 f x y = sbind2 x y $ vApp2 f (var x) (var y)
 fbind3 :: String -> String -> String -> String -> Bind Nom3 Value
 fbind3 f x y z = sbind3 x y z $ vApp3 f (var x) (var y) (var z)
 
+vElimUnit :: String -> String -> String -> Value
+vElimUnit _P ptt u = rElimUnit (fbind _P "u") (var ptt) (s2n u)
+
 vElimBool :: String -> String -> String -> String -> Value
 vElimBool _P pt pf b = rElimBool (fbind _P "b") (var pt) (var pf) (s2n b)
+
+vElimPair :: String -> String -> String -> String -> String -> Value
+vElimPair _A _B _P ppair ab = rElimPair
+  (var _A)
+  (fbind _B "a")
+  (fbind _P "xs")
+  (fbind2 ppair "a" "b")
+  (s2n ab)
 
 vElimEnum :: String -> String -> String -> String -> Value
 vElimEnum _P pnil pcons xs = rElimEnum

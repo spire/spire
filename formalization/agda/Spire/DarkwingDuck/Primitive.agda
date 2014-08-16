@@ -33,21 +33,21 @@ elimUnit P ptt tt = ptt
 data Σ (A : Set) (B : A → Set) : Set where
   _,_ : (a : A) (b : B a) → Σ A B
 
-elimPair : {A : Set} {B : A → Set}
+elimPair : (A : Set) (B : A → Set)
   (P : Σ A B → Set)
   (ppair : (a : A) (b : B a) → P (a , b))
   (ab : Σ A B) → P ab
-elimPair P ppair (a , b) = ppair a b
+elimPair A B P ppair (a , b) = ppair a b
 
 ----------------------------------------------------------------------
 
-data _≡_ {A : Set} (x : A) : A → Set where
+data _≡_ {A : Set} (x : A) : {B : Set} → B → Set where
   refl : x ≡ x
 
-elimEq : {A : Set} {x : A} (P : (y : A) → x ≡ y → Set)
+elimEq : (A : Set) (x : A) (P : (y : A) → x ≡ y → Set)
   (prefl : P x refl)
   (y : A) (q : x ≡ y) → P y q
-elimEq P prefl x refl = prefl
+elimEq A .x P prefl x refl = prefl
 
 ----------------------------------------------------------------------
 
