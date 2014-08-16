@@ -31,7 +31,10 @@ UncurryScope : Tel -> Type
 UncurryScope = \ T -> (X : Scope T -> Type) ->
   CurriedScope T X -> UncurriedScope T X
 
--- TODO uncurryScope
+uncurryScope : (T : Tel) -> UncurryScope T
+uncurryScope = elimTel UncurryScope
+  (\ X x -> elimUnit X x)
+  (\ A B ih X f -> elimPair A (\a -> Scope (B a)) X (\ a b -> ih a (\b -> X (a , b)) (f a) b))
 
 ----------------------------------------------------------------------
 
