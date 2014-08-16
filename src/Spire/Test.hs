@@ -43,24 +43,32 @@ integrationTests directory = do
   let testFileNames = filter (isSuffixOf ".spire") allFiles
   let testFiles = map (directory </>) testFileNames
   tests <- mapM testFile testFiles
-  return $ TestList tests
+  return $ TestList (testInitEnv : tests)
 
 testFile :: FilePath -> IO Test
 testFile file = do
   code <- readFile file
-  return $ TestLabel file (TestCase (assertWellTyped file code))
+  return $ TestLabel file (TestCase (assertFileWellTyped file code))
 
-assertWellTyped :: FilePath -> String -> Assertion
-assertWellTyped file code = case parseProgram file code of
+testInitEnv :: Test
+testInitEnv = TestLabel "Initial environment" $
+  TestCase assertInitEnvWellTyped
+
+assertInitEnvWellTyped :: Assertion
+assertInitEnvWellTyped = case checkInitEnv of
+  Left error -> assertFailure ("Error in initial environment:\n" ++ error)
+  Right ()   -> return ()
+  where ?conf = emptyConf
+
+assertFileWellTyped :: FilePath -> String -> Assertion
+assertFileWellTyped file code = case parseProgram file code of
   Left  error     -> assertFailure ("Parse error:\n" ++ formatParseError error)
   Right syntax    -> case elabProgram syntax of
     Left  error   -> assertFailure ("Elab error:\n" ++ error)
     Right program -> case checkProgram program of
       Left error  -> assertFailure ("Check error:\n" ++ error)
       Right _     -> return ()
-  where
-  -- XXX: Support command line args for tests?
-  ?conf = emptyConf
+  where ?conf = emptyConf
 
 ----------------------------------------------------------------------
 
