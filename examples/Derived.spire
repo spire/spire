@@ -103,6 +103,27 @@ UncurryHyps = \ I D -> (X : IType I) -> (P : (i : I) -> X i -> Type)
   -> (cn : UncurriedFunc I D X)
   -> CurriedHyps I D X P cn -> UncurriedHyps I D X P cn
 
--- TODO uncurryHyps
+uncurryHyps : (I : Type) -> (D : Desc I) -> UncurryHyps I D
+uncurryHyps = \ I -> elimDesc I (UncurryHyps I)
+  (\ j X P cn pf i q u -> elimEq I j
+    (\ k r -> P k (cn k r))
+    pf i q
+  )
+  (\ j D ih X P cn pf z -> elimPair (X j)
+    (\ _ -> Func I D X z)
+    (\ xs -> Hyps I (Rec j D) X P z xs -> P z (cn z xs))
+    (\ x xs -> elimPair (P j x)
+      (\ _ -> Hyps I D X P z xs)
+      (\ _ -> P z (cn z (x , xs)))
+      (\ p ps -> ih X P (\ j ys -> cn j (x , ys))
+        (pf x p) z xs ps
+      )
+    )
+  )
+  (\ A B ih X P cn pf i -> elimPair A
+    (\ a -> Func I (B a) X i)
+    (\ xs -> Hyps I (Arg A (\ a -> B a)) X P i xs -> P i (cn i xs))
+    (\ a xs -> ih a X P (\ j ys -> cn j (a , ys)) (pf a) i xs)
+  )
 
 ----------------------------------------------------------------------

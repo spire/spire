@@ -137,7 +137,7 @@ elim _               (EFunc _I _X i) =
 elim (VEnd j)        (EHyps _I _X _M i q) =
   return $ VUnit
 elim (VRec j _D)     (EHyps _I _X _M i xxs) = do
-  _A <- _X `sub` i
+  _A <- _X `sub` j
   _B <- _D `elim` EFunc _I _X i
   (x , xs) <- (,) <$> freshR "x" <*> freshR "xs"
   ppair <- vProd <$> _M `sub2` (j , vVar x) <*> _D `elim` EHyps _I _X _M i (vVar xs)
