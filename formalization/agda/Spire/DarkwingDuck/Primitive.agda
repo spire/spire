@@ -74,8 +74,10 @@ Branches [] P = ⊤
 Branches (l ∷ E) P = Σ (P here) (λ _ → Branches E (λ t → P (there t)))
 
 case : (E : Enum) (P : Tag E → Set) (cs : Branches E P) (t : Tag E) → P t
-case (ℓ ∷ E) P (c , cs) here = c
-case (ℓ ∷ E) P (c , cs) (there t) = case E (λ t → P (there t)) cs t
+case (ℓ ∷ E) P ccs here = elimPair (P here) (λ _ → Branches E (λ t → P (there t))) (λ _ → P here)
+  (λ c cs → c) ccs
+case (ℓ ∷ E) P ccs (there t) = elimPair (P here) (λ _ → Branches E (λ t → P (there t))) (λ _ → P (there t))
+  (λ c cs → case E (λ t → P (there t)) cs t) ccs
 
 ----------------------------------------------------------------------
 
@@ -128,8 +130,12 @@ prove : (I : Set) (D : Desc I) (X : I → Set) (M : (i : I) → X i → Set)
   (i : I) (xs : Func I D X i)
   → Hyps I D X M i xs
 prove I (End j) X M m i q = tt
-prove I (Rec j D) X M m i (x , xs) = m j x , prove I D X M m i xs
-prove I (Arg A B) X M m i (a , xs) = prove I (B a) X M m i xs
+prove I (Rec j D) X M m i = elimPair (X j) (λ _ → Func I D X i)
+  (λ xxs → Hyps I (Rec j D) X M i xxs)
+  (λ x xs → m j x , prove I D X M m i xs) 
+prove I (Arg A B) X M m i = elimPair A (λ a → Func I (B a) X i)
+  (λ axs → Hyps I (Arg A B) X M i axs)
+  (λ a xs → prove I (B a) X M m i xs)
 
 {-# NO_TERMINATION_CHECK #-}
 ind : (ℓ : String) (P I : Set) (D : Desc I) (p : P)
