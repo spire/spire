@@ -47,8 +47,6 @@ keywords = [
   "End", "Rec", "Arg",
 
   "if", "then", "else",
-  "subst",
-  "proj1", "proj2",
   wildcard
   ]
 
@@ -106,13 +104,10 @@ parseChoice = try $ choice [
   , parseIf
   , parseThere
   , parseEnd
-  , parseProj1
-  , parseProj2
   , parseRec
   , parseInit
   , parseLam
   , parseArg
-  , parseSubst
   ]
 
 parseAtom = choice
@@ -162,16 +157,6 @@ parseIf = do
   c2 <- parseSyntax
   return $ SIf b c1 c2
 
-parseProj1 = try $ do
-  parseKeyword "proj1"
-  ab <- parseAtom
-  return $ SProj1 ab
-
-parseProj2 = try $ do
-  parseKeyword "proj2"
-  ab <- parseAtom
-  return $ SProj2 ab
-
 parseThere = try $ do
   parseKeyword "there"
   t <- parseAtom
@@ -218,13 +203,6 @@ parseArg = do
   _A <- parseAtom
   _B <- parseLamArg
   return $ SArg _A _B
-
-parseSubst = do
-  parseKeyword "subst"
-  _P <- parseLamArg
-  q  <- parseAtom
-  p  <- parseAtom
-  return $ SSubst _P q p
 
 ----------------------------------------------------------------------
 

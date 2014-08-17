@@ -64,19 +64,18 @@ data Value =
 
 data Elim =
     EApp Value
-  | EProj1 | EProj2
 
   | EFunc Value (Bind Nom Value) Value
   | EHyps Value (Bind Nom Value) (Bind Nom2 Value) Value Value
 
   | EElimUnit (Bind Nom Value) Value
-  | EElimPair Value (Bind Nom Value) (Bind Nom Value) (Bind Nom2 Value)
   | EElimBool (Bind Nom Value) Value Value
+  | EElimPair Value (Bind Nom Value) (Bind Nom Value) (Bind Nom2 Value)
+  | EElimEq Value Value (Bind Nom2 Value) Value Value
   | EElimEnum (Bind Nom Value) Value (Bind Nom3 Value)
   | EElimTel  (Bind Nom Value) Value (Bind Nom3 Value)
   | EElimDesc Value (Bind Nom Value) (Bind Nom Value) (Bind Nom3 Value) (Bind Nom3 Value)
 
-  | ESubst (Bind Nom Value) Value
   | EBranches (Bind Nom Value)
   | ECase Value (Bind Nom Value) Value
   | EProve Value (Bind Nom Value) (Bind Nom2 Value) (Bind Nom2 Value) Value Value
@@ -212,6 +211,9 @@ rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 rElimPair :: Type -> Bind Nom Type -> Bind Nom Type -> Bind Nom2 Value -> Nom -> Value
 rElimPair _A _B _P ppair ab = VNeut ab (Pipe Id (EElimPair _A _B _P ppair))
 
+rElimEq :: Type -> Value -> Bind Nom2 Value -> Value -> Value -> Nom -> Value
+rElimEq _A x _P prefl y q = VNeut q (Pipe Id (EElimEq _A x _P prefl y))
+
 rElimEnum :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 
@@ -287,6 +289,15 @@ vElimPair _A _B _P ppair ab = rElimPair
   (fbind _P "xs")
   (fbind2 ppair "a" "b")
   (s2n ab)
+
+vElimEq :: String -> String -> String -> String -> String -> String -> Value
+vElimEq _A x _P prefl y q = rElimEq
+  (var _A)
+  (var x)
+  (fbind2 _P "y" "q")
+  (var prefl)
+  (var y)
+  (s2n q)
 
 vElimEnum :: String -> String -> String -> String -> Value
 vElimEnum _P pnil pcons xs = rElimEnum

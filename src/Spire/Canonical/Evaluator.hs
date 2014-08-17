@@ -70,10 +70,6 @@ elim :: Value -> Elim -> SpireM Value
 elim (VNeut nm fs) f        = return $ VNeut nm (Pipe fs f)
 elim (VLam f)      (EApp a) = f `sub` a
 elim _             (EApp _) = throwError "Ill-typed evaluation of function application"
-elim (VPair a _)   EProj1   = return a
-elim _             EProj1   = throwError "Ill-typed evaluation of proj1"
-elim (VPair _ b)   EProj2   = return b
-elim _             EProj2   = throwError "Ill-typed evaluation of proj2"
 
 elim VTT    (EElimUnit _P ptt)  = return ptt
 elim _      (EElimUnit _P ptt)  = throwError "Ill-typed evaluation of elimUnit"
@@ -86,6 +82,11 @@ elim (VPair a b) (EElimPair _A _B _P ppair) = do
   ppair `sub2` (a , b)
 elim _               (EElimPair _A _B _P ppair)  =
   throwError "Ill-typed evaluation of elimPair"
+
+elim VRefl (EElimEq _A x _P prefl y) =
+  return prefl
+elim _               (EElimEq _A x _P prefl y)  =
+  throwError "Ill-typed evaluation of elimEq"
 
 elim VNil         (EElimEnum _P pn _)  =
   return pn
@@ -123,11 +124,6 @@ elim (VInit xs) (EInd l _P _I _D p _M m i) = do
   m `sub3` (i , xs , ihs)
 elim _            (EInd l _P _I _D p _M m i)  =
   throwError "Ill-typed evaluation of ind"
-
-elim VRefl         (ESubst _P px) =
-  return px
-elim _             (ESubst _P px) =
-  throwError "Ill-typed evaluation of subst"
 
 elim (VEnd j)        (EFunc _I _X i) =
   return $ VEq _I j _I i

@@ -16,9 +16,6 @@ embedI (IVar v)    = return $ SVar v
 embedI (IQuotes s) = return $ SQuotes s
 
 embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
-embedI (ISubst _P q  p) = SSubst <$> embedCB _P <*> embedI q <*> embedC p
-embedI (IProj1 ab) = SProj1 <$> embedI ab
-embedI (IProj2 ab) = SProj2 <$> embedI ab
 embedI (IApp f a) = SApp <$> embedI f <*> embedC a
 embedI (IAnn a _A) = SAnn <$> embedC a <*> embedC _A
 

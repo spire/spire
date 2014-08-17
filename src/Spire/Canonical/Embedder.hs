@@ -64,8 +64,6 @@ embedN :: Nom -> Spine -> FreshM Infer
 
 embedN nm Id                 = return  $  IVar nm
 embedN nm (Pipe fs (EApp a)) = IApp   <$> embedN nm fs <*> embedV a
-embedN nm (Pipe fs EProj1)   = IProj1 <$> embedN nm fs
-embedN nm (Pipe fs EProj2)   = IProj2 <$> embedN nm fs
 
 embedN nm (Pipe fs (EFunc _I _X i)) =
   iApps (iVar B._Func) <$> sequence
@@ -126,6 +124,15 @@ embedN nm (Pipe fs (EElimPair _A _B _P ppair)) =
     , embedVF2 ppair
     , Infer <$> embedN nm fs
     ]
+embedN nm (Pipe fs (EElimEq _A x _P prefl y)) =
+  iApps (iVar B.elimEq) <$> sequence
+    [ embedV _A
+    , embedV x
+    , embedVF2 _P
+    , embedV prefl
+    , embedV y
+    , Infer <$> embedN nm fs
+    ]
 embedN nm (Pipe fs (EElimEnum _P pn pc)) =
   iApps (iVar B.elimEnum) <$> sequence
     [ embedVF _P
@@ -149,9 +156,6 @@ embedN nm (Pipe fs (EElimDesc _I _P pend prec parg)) =
     , embedVF3 parg
     , Infer <$> embedN nm fs
     ]
-embedN nm (Pipe fs (ESubst _P p)) =
-  ISubst <$> embedVB _P <*>
-    embedN nm fs <*> embedV p
 embedN nm (Pipe fs (EBranches _P)) =
   iApps (iVar B._Branches) <$> sequence
     [ Infer <$> embedN nm fs

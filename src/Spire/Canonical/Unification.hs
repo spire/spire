@@ -83,18 +83,16 @@ value2Tm v = case v of
 
     elim2Elim e = case e of
       EApp v -> A <$> value2Tm v
-      EProj1 -> return Hd
-      EProj2 -> return Tl
       EElimBool b x y -> If <$> mapBindM value2Tm b <*> value2Tm x <*> value2Tm y
 
       EFunc _ _ _          -> unsupported
       EHyps _ _ _ _ _      -> unsupported
       EElimUnit _ _        -> unsupported
       EElimPair _ _ _ _    -> unsupported
+      EElimEq _ _ _ _ _    -> unsupported
       EElimEnum _ _ _      -> unsupported
       EElimTel _ _ _      -> unsupported
       EElimDesc _ _ _ _ _  -> unsupported
-      ESubst _ _           -> unsupported
       EBranches _          -> unsupported
       ECase _  _ _         -> unsupported
       EProve _ _ _ _ _ _   -> unsupported
@@ -126,8 +124,8 @@ tm2Value t = case t of
 
     elim2Elim e = case e of
       A t -> EApp <$> tm2Value t
-      Hd -> return EProj1
-      Tl -> return EProj2
+      Hd -> throwError $ "Proj1 is no longer supported in elim2Elim"
+      Tl -> throwError $ "Proj2 is no longer supported in elim2Elim"
       If b x y -> EElimBool <$> mapBindM tm2Value b <*> tm2Value x <*> tm2Value y
       _ -> throwError $ "Unsupported input in elim2Elim: " ++ show e
 

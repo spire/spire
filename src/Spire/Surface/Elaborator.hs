@@ -43,13 +43,10 @@ elabC x@(SPi _ _)           = elabIC x
 elabC x@(SSg _ _)           = elabIC x
 elabC x@(SEq _ _)           = elabIC x
 elabC x@(SVar _)            = elabIC x
-elabC x@(SProj1 _)          = elabIC x
-elabC x@(SProj2 _)          = elabIC x
 elabC x@(SIf _ _ _)         = elabIC x
 elabC x@(SApp _ _)          = elabIC x
 elabC x@(SAnn _ _)          = elabIC x
 elabC x@(SWildCard)         = elabIC x
-elabC x@(SSubst _ _ _)      = elabIC x
 
 ----------------------------------------------------------------------
 
@@ -72,14 +69,9 @@ elabI SWildCard = do
     where
     args = map (Infer . IVar) $ vs
 
-elabI (SProj1 ab)   = IProj1 <$> elabI ab
-elabI (SProj2 ab)   = IProj2 <$> elabI ab
 elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
 elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf
 elabI (SAnn a _A)   = IAnn   <$> elabC a <*> elabC _A
-
-elabI (SSubst _P q p) =
-  ISubst <$> elabBC _P <*> elabI q <*> elabC p
 
 elabI (SPi _A _B)       = IPi       <$> elabC _A <*> elabBC _B
 elabI (SSg _A _B)       = ISg       <$> elabC _A <*> elabBC _B

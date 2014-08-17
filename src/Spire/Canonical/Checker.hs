@@ -174,18 +174,6 @@ inferN nm (Pipe fs (EApp a)) = do
       _B `sub` a
     _         -> throwError "Ill-typed!"
 
-inferN nm (Pipe fs EProj1) = do
-  _AB <- inferN nm fs
-  case _AB of
-    VSg _A _B -> return _A
-    _         -> throwError "Ill-typed!"
-
-inferN nm (Pipe fs EProj2) = do
-  _AB <- inferN nm fs
-  case _AB of
-    VSg _A _B -> _B `sub` VNeut nm (Pipe fs EProj1)
-    _         -> throwError "Ill-typed!"
-
 inferN nm (Pipe fs (EElimUnit _P ptt)) = do
   checkVExtend VUnit _P VType
   let u = VNeut nm fs
@@ -199,6 +187,22 @@ inferN nm (Pipe fs (EElimBool _P ptrue pfalse)) = do
   let b = VNeut nm fs
   checkV b VBool
   _P `sub` b
+
+inferN nm (Pipe fs (EElimEq _A x _P prefl y)) = do
+  checkV _A VType
+  checkV x _A
+  checkVP _A x _P
+  checkV prefl =<< _P `sub2` (x , VRefl)
+  checkV y _A
+  let q = VNeut nm fs
+  checkV q (VEq _A x _A y)
+  _P `sub2` (y , q)
+  where
+
+  checkVP :: Type -> Value -> Bind Nom2 Value -> SpireM ()
+  checkVP _A x bnd_P = do
+    ((y , q) , _P) <- unbind bnd_P
+    extendCtx y _A $ extendCtx q (VEq _A x _A (vVar y)) $ checkV _P VType
 
 inferN nm (Pipe fs (EElimPair _A _B _P ppair)) = do
   checkV _A VType       
@@ -283,17 +287,6 @@ inferN nm (Pipe fs (EElimDesc _I _P pend prec parg)) = do
     let _PB = VPi (vVar _A) (sbind nm_a _Ba)
     _PArg <- _P `sub` VArg (vVar _A) (fbind' _B nm_a)
     extendCtx _A VType $ extendCtx _B (vVar _A `vArr` VDesc _I) $ extendCtx pb _PB $ checkV parg _PArg
-
-inferN nm (Pipe fs (ESubst _P px)) = do
-  _Q <- inferN nm fs
-  case _Q of
-    VEq _A x _B y -> do
-      unless (_A == _B) $
-        throwError "Ill-typed!"
-      checkVExtend _A _P VType
-      checkV px =<< _P `sub` x
-      _P `sub` y
-    _  -> throwError "Ill-typed!"
 
 inferN nm (Pipe fs (EFunc _I _X i)) = do
   checkV _I VType

@@ -30,6 +30,7 @@ initEnv =
   , def B.elimUnit elimUnit _ElimUnit
   , def B.elimBool elimBool _ElimBool
   , def B.elimPair elimPair _ElimPair
+  , def B.elimEq elimEq _ElimEq
   , def B.elimEnum elimEnum _ElimEnum
   , def B.elimTel elimTel _ElimTel
   , def B.elimDesc elimDesc _ElimDesc
@@ -85,12 +86,22 @@ _ElimBool =
   vApp "P" (var "b")
 
 elimBool :: Value
-elimBool =
-  vLam "P" $
-  vLam "pt" $
-  vLam "pf" $
-  vLam "b" $
+elimBool = vLam "P" $ vLam "pt" $ vLam "pf" $ vLam "b" $
   vElimBool "P" "pt" "pf" "b"
+
+_ElimEq :: Type
+_ElimEq =
+  vPi "A" VType $
+  vPi "x" (var "A") $
+  vPi "P" (vPi "y" (var "A") $ VEq (var "A") (var "x") (var "A") (var "y") `vArr` VType) $
+  vArr (vApp2 "P" (var "x") VRefl) $
+  vPi "y" (var "A") $
+  vPi "q" (VEq (var "A") (var "x") (var "A") (var "y")) $
+  vApp2 "P" (var "y") (var "q")
+
+elimEq :: Value
+elimEq = vLam "A" $ vLam "x" $ vLam "P" $ vLam "prefl" $ vLam "y" $ vLam "q" $
+  vElimEq "A" "x" "P" "prefl" "y" "q"
 
 _ElimEnum :: Type
 _ElimEnum =

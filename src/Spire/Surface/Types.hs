@@ -30,11 +30,8 @@ data Syntax =
   | SWildCard
 
   | SVar Nom
-  | SProj1 Syntax
-  | SProj2 Syntax
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
-  | SSubst (Bind Nom Syntax) Syntax Syntax
   | SAnn Syntax Syntax
  deriving Show
 

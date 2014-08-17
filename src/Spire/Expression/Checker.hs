@@ -427,32 +427,6 @@ infer' (IAnn a _A) = do
   a'  <- check a _A'
   return (a' , _A')
 
-infer' (IProj1 ab) = do
-  (ab' , _AB) <- infer ab
-  -- XXX: Another 'forceSig' opportunity; analogous to the use of
-  -- 'forcePi' in 'IApp' below?
-  case _AB of
-    VSg _A _B -> do
-      a'     <- elim ab' EProj1
-      return (a' , _A)
-    _ -> throwError $
-      "Ill-typed, projection of non-pair!\n" ++
-      "Projected value:\n" ++ show ab ++
-      "\nProjected type:\n" ++ show _AB
-
-infer' (IProj2 ab) = do
-  (ab' , _AB) <- infer ab
-  case _AB of
-    VSg _A _B -> do
-      a'     <- elim ab' EProj1
-      b'     <- elim ab' EProj2
-      _B'    <- _B `sub` a'
-      return (b' , _B')
-    _ -> throwError $
-      "Ill-typed, projection of non-pair!\n" ++
-      "Projected value:\n" ++ show ab ++
-      "\nProjected type:\n" ++ show _AB
-
 infer' (IApp f a) = do
   (f' , _F) <- infer f
   (_A , _B) <- forcePi _F
@@ -483,26 +457,6 @@ infer' (IIf b ct cf) = do
     "\nSecond branch:\n" ++ show _C'
   c <- elim b' (eIf _C ct' cf')
   return (c , _C)
-
-infer' (ISubst _P q px) = do
-  (q' , _Q') <- infer q
-  case _Q' of
-    VEq _A x _B y -> do
-      _P' <- checkExtend _A _P VType
-      unless (_A == _B) $
-        throwError $
-          "Ill-typed!:\n" ++
-          "using subst when equality domain type " ++ prettyPrint _A ++
-          " does not match codomain type " ++ prettyPrint _B
-      px' <- check px =<< _P' `sub` x
-      py  <- q' `elim` ESubst _P' px'
-      _Py <- _P' `sub` y
-      return (py , _Py)
-
-    _ -> throwError $
-      "Ill-typed, substitution of non-equality!\n" ++
-      "Eliminated value:\n" ++ show q' ++
-      "\nEliminated type:\n" ++ show _Q'
 
 ----------------------------------------------------------------------
 

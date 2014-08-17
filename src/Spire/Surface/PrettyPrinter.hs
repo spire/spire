@@ -129,8 +129,6 @@ dIf o c t f = alignSepM
 dThere o t   = dt "there" <+> ww o t
 dEnd   o i   = dt "End"   <+> ww o i
 dTag   o _E  = dt "Tag"   <+> ww o _E
-dProj1 o ab  = dt "proj1" <+> ww o ab
-dProj2 o ab  = dt "proj2" <+> ww o ab
 dInit  o xs  = dt "init"  <+> ww o xs
 
 dApp o f a = alignM $ w o f </> ww o a
@@ -143,10 +141,6 @@ dRec o i _D =
 dArg o _A _B =
   dt "Arg" <+> alignSepM
     [ ww o _A , dLamArg o _B ]
-
-dSubst o _P q p =
-  dt "subst" <+> alignSepM
-    [ dLamArg o _P , ww o q , ww o p ]
 
 ----------------------------------------------------------------------
 
@@ -172,12 +166,8 @@ instance Display Syntax where
     SQuotes s -> dQuotes s
     SWildCard -> dWildCard
     SIf c t f -> dIf s c t f
-    SProj1 ab -> dProj1 s ab
-    SProj2 ab -> dProj2 s ab
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
-
-    SSubst    _P q  p      -> dSubst s _P q p
 
 instance Display SDef where
   display (SDef nm a _A) =
@@ -267,14 +257,11 @@ instance Precedence Syntax where
     SApp _ _            -> appLevel
     SAnn _ _            -> annLevel
 
-    SProj1 _            -> initialLevel
-    SProj2 _            -> initialLevel
     SThere _            -> initialLevel
     SEnd   _            -> initialLevel
     SRec   _ _          -> initialLevel
     SInit  _            -> initialLevel
     SArg   _ _          -> initialLevel
-    SSubst _ _ _        -> initialLevel
 
     SRefl               -> atomicLevel
     SHere               -> atomicLevel
@@ -296,10 +283,7 @@ instance Precedence Syntax where
     SIf _ _ _            -> AssocNone
     SThere _             -> AssocNone
     SEnd   _             -> AssocNone
-    SProj1 _             -> AssocNone
-    SProj2 _             -> AssocNone
     SAnn _ _             -> AssocNone
-    SSubst    _ _ _      -> AssocNone
     SRefl                -> AssocNone
     SHere                -> AssocNone
     SWildCard            -> AssocNone
