@@ -157,6 +157,9 @@ isWildcard nm = name2String nm == wildcard
 
 ----------------------------------------------------------------------
 
+freshR :: Fresh m => String -> m Nom
+freshR = fresh . s2n
+
 freshMV :: Fresh m => String -> m Nom
 freshMV suffix = fresh . s2n $ "?" ++ suffix
 
@@ -169,10 +172,12 @@ mv2String nm = case name2String nm of
   '?':suffix -> suffix
   _          -> error $ "mv2String: not an mvar: " ++ show nm
 
+bind2 x y = bind (x , y)
+bind3 x y z = bind (x , y , z)
 sbind :: (Alpha t, Rep a) => String -> t -> Bind (Name a) t
 sbind x = bind (s2n x)
-sbind2 x y = bind (s2n x , s2n y)
-sbind3 x y z = bind (s2n x , s2n y , s2n z)
+sbind2 x y = bind2 (s2n x) (s2n y)
+sbind3 x y z = bind3 (s2n x) (s2n y) (s2n z)
 
 ----------------------------------------------------------------------
 
@@ -181,6 +186,12 @@ vPi s x y = VPi x (bind (s2n s) y)
 
 vBind :: String -> (Value -> Value) -> Bind Nom Value
 vBind x f = bind (s2n x) (f (var x))
+
+kBind :: Value -> Bind Nom Value
+kBind x = vBind wildcard (\_ -> x)
+
+rBind :: String -> (Nom -> Value) -> Bind Nom Value
+rBind x f = sbind x (f (s2n x))
 
 rBind2 :: String -> String -> (Nom -> Nom -> Value) -> Bind Nom2 Value
 rBind2 x y f = sbind2 x y (f (s2n x) (s2n y))

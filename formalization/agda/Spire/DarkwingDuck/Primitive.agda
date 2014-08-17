@@ -1,3 +1,4 @@
+{-# OPTIONS --type-in-type #-}
 module Spire.DarkwingDuck.Primitive where
 
 ----------------------------------------------------------------------
@@ -112,8 +113,10 @@ Func I (Arg A B) X i = Σ A (λ a → Func I (B a) X i)
 
 Hyps : (I : Set) (D : Desc I) (X : I → Set) (M : (i : I) → X i → Set) (i : I) (xs : Func I D X i) → Set
 Hyps I (End j) X M i q = ⊤
-Hyps I (Rec j D) X M i (x , xs) = Σ (M j x) (λ _ → Hyps I D X M i xs)
-Hyps I (Arg A B) X M i (a , xs) = Hyps I (B a) X M i xs
+Hyps I (Rec j D) X M i = elimPair (X j) (λ _ → Func I D X i) (λ _ → Set)
+  (λ x xs → Σ (M j x) (λ _ → Hyps I D X M i xs))
+Hyps I (Arg A B) X M i = elimPair A (λ a → Func I (B a) X i) (λ _ → Set)
+  (λ a xs → Hyps I (B a) X M i xs)
 
 ----------------------------------------------------------------------
 

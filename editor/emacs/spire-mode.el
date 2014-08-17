@@ -25,7 +25,7 @@
   '("--") ;; comments
   '("in") ;; keywords
   '(("\\<\\(Unit\\|Bool\\|Enum\\|Tel\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
-    ("\\<\\(if\\|then\\|else\\|elimUnit\\|elimPair\\|elimBool\\|elimEnum\\|elimTel\\|elimDesc\\|Func\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
+    ("\\<\\(if\\|then\\|else\\|elimUnit\\|elimPair\\|elimEq\\|elimBool\\|elimEnum\\|elimTel\\|elimDesc\\|Func\\|Hyps\\|Branches\\|case\\|subst\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
     ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\|Emp\\|Ext\\)\\>" . 'font-lock-constant-face) ;; constants
     )
   '("\\.spire$") ;; file extension

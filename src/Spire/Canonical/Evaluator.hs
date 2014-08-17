@@ -136,13 +136,23 @@ elim _               (EFunc _I _X i) =
 
 elim (VEnd j)        (EHyps _I _X _M i q) =
   return $ VUnit
-elim (VRec j _D)     (EHyps _I _X _M i (VCons x xs)) =
-  vProd <$> _M `sub2` (j , x) <*> _D `elim` EHyps _I _X _M i xs
-elim (VArg _A _B)    (EHyps _I _X _M i (VCons a xs)) = do
-  _Ba <- _B `sub` a
-  _Ba `elim` EHyps _I _X _M i xs
-elim _               (EHyps _I _X _M i xs) =
-  throwError "Ill-typed evaluation of Hyps"
+elim (VRec j _D)     (EHyps _I _X _M i xxs) = do
+  _A <- _X `sub` i
+  _B <- _D `elim` EFunc _I _X i
+  (x , xs) <- (,) <$> freshR "x" <*> freshR "xs"
+  ppair <- vProd <$> _M `sub2` (j , vVar x) <*> _D `elim` EHyps _I _X _M i (vVar xs)
+  xxs `elim` EElimPair _A (kBind _B) (kBind VType) (bind2 x xs ppair)
+elim (VArg _A bnd_B)    (EHyps _I _X _M i axs) = do
+  (a , _B) <- unbind bnd_B
+  _B' <- _B `elim` EFunc _I _X i
+  xs <- freshR "xs"
+  ppair <- _B `elim` EHyps _I _X _M i (vVar xs)
+  axs `elim` EElimPair _A (bind a _B') (kBind VType) (bind2 a xs ppair)
+elim _D               (EHyps _I _X _M i xs) =
+  throwError $
+   "Ill-typed evaluation of Hyps:" ++
+   "\nDescription:\n" ++ prettyPrint _D ++
+   "\nPair:\n" ++ prettyPrint xs
 
 elim (VEnd j)        (EProve _I _X _M m i q) =
   return $ VTT

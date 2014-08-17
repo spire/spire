@@ -109,30 +109,27 @@ UncurryHyps I D = (X : ISet I) (P : (i : I) → X i → Set) (cn : UncurriedFunc
 
 uncurryHyps : (I : Set) (D : Desc I) → UncurryHyps I D
 uncurryHyps I = elimDesc I (UncurryHyps I)
-  (λ j X P cn pf i q u →
-    elimEq I j (λ k r → P k (cn k r))
-      pf i q)
-  (λ j D ih X P cn pf i →
-    elimPair (X j)
-      (λ _ → Func I D X i)
-      (λ xs → Hyps I (Rec j D) X P i xs → P i (cn i xs))
-      (λ x xs → elimPair (P j x)
-        (λ _ → Hyps I D X P i xs)
-        (λ _ → P i (cn i (x , xs)))
-        (λ p ps → ih X P (λ j ys → cn j (x , ys))
-          (pf x p) i xs ps
-        )
+  (λ j X P cn pf i q u → elimEq I j
+   (λ k r → P k (cn k r))
+   pf i q
+  )
+  (λ j D ih X P cn pf i → elimPair (X j)
+    (λ _ → Func I D X i)
+    (λ xs → Hyps I (Rec j D) X P i xs → P i (cn i xs))
+    (λ x xs → elimPair (P j x)
+      (λ _ → Hyps I D X P i xs)
+      (λ _ → P i (cn i (x , xs)))
+      (λ p ps → ih X P (λ j ys → cn j (x , ys))
+        (pf x p) i xs ps
       )
-   )
-  (λ A B ih X P cn pf i →
-    elimPair A
-      (λ a → Func I (B a) X i)
-      (λ xs → Hyps I (Arg A B) X P i xs → P i (cn i xs))
-      (λ a xs →
-        ih a X P (λ j ys → cn j (a , ys))
-          (pf a)
-          i xs
-      )
+    )
+  )
+  (λ A B ih X P cn pf i → elimPair A
+    (λ a → Func I (B a) X i)
+    (λ xs → Hyps I (Arg A (λ a → B a)) X P i xs → P i (cn i xs))
+    (λ a xs → ih a X P (λ j ys → cn j (a , ys))
+      (pf a) i xs
+    )
   )
 
 ----------------------------------------------------------------------
