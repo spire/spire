@@ -156,11 +156,20 @@ elim _D               (EHyps _I _X _M i xs) =
 
 elim (VEnd j)        (EProve _I _X _M m i q) =
   return $ VTT
-elim (VRec j _D)     (EProve _I _X _M m i (VCons x xs)) =
-  vProd <$> m `sub2` (j , x) <*> _D `elim` EProve _I _X _M m i xs
-elim (VArg _A _B)    (EProve _I _X _M m i (VCons a xs)) = do
-  _Ba <- _B `sub` a
-  _Ba `elim` EProve _I _X _M m i xs
+elim (VRec j _D)     (EProve _I _X _M m i xxs) = do
+  _A <- _X `sub` j
+  _B <- _D `elim` EFunc _I _X i
+  (nm_xxs , x , xs) <- (,,) <$> freshR "xxs" <*> freshR "x" <*> freshR "xs"
+  _M' <- VRec j _D `elim` EHyps _I _X _M i (vVar nm_xxs)
+  ppair <- VPair <$> m `sub2` (j , vVar x) <*> _D `elim` EProve _I _X _M m i (vVar xs)
+  xxs `elim` EElimPair _A (kBind _B) (bind nm_xxs _M') (bind2 x xs ppair)
+elim (VArg _A _B)    (EProve _I _X _M m i axs) = do
+  (nm_axs , a , xs) <- (,,) <$> freshR "axs" <*> freshR "a" <*> freshR "xs"
+  _Ba <- _B `sub` vVar a
+  _B' <- _Ba `elim` (EFunc _I _X i)
+  _M' <- VArg _A _B `elim` EHyps _I _X _M i (vVar nm_axs)
+  ppair <- _Ba `elim` EProve _I _X _M m i (vVar xs)
+  axs `elim` EElimPair _A (bind a _B') (bind nm_axs _M') (bind2 a xs ppair)
 elim _               (EProve _I _X _M m i xs) =
   throwError "Ill-typed evaluation of prove"
 
@@ -172,12 +181,23 @@ elim (VCons l _E)    (EBranches _P) = do
 elim _             (EBranches _P) =
   throwError "Ill-typed evaluation of Branches"
 
-elim VHere         (ECase (VCons l _E) _P (VPair c cs)) =
-  return c
-elim (VThere t)    (ECase (VCons l _E) _P (VPair c cs)) = do
-  _P' <- _P `subCompose` VThere
-  t `elim` ECase _E _P' cs
-elim _             (ECase _E _P cs) =
+elim VHere         (ECase (VCons l _E) _P ccs) = do
+  _Pthere <- _P `subCompose` VThere
+  _A <- _P `sub` VHere
+  _B <- _E `elim` EBranches _Pthere
+  let _M = _A
+  c <- freshR "c"
+  let ppair = vVar c
+  ccs `elim` EElimPair _A (kBind _B) (kBind _M) (bind2 c wildcardR ppair)
+elim (VThere t)    (ECase (VCons l _E) _P ccs) = do
+  _Pthere <- _P `subCompose` VThere
+  _A <- _P `sub` VHere
+  _B <- _E `elim` EBranches _Pthere
+  _M <- _P `sub` (VThere t)
+  cs <- freshR "cs"
+  ppair <- t `elim` ECase _E _Pthere (vVar cs)
+  ccs `elim` EElimPair _A (kBind _B) (kBind _M) (bind2 wildcardR cs ppair)
+elim _             (ECase _E _P ccs) =
   throwError "Ill-typed evaluation of case"
 
 elims :: Value -> Spine -> SpireM Value

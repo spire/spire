@@ -151,6 +151,8 @@ extendEnv x a _A = local
 ----------------------------------------------------------------------
 
 wildcard = "_"
+wildcardR :: Nom
+wildcardR = s2n wildcard
 
 isWildcard :: Nom -> Bool
 isWildcard nm = name2String nm == wildcard
@@ -188,7 +190,7 @@ vBind :: String -> (Value -> Value) -> Bind Nom Value
 vBind x f = bind (s2n x) (f (var x))
 
 kBind :: Value -> Bind Nom Value
-kBind x = vBind wildcard (\_ -> x)
+kBind x = bind wildcardR x
 
 rBind :: String -> (Nom -> Value) -> Bind Nom Value
 rBind x f = sbind x (f (s2n x))
