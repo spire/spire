@@ -5,63 +5,82 @@ module Spire.DarkwingDuck.Examples where
 
 ----------------------------------------------------------------------
 
-ℕR : Data
-ℕR = Decl "Nat" Emp Emp
-  ("zero" ∷ "suc" ∷ [])
-  (End tt , Rec tt (End tt) , tt)
+NatN : String
+NatN = "Nat"
 
-ℕ : Set
-ℕ = Form ℕR
+NatP : Tel
+NatP = Emp
 
-zero : ℕ
-zero = inj ℕR here
+NatI : Scope NatP → Tel
+NatI _ = Emp
 
-suc : ℕ → ℕ
-suc = inj ℕR (there here)
+NatE : Enum
+NatE = "zero" ∷ "suc" ∷ []
 
-VecR : Data
-VecR = Decl "Vec"
-  (Ext Set λ _ → Emp)
-  (λ _ → Ext ℕ λ _ → Emp)
-  ("nil" ∷ "cons" ∷ [])
-  (λ A →
-    End (zero , tt)
-  , Arg ℕ (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
-  , tt
-  )
+NatB : (p : Scope NatP) → BranchesD NatE (NatI p)
+NatB _ = End tt , Rec tt (End tt) , tt
 
-Vec : (A : Set) → ℕ → Set
-Vec = Form VecR
+Nat : Set
+Nat = Form NatN NatP NatI NatE NatB
 
-nil : (A : Set) → Vec A zero
-nil A = inj VecR A here
+zero : Nat
+zero = inj NatN NatP NatI NatE NatB here
 
-cons : (A : Set) (n : ℕ) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons A = inj VecR A (there here)
+suc : Nat → Nat
+suc = inj NatN NatP NatI NatE NatB (there here)
 
 ----------------------------------------------------------------------
 
-add : ℕ → ℕ → ℕ
-add = elim ℕR
-  (λ n → ℕ → ℕ)
+VecN : String
+VecN = "Vec"
+
+VecP : Tel
+VecP = Ext Set λ _ → Emp
+
+VecI : Scope VecP → Tel
+VecI _ = Ext Nat λ _ → Emp
+
+VecE : Enum
+VecE = "nil" ∷ "cons" ∷ []
+
+VecB : (p : Scope VecP) → BranchesD VecE (VecI p)
+VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
+  → End (zero , tt)
+  , Arg Nat (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
+  , tt
+
+Vec : (A : Set) → Nat → Set
+Vec = Form VecN VecP VecI VecE VecB
+
+nil : (A : Set) → Vec A zero
+nil A = inj VecN VecP VecI VecE VecB A here
+
+cons : (A : Set) (n : Nat) (x : A) (xs : Vec A n) → Vec A (suc n)
+cons A = inj VecN VecP VecI VecE VecB A (there here)
+
+----------------------------------------------------------------------
+
+add : Nat → Nat → Nat
+add = elim NatN NatP NatI NatE NatB
+  (λ n → Nat → Nat)
   (λ n → n)
   (λ m ih n → suc (ih n))
 
-mult : ℕ → ℕ → ℕ
-mult = elim ℕR
-  (λ n → ℕ → ℕ)
+mult : Nat → Nat → Nat
+mult = elim NatN NatP NatI NatE NatB
+  (λ n → Nat → Nat)
   (λ n → zero)
   (λ m ih n → add n (ih n))
 
-append : (A : Set) (m n : ℕ) (xs : Vec A m) (ys : Vec A n) → Vec A (add m n)
-append A m n = elim VecR A
+append : (A : Set) (m n : Nat) (xs : Vec A m) (ys : Vec A n) → Vec A (add m n)
+append A m n = elim VecN VecP VecI VecE VecB A
   (λ m xs → (ys : Vec A n) → Vec A (add m n))
   (λ ys → ys)
   (λ m' x xs ih ys → cons A (add m' n) x (ih ys))
   m
 
-concat : (A : Set) (m n : ℕ) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-concat A m n = elim VecR (Vec A m)
+concat : (A : Set) (m n : Nat) (xss : Vec (Vec A m) n) → Vec A (mult n m)
+concat A m n = elim VecN VecP VecI VecE VecB (Vec A m)
   (λ n xss → Vec A (mult n m))
   (nil A)
   (λ m' xs xss ih → append A m (mult m' m) xs ih)
@@ -69,25 +88,25 @@ concat A m n = elim VecR (Vec A m)
 
 ----------------------------------------------------------------------
 
-one : ℕ
+one : Nat
 one = suc zero
 
-two : ℕ
+two : Nat
 two = suc one
 
-three : ℕ
+three : Nat
 three = suc two
 
-[1,2] : Vec ℕ two
-[1,2] = cons ℕ one one (cons ℕ zero two (nil ℕ))
+[1,2] : Vec Nat two
+[1,2] = cons Nat one one (cons Nat zero two (nil Nat))
 
-[3] : Vec ℕ one
-[3] = cons ℕ zero three (nil ℕ)
+[3] : Vec Nat one
+[3] = cons Nat zero three (nil Nat)
 
-[1,2,3] : Vec ℕ three
-[1,2,3] = cons ℕ two one (cons ℕ one two (cons ℕ zero three (nil ℕ)))
+[1,2,3] : Vec Nat three
+[1,2,3] = cons Nat two one (cons Nat one two (cons Nat zero three (nil Nat)))
 
-test-append : [1,2,3] ≡ append ℕ two one [1,2] [3]
+test-append : [1,2,3] ≡ append Nat two one [1,2] [3]
 test-append = refl
 
 ----------------------------------------------------------------------
