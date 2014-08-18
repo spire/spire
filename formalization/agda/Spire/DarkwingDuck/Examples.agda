@@ -23,11 +23,25 @@ NatB _ = End tt , Rec tt (End tt) , tt
 Nat : Set
 Nat = Form NatN NatP NatI NatE NatB
 
+injNat : CurriedScope NatP λ p
+  → CurriedFunc (Scope (NatI p))
+      (sumD NatE (NatI p) (NatB p))
+      (FormUncurried NatN NatP NatI NatE NatB p)
+injNat = inj NatN NatP NatI NatE NatB
+
+elimNat : CurriedScope NatP λ p
+  → (M : CurriedScope (NatI p) (λ i → FormUncurried NatN NatP NatI NatE NatB p i → Set))
+  → let unM = uncurryScope (NatI p) (λ i → FormUncurried NatN NatP NatI NatE NatB p i → Set) M
+  in CurriedBranches NatE
+     (SumCurriedHyps NatN NatP NatI NatE NatB p M)
+     (CurriedScope (NatI p) (λ i → (x : FormUncurried NatN NatP NatI NatE NatB p i) → unM i x))
+elimNat = elim NatN NatP NatI NatE NatB
+
 zero : Nat
-zero = inj NatN NatP NatI NatE NatB here
+zero = injNat here
 
 suc : Nat → Nat
-suc = inj NatN NatP NatI NatE NatB (there here)
+suc = injNat (there here)
 
 ----------------------------------------------------------------------
 
@@ -52,35 +66,49 @@ VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
 Vec : (A : Set) → Nat → Set
 Vec = Form VecN VecP VecI VecE VecB
 
+injVec : CurriedScope VecP λ p
+  → CurriedFunc (Scope (VecI p))
+      (sumD VecE (VecI p) (VecB p))
+      (FormUncurried VecN VecP VecI VecE VecB p)
+injVec = inj VecN VecP VecI VecE VecB
+
+elimVec : CurriedScope VecP λ p
+  → (M : CurriedScope (VecI p) (λ i → FormUncurried VecN VecP VecI VecE VecB p i → Set))
+  → let unM = uncurryScope (VecI p) (λ i → FormUncurried VecN VecP VecI VecE VecB p i → Set) M
+  in CurriedBranches VecE
+     (SumCurriedHyps VecN VecP VecI VecE VecB p M)
+     (CurriedScope (VecI p) (λ i → (x : FormUncurried VecN VecP VecI VecE VecB p i) → unM i x))
+elimVec = elim VecN VecP VecI VecE VecB
+
 nil : (A : Set) → Vec A zero
-nil A = inj VecN VecP VecI VecE VecB A here
+nil A = injVec A here
 
 cons : (A : Set) (n : Nat) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons A = inj VecN VecP VecI VecE VecB A (there here)
+cons A = injVec A (there here)
 
 ----------------------------------------------------------------------
 
 add : Nat → Nat → Nat
-add = elim NatN NatP NatI NatE NatB
+add = elimNat
   (λ n → Nat → Nat)
   (λ n → n)
   (λ m ih n → suc (ih n))
 
 mult : Nat → Nat → Nat
-mult = elim NatN NatP NatI NatE NatB
+mult = elimNat
   (λ n → Nat → Nat)
   (λ n → zero)
   (λ m ih n → add n (ih n))
 
 append : (A : Set) (m n : Nat) (xs : Vec A m) (ys : Vec A n) → Vec A (add m n)
-append A m n = elim VecN VecP VecI VecE VecB A
+append A m n = elimVec A
   (λ m xs → (ys : Vec A n) → Vec A (add m n))
   (λ ys → ys)
   (λ m' x xs ih ys → cons A (add m' n) x (ih ys))
   m
 
 concat : (A : Set) (m n : Nat) (xss : Vec (Vec A m) n) → Vec A (mult n m)
-concat A m n = elim VecN VecP VecI VecE VecB (Vec A m)
+concat A m n = elimVec (Vec A m)
   (λ n xss → Vec A (mult n m))
   (nil A)
   (λ m' xs xss ih → append A m (mult m' m) xs ih)
