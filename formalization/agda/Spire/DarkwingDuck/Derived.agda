@@ -188,10 +188,10 @@ inj N P I E B = curryScope P
 
 indCurried : (ℓ : String) (P I : Set) (D : Desc I) (p : P)
   (M : (i : I) → μ ℓ P I D p i → Set)
-  (f : CurriedHyps I D (μ ℓ P I D p) M (λ _ → init))
+  (f : CurriedHyps I D (μ ℓ P I D p) M (λ _ xs → init xs))
   (i : I) (x : μ ℓ P I D p i) → M i x
 indCurried ℓ P I D p M f i x =
-  ind ℓ P I D p M (uncurryHyps I D (μ ℓ P I D p) M (λ _ → init) f) i x
+  ind ℓ P I D p M (uncurryHyps I D (μ ℓ P I D p) M (λ _ xs → init xs) f) i x
 
 SumCurriedHyps : Data λ N P I E B
   → UncurriedScope P λ p
@@ -212,10 +212,9 @@ elimUncurried : Data λ N P I E B
 elimUncurried N P I E B p M cs = let
     unM = uncurryScope (I p) (λ i → FormUncurried N P I E B p i → Set) M
   in
-  curryScope (I p) (λ i → (x : FormUncurried N P I E B p i) → unM i x) λ i x →
-  indCurried N (Scope P) (Scope (I p)) (sumD E (I p) (B p)) p unM
-    (case E (SumCurriedHyps N P I E B p M) cs)
-    i x
+  curryScope (I p) (λ i → (x : FormUncurried N P I E B p i) → unM i x)
+  (indCurried N (Scope P) (Scope (I p)) (sumD E (I p) (B p)) p unM
+    (case E (SumCurriedHyps N P I E B p M) cs))
 
 elim : Data λ N P I E B
   → CurriedScope P λ p
@@ -230,7 +229,10 @@ elim N P I E B = curryScope P
     in CurriedBranches E
        (SumCurriedHyps N P I E B p M)
        (CurriedScope (I p) (λ i → (x : FormUncurried N P I E B p i) → unM i x)))
-  (λ p M → curryBranches E _ _
+  (λ p M → let unM = uncurryScope (I p) (λ i → FormUncurried N P I E B p i → Set) M
+    in curryBranches E
+    (SumCurriedHyps N P I E B p M)
+    (CurriedScope (I p) (λ i → (x : FormUncurried N P I E B p i) → unM i x))
     (elimUncurried N P I E B p M))
 
 ----------------------------------------------------------------------

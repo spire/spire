@@ -9,6 +9,22 @@ Scope = elimTel (\ _ -> Type) Unit (\ A B ih -> (a : A) * ih a)
 
 ----------------------------------------------------------------------
 
+BranchesD : Enum -> Tel -> Type
+BranchesD = \ E T -> Branches E (\_ -> Desc (Scope T))
+
+caseD : (E : Enum) -> (T : Tel) -> (cs : BranchesD E T) -> (t : Tag E) -> Desc (Scope T)
+caseD = \ E T -> case E (\_ -> Desc (Scope T))
+
+sumD : (E : Enum) -> (T : Tel) -> (cs : BranchesD E T) -> Desc (Scope T)
+sumD = \ E T cs -> Arg (Tag E) (\ t -> caseD E T cs t)
+
+Data : (X : String -> (P : Tel) -> (I : Scope P -> Tel) -> (E : Enum) ->
+  (B : (p : Scope P) -> BranchesD E (I p)) -> Type) -> Type
+Data = \ X -> (N : String) -> (P : Tel) -> (I : Scope P -> Tel) -> (E : Enum) ->
+  (B : (p : Scope P) -> BranchesD E (I p)) -> X N P I E B
+
+----------------------------------------------------------------------
+
 UncurriedScope : (T : Tel) -> (X : Scope T -> Type) -> Type
 UncurriedScope = \ T X -> (xs : Scope T) -> X xs
 
@@ -38,25 +54,21 @@ uncurryScope = elimTel UncurryScope
 
 ----------------------------------------------------------------------
 
-UncurriedBranches : (E : Enum) -> (P : Tag E -> Type) -> (X : Type) -> Type
-UncurriedBranches = \ E P X -> Branches E P -> X
+FormUncurried : Data \ N P I E B
+  -> UncurriedScope P \ p
+  -> UncurriedScope (I p) \ i
+  -> Type
+FormUncurried = \ N P I E B p ->
+  Fix N (Scope P) (Scope (I p)) (sumD E (I p) (B p)) p
 
-CurriedBranchesM : Enum -> Type
-CurriedBranchesM = \ E -> (P : Tag E -> Type) -> Type -> Type
-
-CurriedBranches : (E : Enum) -> CurriedBranchesM E
-CurriedBranches = elimEnum CurriedBranchesM
-  (\ P X -> X)
-  (\ l E ih P X -> P here -> ih (\ t -> P (there t)) X)
-
-CurryBranches : Enum -> Type
-CurryBranches = \ E -> (P : Tag E -> Type) -> (X : Type) ->
-  UncurriedBranches E P X -> CurriedBranches E P X
-
-curryBranches : (E : Enum) -> CurryBranches E
-curryBranches = elimEnum CurryBranches
-  (\ P X f -> f tt)
-  (\ l E ih P X f c -> ih (\ t -> P (there t)) X (\ cs -> f (c , cs)))
+Form : Data \ N P I E B
+  -> CurriedScope P \ p
+  -> CurriedScope (I p) \ i
+  -> Type
+Form = \ N P I E B ->
+  curryScope P (\ p -> CurriedScope (I p) (\ _ -> Type)) \ p ->
+  curryScope (I p) (\_ -> Type) \ i ->
+  FormUncurried N P I E B p i
 
 ----------------------------------------------------------------------
 
@@ -80,6 +92,45 @@ curryFunc = \ I -> elimDesc I (CurryFunc I)
   (\ i X cn -> cn i refl)
   (\ i D ih X cn x -> ih X (\ j xs -> cn j (x , xs)))
   (\ A B ih X cn a -> ih a X (\ j xs -> cn j (a , xs)))
+
+----------------------------------------------------------------------
+
+injUncurried : Data \ N P I E B
+  -> UncurriedScope P \ p
+  -> CurriedFunc (Scope (I p)) (sumD E (I p) (B p)) (FormUncurried N P I E B p)
+injUncurried = \ N P I E B p t ->
+  curryFunc (Scope (I p)) (caseD E (I p) (B p) t)
+  (FormUncurried N P I E B p)
+  (\ i xs -> init (t , xs))
+
+inj : Data \ N P I E B
+  -> CurriedScope P \ p
+  -> CurriedFunc (Scope (I p)) (sumD E (I p) (B p)) (FormUncurried N P I E B p)
+inj = \ N P I E B -> curryScope P
+  (\ p -> CurriedFunc (Scope (I p)) (sumD E (I p) (B p)) (FormUncurried N P I E B p))
+  (injUncurried N P I E B)
+
+----------------------------------------------------------------------
+
+UncurriedBranches : (E : Enum) -> (P : Tag E -> Type) -> (X : Type) -> Type
+UncurriedBranches = \ E P X -> Branches E P -> X
+
+CurriedBranchesM : Enum -> Type
+CurriedBranchesM = \ E -> (P : Tag E -> Type) -> Type -> Type
+
+CurriedBranches : (E : Enum) -> CurriedBranchesM E
+CurriedBranches = elimEnum CurriedBranchesM
+  (\ P X -> X)
+  (\ l E ih P X -> P here -> ih (\ t -> P (there t)) X)
+
+CurryBranches : Enum -> Type
+CurryBranches = \ E -> (P : Tag E -> Type) -> (X : Type) ->
+  UncurriedBranches E P X -> CurriedBranches E P X
+
+curryBranches : (E : Enum) -> CurryBranches E
+curryBranches = elimEnum CurryBranches
+  (\ P X f -> f tt)
+  (\ l E ih P X f c -> ih (\ t -> P (there t)) X (\ cs -> f (c , cs)))
 
 ----------------------------------------------------------------------
 
@@ -109,14 +160,14 @@ uncurryHyps = \ I -> elimDesc I (UncurryHyps I)
     (\ k r -> P k (cn k r))
     pf i q
   )
-  (\ j D ih X P cn pf z -> elimPair (X j)
-    (\ _ -> Func I D X z)
-    (\ xs -> Hyps I (Rec j D) X P z xs -> P z (cn z xs))
+  (\ j D ih X P cn pf i -> elimPair (X j)
+    (\ _ -> Func I D X i)
+    (\ xs -> Hyps I (Rec j D) X P i xs -> P i (cn i xs))
     (\ x xs -> elimPair (P j x)
-      (\ _ -> Hyps I D X P z xs)
-      (\ _ -> P z (cn z (x , xs)))
+      (\ _ -> Hyps I D X P i xs)
+      (\ _ -> P i (cn i (x , xs)))
       (\ p ps -> ih X P (\ j ys -> cn j (x , ys))
-        (pf x p) z xs ps
+        (pf x p) i xs ps
       )
     )
   )
@@ -124,6 +175,65 @@ uncurryHyps = \ I -> elimDesc I (UncurryHyps I)
     (\ a -> Func I (B a) X i)
     (\ xs -> Hyps I (Arg A (\ a -> B a)) X P i xs -> P i (cn i xs))
     (\ a xs -> ih a X P (\ j ys -> cn j (a , ys)) (pf a) i xs)
+  )
+
+----------------------------------------------------------------------
+
+indCurried : (N : String) -> (P : Type) -> (I : Type)
+  -> (D : Desc I) -> (p : P)
+  -> (M : (i : I) -> Fix N P I D p i -> Type)
+  -> (f : CurriedHyps I D (Fix N P I D p) M (\_ xs -> init xs))
+  -> (i : I) -> (x : Fix N P I D p i) -> M i x
+indCurried = \ N P I D p M f i x ->
+  ind N P I D p M (uncurryHyps I D (Fix N P I D p) M (\_ xs -> init xs) f) i x
+
+SumCurriedHyps : Data \ N P I E B
+  -> UncurriedScope P \ p
+  -> (M : CurriedScope (I p) (\ i -> FormUncurried N P I E B p i -> Type))
+  -> Tag E -> Type
+SumCurriedHyps = \ N P I E B p M t -> CurriedHyps (Scope (I p))
+  (caseD E (I p) (B p) t)
+  (FormUncurried N P I E B p)
+  (uncurryScope (I p) (\ i -> FormUncurried N P I E B p i -> Type) M)
+  (\ i xs -> init (t , xs))
+
+elimUncurried : Data \ N P I E B
+  -> UncurriedScope P \ p
+  -> (M : CurriedScope (I p) (\ i -> FormUncurried N P I E B p i -> Type))
+  -> UncurriedBranches E
+    (SumCurriedHyps N P I E B p M)
+    (CurriedScope (I p) (\ i -> (x : FormUncurried N P I E B p i) ->
+      uncurryScope (I p) (\ j -> FormUncurried N P I E B p j -> Type) M i x
+     ))
+elimUncurried = \ N P I E B p M cs ->
+  curryScope (I p) (\ i -> (x : FormUncurried N P I E B p i) ->
+    uncurryScope (I p) (\ j -> FormUncurried N P I E B p j -> Type) M i x)
+  (indCurried N (Scope P) (Scope (I p)) (sumD E (I p) (B p)) p
+    (uncurryScope (I p) (\ j -> FormUncurried N P I E B p j -> Type) M)
+    (case E (SumCurriedHyps N P I E B p M) cs))
+
+elim : Data \ N P I E B
+  -> CurriedScope P \ p
+  -> (M : CurriedScope (I p) (\ i -> FormUncurried N P I E B p i -> Type))
+  -> CurriedBranches E
+    (SumCurriedHyps N P I E B p M)
+    (CurriedScope (I p) (\ i -> (x : FormUncurried N P I E B p i) ->
+      uncurryScope (I p) (\ j -> FormUncurried N P I E B p j -> Type) M i x
+     ))
+elim = \ N P I E B -> curryScope P
+  (\ p -> (M : CurriedScope (I p) (\ i -> FormUncurried N P I E B p i -> Type))
+    -> CurriedBranches E
+    (SumCurriedHyps N P I E B p M)
+    (CurriedScope (I p) (\ i -> (x : FormUncurried N P I E B p i) ->
+      uncurryScope (I p) (\ j -> FormUncurried N P I E B p j -> Type) M i x
+     ))
+  )
+  (\ p M -> curryBranches E
+    (SumCurriedHyps N P I E B p M)
+    (CurriedScope (I p) (\ i -> (x : FormUncurried N P I E B p i) ->
+      uncurryScope (I p) (\ j -> FormUncurried N P I E B p j -> Type) M i x
+     ))
+    (elimUncurried N P I E B p M)
   )
 
 ----------------------------------------------------------------------
