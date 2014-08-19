@@ -23,25 +23,17 @@ NatB _ = End tt , Rec tt (End tt) , tt
 Nat : Set
 Nat = Form NatN NatP NatI NatE NatB
 
-injNat : CurriedScope NatP λ p
-  → CurriedFunc (Scope (NatI p))
-      (sumD NatE (NatI p) (NatB p))
-      (FormUncurried NatN NatP NatI NatE NatB p)
-injNat = inj NatN NatP NatI NatE NatB
-
-elimNat : CurriedScope NatP λ p
-  → (M : CurriedScope (NatI p) (λ i → FormUncurried NatN NatP NatI NatE NatB p i → Set))
-  → let unM = uncurryScope (NatI p) (λ i → FormUncurried NatN NatP NatI NatE NatB p i → Set) M
-  in CurriedBranches NatE
-     (SumCurriedHyps NatN NatP NatI NatE NatB p M)
-     (CurriedScope (NatI p) (λ i → (x : FormUncurried NatN NatP NatI NatE NatB p i) → unM i x))
-elimNat = elim NatN NatP NatI NatE NatB
-
 zero : Nat
-zero = injNat here
+zero = inj NatN NatP NatI NatE NatB here
 
 suc : Nat → Nat
-suc = injNat (there here)
+suc = inj NatN NatP NatI NatE NatB (there here)
+
+elimNat : (P : Nat → Set)
+  (pz : P zero)
+  (ps : (n : Nat) → P n → P (suc n))
+  (n : Nat) → P n
+elimNat = elim NatN NatP NatI NatE NatB
 
 ----------------------------------------------------------------------
 
@@ -66,25 +58,17 @@ VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
 Vec : (A : Set) → Nat → Set
 Vec = Form VecN VecP VecI VecE VecB
 
-injVec : CurriedScope VecP λ p
-  → CurriedFunc (Scope (VecI p))
-      (sumD VecE (VecI p) (VecB p))
-      (FormUncurried VecN VecP VecI VecE VecB p)
-injVec = inj VecN VecP VecI VecE VecB
-
-elimVec : CurriedScope VecP λ p
-  → (M : CurriedScope (VecI p) (λ i → FormUncurried VecN VecP VecI VecE VecB p i → Set))
-  → let unM = uncurryScope (VecI p) (λ i → FormUncurried VecN VecP VecI VecE VecB p i → Set) M
-  in CurriedBranches VecE
-     (SumCurriedHyps VecN VecP VecI VecE VecB p M)
-     (CurriedScope (VecI p) (λ i → (x : FormUncurried VecN VecP VecI VecE VecB p i) → unM i x))
-elimVec = elim VecN VecP VecI VecE VecB
-
 nil : (A : Set) → Vec A zero
-nil A = injVec A here
+nil A = inj VecN VecP VecI VecE VecB A here
 
 cons : (A : Set) (n : Nat) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons A = injVec A (there here)
+cons A = inj VecN VecP VecI VecE VecB A (there here)
+
+elimVec : (A : Set) (P : (n : Nat) → Vec A n → Set)
+  (pn : P zero (nil A))
+  (pc : (n : Nat) (x : A) (xs : Vec A n) → P n xs → P (suc n) (cons A n x xs))
+  (n : Nat) (xs : Vec A n) → P n xs
+elimVec = elim VecN VecP VecI VecE VecB
 
 ----------------------------------------------------------------------
 
