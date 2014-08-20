@@ -12,7 +12,7 @@ import Unbound.LocallyNameless.SubstM
 import Spire.Canonical.Types
 import Spire.Surface.PrettyPrinter
 import Control.Applicative ((<$>) , (<*>))
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 

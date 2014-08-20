@@ -13,7 +13,7 @@ module Spire.Expression.Checker where
 import Unbound.LocallyNameless
 import Unbound.LocallyNameless.SubstM
 import Control.Applicative ((<$>))
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Spire.Canonical.Types

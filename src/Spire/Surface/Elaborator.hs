@@ -1,5 +1,5 @@
 module Spire.Surface.Elaborator (elabProg) where
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Applicative

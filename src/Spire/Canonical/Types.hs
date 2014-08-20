@@ -11,7 +11,7 @@
 
 module Spire.Canonical.Types where
 
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Foldable
@@ -29,7 +29,7 @@ instance Fresh m => Fresh (ReaderT r m) where
 instance Fresh m => Fresh (StateT r m) where
   fresh = lift . fresh
 
-instance (Error e, Fresh m) => Fresh (ErrorT e m) where
+instance (Fresh m) => Fresh (ExceptT e m) where
   fresh = lift . fresh
 
 ----------------------------------------------------------------------
@@ -146,7 +146,7 @@ emptySpireR = SpireR { ctx = Empty
 data SpireS = SpireS { unifierCtx :: UnifierCtx }
 emptySpireS = SpireS { unifierCtx = [] }
 type UnifierCtx = Env
-type SpireM = StateT SpireS (ReaderT SpireR (ErrorT String FreshM))
+type SpireM = StateT SpireS (ReaderT SpireR (ExceptT String FreshM))
 
 ----------------------------------------------------------------------
 

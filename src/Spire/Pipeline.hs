@@ -1,6 +1,6 @@
 {-# LANGUAGE ImplicitParams #-}
 module Spire.Pipeline (checkInitEnv , elabProgram , checkProgram) where
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Unbound.LocallyNameless hiding ( Spine )
@@ -46,13 +46,13 @@ checkCanonM canonical = do
 
 {-
 runReaderT :: ReaderT r m a -> r -> m a
-runErrorT :: ErrorT e m a -> m (Either e a)
+runExceptT :: ExceptT e m a -> m (Either e a)
 runFreshM :: FreshM a -> a
 -}
 
 runSpireM :: (?conf::Conf) => SpireM a -> Either String a
 runSpireM = runFreshM 
-          . runErrorT
+          . runExceptT
           . flip runReaderT (initSpireR{ conf = ?conf })
           . flip evalStateT emptySpireS
 
