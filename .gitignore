@@ -18,3 +18,4 @@ spire
 formalization/ott/*.tex
 tmp
 lib
+*.spirei

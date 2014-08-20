@@ -7,6 +7,7 @@ import System.FilePath
 import Test.HUnit
 import Text.Parsec (parse)
 import Spire.Canonical.Types
+import Spire.Prelude.Interface
 import Spire.Surface.Parser
 import Spire.Options
 import Spire.Pipeline
@@ -42,13 +43,14 @@ integrationTests directory = do
   allFiles <- getDirectoryContents directory
   let testFileNames = filter (isSuffixOf ".spire") allFiles
   let testFiles = map (directory </>) testFileNames
-  tests <- mapM testFile testFiles
+  prelude <- readPrelude
+  tests <- mapM (testFile prelude) testFiles
   return $ TestList (testInitEnv : tests)
 
-testFile :: FilePath -> IO Test
-testFile file = do
+testFile :: Env -> FilePath -> IO Test
+testFile env file = do
   code <- readFile file
-  return $ TestLabel file (TestCase (assertFileWellTyped file code))
+  return $ TestLabel file (TestCase (assertFileWellTyped env file code))
 
 testInitEnv :: Test
 testInitEnv = TestLabel "Initial environment" $
@@ -60,12 +62,12 @@ assertInitEnvWellTyped = case checkInitEnv of
   Right ()   -> return ()
   where ?conf = emptyConf
 
-assertFileWellTyped :: FilePath -> String -> Assertion
-assertFileWellTyped file code = case parseProgram file code of
+assertFileWellTyped :: Env -> FilePath -> String -> Assertion
+assertFileWellTyped env file code = case parseProgram file code of
   Left  error     -> assertFailure ("Parse error:\n" ++ formatParseError error)
-  Right syntax    -> case elabProgram syntax of
+  Right syntax    -> case elabProgram env syntax of
     Left  error   -> assertFailure ("Elab error:\n" ++ error)
-    Right program -> case checkProgram program of
+    Right program -> case checkProgram env program of
       Left error  -> assertFailure ("Check error:\n" ++ error)
       Right _     -> return ()
   where ?conf = emptyConf

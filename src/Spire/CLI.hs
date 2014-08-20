@@ -4,6 +4,8 @@ module Spire.CLI where
 import Spire.Debug
 import Spire.Options
 import Spire.Pipeline
+import Spire.Canonical.Types
+import Spire.Prelude.Interface
 import Spire.Surface.Parser
 import Spire.Surface.PrettyPrinter
 
@@ -24,12 +26,13 @@ runDebug conf = do
   setDebugging . Spire.Options.debug $ conf
   -- http://www.haskell.org/ghc/docs/latest/html/users_guide/other-type-extensions.html#implicit-parameters
   let ?conf = conf
-  checkFromFile (file conf)
+  prelude <- readPrelude
+  checkFromFile prelude (file conf)
 
 ----------------------------------------------------------------------
 
-checkFromFile :: (?conf::Conf) => FilePath -> IO ()
-checkFromFile file = do
+checkFromFile :: (?conf::Conf) => Env -> FilePath -> IO ()
+checkFromFile prelude file = do
   case checkInitEnv of
     Left error -> do 
       putStrLn "Error in initial environment:"
@@ -47,24 +50,24 @@ checkFromFile file = do
           putStrLn $ prettyPrint program
           putStrLn ""
       
-          case elabProgram program of
+          case elabProgram prelude program of
             Left error -> do
               putStrLn "Elaboration error:"
               putStrLn error
       
-            Right program -> do
+            Right program' -> do
               putStrLn $ "Elaborated program:"
               putStrLn ""
-              putStrLn $ prettyPrint program
+              putStrLn $ prettyPrint program'
               putStrLn ""
       
-              case checkProgram program of
+              case checkProgram prelude program' of
                 Left error -> putStrLn error
-                Right program' -> do
+                Right program'' -> do
                   putStrLn "Well-typed!"
                   putStrLn $ "Evaluated program:"
                   putStrLn ""
-                  putStrLn $ prettyPrint program'
+                  putStrLn $ prettyPrint program''
 
 ----------------------------------------------------------------------
 

@@ -12,20 +12,20 @@ import Spire.Canonical.Checker
 import Spire.Expression.Embedder
 import Spire.Expression.Types
 import Spire.Canonical.Embedder
-import Spire.Canonical.Types hiding ( emptySpireR )
+import Spire.Canonical.Types
 import Spire.Canonical.InitialEnv
 import Spire.Options
 
 ----------------------------------------------------------------------
 
 checkInitEnv :: (?conf::Conf) => Either String ()
-checkInitEnv = runSpireM $ checkCanonM initEnv
+checkInitEnv = runSpireM [] $ checkCanonM initEnv
 
-elabProgram :: (?conf::Conf) => SProg -> Either String CProg
-elabProgram = runSpireM . elabProg
+elabProgram :: (?conf::Conf) => Env -> SProg -> Either String CProg
+elabProgram env = runSpireM env . elabProg
 
-checkProgram :: (?conf::Conf) => CProg -> Either String VProg
-checkProgram = runSpireM . checkProgramM
+checkProgram :: (?conf::Conf) => Env -> CProg -> Either String VProg
+checkProgram env = runSpireM env . checkProgramM
 
 checkProgramM :: CProg -> SpireM VProg
 checkProgramM expression  = do
@@ -50,10 +50,10 @@ runExceptT :: ExceptT e m a -> m (Either e a)
 runFreshM :: FreshM a -> a
 -}
 
-runSpireM :: (?conf::Conf) => SpireM a -> Either String a
-runSpireM = runFreshM 
+runSpireM :: (?conf::Conf) => Env -> SpireM a -> Either String a
+runSpireM env = runFreshM 
           . runExceptT
-          . flip runReaderT (initSpireR{ conf = ?conf })
+          . flip runReaderT (emptySpireR{ conf = ?conf , env = initEnv ++ env })
           . flip evalStateT emptySpireS
 
 ----------------------------------------------------------------------

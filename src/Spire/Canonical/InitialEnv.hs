@@ -1,4 +1,4 @@
-module Spire.Canonical.InitialEnv ( _Branches , initEnv , initSpireR ) where
+module Spire.Canonical.InitialEnv ( _Branches , initEnv ) where
 import Control.Applicative
 import Data.Monoid (mempty)
 import Unbound.LocallyNameless hiding ( Spine )
@@ -7,8 +7,6 @@ import Spire.Surface.PrettyPrinter
 import qualified Spire.Canonical.Builtins as B
 
 ----------------------------------------------------------------------
-
-initSpireR = emptySpireR { env = initEnv }
 
 initEnv :: Env
 initEnv = 
