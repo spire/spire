@@ -15,6 +15,7 @@ import System.Console.CmdArgs
 
 data Conf = Conf { metavars :: Bool
                  , debug :: Bool
+                 , paranoid :: Bool
 --                 , engine :: ThmProver
 --                 , idirs :: [FilePath] -- "Include" directories
                  , file :: FilePath
@@ -22,6 +23,7 @@ data Conf = Conf { metavars :: Bool
 
 emptyConf = Conf { metavars = False
                  , debug = False
+                 , paranoid = False
                  , file = error "There is no default file in Spire.Options.emptyConf."
                  }
 
@@ -34,6 +36,9 @@ getOpts = cmdArgs $ Conf
 
   , debug = def
     &= help "Print debugging messages."
+
+  , paranoid = def
+    &= help "Check embedding stability and print canonical terms."
 
   , file = def
     &= argPos 0

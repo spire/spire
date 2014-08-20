@@ -23,7 +23,7 @@ spire: tmp
 	  src/Spire.hs
 
 production: UNIFY_TARGET = production
-production: GHC_PROF += -O
+production: GHC_PROF += -O2
 production: spire
 
 # Build spire with profiling enabled, so that e.g. we can see stack

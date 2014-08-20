@@ -19,22 +19,23 @@ import Spire.Options
 ----------------------------------------------------------------------
 
 checkInitEnv :: (?conf::Conf) => Either String ()
-checkInitEnv = runSpireM [] $ checkCanonM initEnv
+checkInitEnv = runSpireM [] $ recheckCanon initEnv
 
 elabProgram :: (?conf::Conf) => Env -> SProg -> Either String CProg
 elabProgram env = runSpireM env . elabProg
 
 checkProgram :: (?conf::Conf) => Env -> CProg -> Either String VProg
-checkProgram env = runSpireM env . checkProgramM
+checkProgram env = runSpireM env .
+  if paranoid ?conf then checkAndRecheckProg else checkProg
 
-checkProgramM :: CProg -> SpireM VProg
-checkProgramM expression  = do
+checkAndRecheckProg :: CProg -> SpireM VProg
+checkAndRecheckProg expression  = do
   canonical <- checkProg expression
-  checkCanonM canonical
+  recheckCanon canonical
   return canonical
 
-checkCanonM :: Env -> SpireM ()
-checkCanonM canonical = do
+recheckCanon :: Env -> SpireM ()
+recheckCanon canonical = do
   recheckProg canonical
   let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical
   expression'  <- elabProg surface'

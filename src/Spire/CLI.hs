@@ -1,6 +1,7 @@
 {-# LANGUAGE ImplicitParams #-}
 module Spire.CLI where
 
+import Control.Monad
 import Spire.Debug
 import Spire.Options
 import Spire.Pipeline
@@ -65,9 +66,10 @@ checkFromFile prelude file = do
                 Left error -> putStrLn error
                 Right program'' -> do
                   putStrLn "Well-typed!"
-                  putStrLn $ "Evaluated program:"
-                  putStrLn ""
-                  putStrLn $ prettyPrint program''
+                  when (paranoid ?conf) $ do
+                    putStrLn $ "Evaluated program:"
+                    putStrLn ""
+                    putStrLn $ prettyPrint program''
 
 ----------------------------------------------------------------------
 
