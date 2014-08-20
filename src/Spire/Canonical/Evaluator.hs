@@ -8,7 +8,6 @@ module Spire.Canonical.Evaluator
   (lookupValAndType , lookupType , sub , sub2 , elim , app , app2)
 where
 import Unbound.LocallyNameless hiding ( Spine )
-import Unbound.LocallyNameless.SubstM
 import Spire.Canonical.Types
 import Spire.Surface.PrettyPrinter
 import Control.Applicative ((<$>) , (<*>))

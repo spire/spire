@@ -11,7 +11,6 @@
 
 module Spire.Expression.Checker where
 import Unbound.LocallyNameless
-import Unbound.LocallyNameless.SubstM
 import Control.Applicative ((<$>))
 import Control.Monad.Except
 import Control.Monad.Reader

@@ -23,17 +23,6 @@ import Spire.Options
 
 ----------------------------------------------------------------------
 
-instance Fresh m => Fresh (ReaderT r m) where
-  fresh = lift . fresh
-
-instance Fresh m => Fresh (StateT r m) where
-  fresh = lift . fresh
-
-instance (Fresh m) => Fresh (ExceptT e m) where
-  fresh = lift . fresh
-
-----------------------------------------------------------------------
-
 type Type = Value
 
 type Nom   = Name Value

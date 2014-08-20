@@ -3,8 +3,8 @@ all: production
 # This must be run manually whenever the deps change.
 #
 # Try 'make -i deps' if make gives you trouble ...
-deps: lib-substM-deps lib-unify-deps
-	cabal install wl-pprint parsec mtl syb hunit unbound cmdargs
+deps: lib-unbound-deps
+	cabal install wl-pprint parsec mtl syb hunit cmdargs
 
 .PHONY: spire
 # Compile, putting generated files in ./tmp.
@@ -13,7 +13,7 @@ deps: lib-substM-deps lib-unify-deps
 # unexported top-level defs, and unused local defs, but not unused
 # pattern bindings.  Those can be disabled with
 # -fno-warn-unused-matches.
-spire: tmp lib-unify
+spire: tmp
 	ghc \
 	  -W -fno-warn-unused-binds \
 	  -isrc \
@@ -53,7 +53,7 @@ clean:
 	-rm -rf tmp
 	-rm spire
 
-test: lib-unify
+test:
 	runghc -isrc src/Spire/Test.hs examples
 
 ott: ott
@@ -99,26 +99,13 @@ tmp:
 	mkdir tmp
 
 ######################################################################
-# The unification code is in a separate repo.
+# The Unbound code is in a separate repo.
 
-lib/unify.git:
-	git clone git@github.com:spire/type-inference.git lib/unify.git
+lib/replib.git:
+	[ -d "lib/replib.git" ] || git clone git@github.com:spire/replib.git lib/replib.git
 
-lib-unify-deps: lib/unify.git
-	cd lib/unify.git && git pull
-	make -C lib/unify.git deps
-
-lib-unify: lib/unify.git
-	make -C lib/unify.git $(UNIFY_TARGET)
-
-######################################################################
-# The substM code is in a separate repo.
-
-lib/substM.git:
-	git clone git@github.com:spire/substM.git lib/substM.git
-
-lib-substM-deps: lib/substM.git
-	cd lib/substM.git && git pull
-  # Force reinstall unbound-substm.
-	-ghc-pkg --force unregister unbound-substm
-	cd lib/substM.git && cabal install
+lib-unbound-deps: lib/replib.git
+	cd lib/replib.git && git pull
+  # Force reinstall unbound.
+	-ghc-pkg --force unregister unbound
+	cd lib/replib.git/Unbound && cabal install
