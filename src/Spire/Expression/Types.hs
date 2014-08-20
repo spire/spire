@@ -52,17 +52,8 @@ instance Alpha Infer
 --
 -- where 'e' elaborates to 'e'' producing mvar bindings 'evs' and 'T'
 -- elaborates to 'T'' producing mvar bindings 'Tvs'.
-data CDef = CDef Nom Check MVarDecls Check MVarDecls
+data CDef = CDef Nom Check Check
   deriving Show
-
--- The 'MVarDecls' are delayed mvar declarations that change that
--- unification state.  We scope mvars to the decl that generated them,
--- so we don't run these declarations during elaboration, but rather
--- during elaboration of the associated def.
-newtype MVarDecls = MkMVarDecls { unMVarDecls :: [SpireM ()] }
-  deriving Monoid
-instance Show MVarDecls where
-  show _ = "<mvar decls>"
 
 type CProg = [CDef]
 

@@ -17,7 +17,6 @@ import Text.Parsec.Token
 import Text.Parsec.Language
 import Text.Parsec.Error
 import Text.Printf
-import Data.Functor.Identity (Identity)
 import Control.Applicative ((<*))
 
 ----------------------------------------------------------------------
@@ -62,7 +61,7 @@ def = emptyDef {
 , reservedNames = keywords
 }
 
-type ParserM a = ParsecT [Char] () Identity a
+type ParserM a = Parsec String () a
 
 tokenizer = makeTokenParser def
 parseOp = reservedOp tokenizer

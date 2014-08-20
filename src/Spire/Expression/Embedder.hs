@@ -40,6 +40,6 @@ embedCB bnd_a = do
   return   $ bind nm a'
 
 embedCDef :: CDef -> FreshM SDef
-embedCDef (CDef nm a _ _A _) = SDef nm <$> embedC a <*> embedC _A
+embedCDef (CDef nm a _A) = SDef nm <$> embedC a <*> embedC _A
 
 ----------------------------------------------------------------------

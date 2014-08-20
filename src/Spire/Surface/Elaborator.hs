@@ -5,7 +5,6 @@ import Control.Monad.Reader
 import Control.Applicative
 import Unbound.LocallyNameless
 import Spire.Canonical.Types
-import Spire.Canonical.Unification
 import Spire.Surface.Types
 import Spire.Expression.Types
 
@@ -14,17 +13,17 @@ import Spire.Expression.Types
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
 elabProg (SDef nm a _A : xs) = do
-  (_A' , _A'vs) <- elab _A
-  (a' , a'vs)   <- elab a
-  xs'           <- elabProg xs
-  return (CDef nm a' a'vs _A' _A'vs : xs')
+  _A' <- elab _A
+  a'  <- elab a
+  xs' <- elabProg xs
+  return (CDef nm a' _A' : xs')
 
 ----------------------------------------------------------------------
 
-elab :: Syntax -> SpireM (Check , MVarDecls)
-elab s = runWriterT . flip runReaderT [] . elabC $ s
+elab :: Syntax -> SpireM Check
+elab s = flip runReaderT [] . elabC $ s
 
-type SpireM' = ReaderT [Nom] (WriterT MVarDecls SpireM)
+type SpireM' = ReaderT [Nom] SpireM
 
 elabC :: Syntax -> SpireM' Check
 
@@ -55,19 +54,7 @@ elabI :: Syntax -> SpireM' Infer
 elabI (SQuotes s) = return $ IQuotes s
 elabI (SVar nm)   = return $ IVar nm
 
-elabI SWildCard = do
-  -- Hack: get fresh integer from 'Fresh' monad.
-  n <- name2Integer <$> fresh (s2n "" :: Name ())
-  w <- freshMV $ "w" ++ show n
-  -- We don't run the declaration yet, because we want the mvars to be
-  -- scoped to the current definition.
-  tell . MkMVarDecls $ [declareMV w]
-  vs <- ask
-  return $ cApps w vs
-  where
-  cApps w vs = foldl IApp (IVar w) args
-    where
-    args = map (Infer . IVar) $ vs
+elabI SWildCard = return $ IVar (s2n wildcard)
 
 elabI (SApp f a)    = IApp   <$> elabI f <*> elabC a
 elabI (SIf b ct cf) = IIf    <$> elabC b <*> elabI ct <*> elabI cf

@@ -19,8 +19,18 @@ import Data.Traversable
 import Data.List (isPrefixOf)
 import Unbound.LocallyNameless hiding ( Spine )
 
-import PatternUnify.Context
 import Spire.Options
+
+----------------------------------------------------------------------
+
+instance Fresh m => Fresh (ReaderT r m) where
+  fresh = lift . fresh
+
+instance Fresh m => Fresh (StateT r m) where
+  fresh = lift . fresh
+
+instance (Error e, Fresh m) => Fresh (ErrorT e m) where
+  fresh = lift . fresh
 
 ----------------------------------------------------------------------
 
@@ -135,7 +145,7 @@ emptySpireR = SpireR { ctx = Empty
                      }
 data SpireS = SpireS { unifierCtx :: UnifierCtx }
 emptySpireS = SpireS { unifierCtx = [] }
-type UnifierCtx = [Entry]
+type UnifierCtx = Env
 type SpireM = StateT SpireS (ReaderT SpireR (ErrorT String FreshM))
 
 ----------------------------------------------------------------------
