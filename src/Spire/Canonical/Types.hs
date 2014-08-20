@@ -6,6 +6,7 @@
   , FlexibleContexts
   , UndecidableInstances
   , ViewPatterns
+  , StandaloneDeriving
   , DeriveFunctor , DeriveFoldable , DeriveTraversable
   #-}
 
@@ -98,6 +99,10 @@ instance Eq Elim where
 instance Eq Spine where
   (==) = aeq
 
+deriving instance Read Value
+deriving instance Read Elim
+deriving instance Read a => Read (SpineFunctor a)
+
 ----------------------------------------------------------------------
 
 -- ??? Why have 'Rebind' here?
@@ -120,7 +125,7 @@ tel2List (Extend (unrebind -> ((nm , unembed -> _T) , xs))) =
 ----------------------------------------------------------------------
 
 data VDef = VDef Nom Value Value
-  deriving (Show , Eq)
+  deriving (Show , Read , Eq)
 
 type Env = [VDef]
 type VProg = Env
