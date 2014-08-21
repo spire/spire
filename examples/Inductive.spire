@@ -54,10 +54,10 @@ Vec : (A : Type) -> Nat -> Type
 Vec = Form VecN VecP VecI VecE VecB
 
 nil : (A : Type) -> Vec A zero
-nil = \ A -> inj VecN VecP VecI VecE VecB A here
+nil = inj VecN VecP VecI VecE VecB here
 
 cons : (A : Type) -> (n : Nat) -> (x : A) -> (xs : Vec A n) -> Vec A (suc n)
-cons = \ A -> inj VecN VecP VecI VecE VecB A (there here)
+cons = inj VecN VecP VecI VecE VecB (there here)
 
 elimVec : (A : Type) -> (P : (n : Nat) -> Vec A n -> Type) ->
   (pn : P zero (nil A)) ->
