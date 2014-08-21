@@ -59,10 +59,10 @@ Vec : (A : Set) → Nat → Set
 Vec = Form VecN VecP VecI VecE VecB
 
 nil : (A : Set) → Vec A zero
-nil A = inj VecN VecP VecI VecE VecB A here
+nil = inj VecN VecP VecI VecE VecB here
 
 cons : (A : Set) (n : Nat) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons A = inj VecN VecP VecI VecE VecB A (there here)
+cons = inj VecN VecP VecI VecE VecB (there here)
 
 elimVec : (A : Set) (P : (n : Nat) → Vec A n → Set)
   (pn : P zero (nil A))

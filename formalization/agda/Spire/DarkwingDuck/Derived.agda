@@ -171,18 +171,20 @@ Form N P I E B =
 ----------------------------------------------------------------------
 
 injUncurried : Data λ N P I E B
+  → (t : Tag E)
   → UncurriedScope P λ p
-  → CurriedFunc (Scope (I p)) (sumD E (I p) (B p)) (FormUncurried N P I E B p)
-injUncurried N P I E B p t = curryFunc (Scope (I p)) (caseD E (I p) (B p) t)
+  → CurriedFunc (Scope (I p)) (caseD E (I p) (B p) t) (FormUncurried N P I E B p)
+injUncurried N P I E B t p = curryFunc (Scope (I p)) (caseD E (I p) (B p) t)
   (FormUncurried N P I E B p)
   (λ i xs → init (t , xs))
 
 inj : Data λ N P I E B
+  → (t : Tag E)
   → CurriedScope P λ p
-  → CurriedFunc (Scope (I p)) (sumD E (I p) (B p)) (FormUncurried N P I E B p)
-inj N P I E B = curryScope P
-  (λ p → CurriedFunc (Scope (I p)) (sumD E (I p) (B p)) (FormUncurried N P I E B p))
-  (injUncurried N P I E B)
+  → CurriedFunc (Scope (I p)) (caseD E (I p) (B p) t) (FormUncurried N P I E B p)
+inj N P I E B t = curryScope P
+  (λ p → CurriedFunc (Scope (I p)) (caseD E (I p) (B p) t) (FormUncurried N P I E B p))
+  (injUncurried N P I E B t)
 
 ----------------------------------------------------------------------
 
