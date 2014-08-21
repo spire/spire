@@ -39,6 +39,7 @@ sepM , fsepM , hsepM , vcatM , listM, alignSepM ::
 sepM  xs = PP.sep     <$> sequence xs
 fsepM xs = PP.fillSep <$> sequence xs
 hsepM xs = PP.hsep    <$> sequence xs
+vsepM xs = PP.vsep    <$> sequence xs
 vcatM xs = PP.vcat    <$> sequence xs
 listM xs = PP.list    <$> sequence xs
 alignSepM = alignM . sepM
@@ -167,10 +168,18 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
 
-instance Display SDef where
+instance Display SDecl where
   display (SDef nm a _A) =
     (groupM . nestM 2) (d nm <+> dt ":" <$+$> d _A) <$$>
     (groupM . nestM 2) (d nm <+> dt "=" <$+$> d a)
+
+  display (SData _N _As _I xs) = let
+      params = hsepM $ map (\(nm , _A) -> parensM $ d nm <+> dt ":" <+> d _A ) _As
+      constrs = vsepM $ map (\(l , _A) -> dt l <+> dt ":" <+> d _A ) xs
+    in
+    dt "data" <+> dt _N <+> params <+> dt ":" <+> d _I <+> dt "where"
+    <$$> indentM 2 constrs <$$>
+    dt "end"
 
 instance Display SProg where
   display defs =  PP.vcat . PP.punctuate PP.line <$> mapM d defs

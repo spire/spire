@@ -42,6 +42,7 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
 keywords = [
+  "data", "where", "end", "let", "in",
   "refl", "here", "there", "init",
   "End", "Rec", "Arg",
 
@@ -80,9 +81,11 @@ parseAngles = try . angles tokenizer
 ----------------------------------------------------------------------
 
 parseProg :: ParserM SProg
-parseProg = many parseDef <* eof
+parseProg = many parseDecl <* eof
 
-parseDef :: ParserM SDef
+parseDecl :: ParserM SDecl
+parseDecl = parseData <|> parseDef
+
 parseDef = do
   l <- parseIdent
   parseOp ":"
@@ -123,7 +126,7 @@ parseAtom = choice
 
 failIfStmt =
   -- a type declaration or assignment (as part of a definition) is next
-  try . notFollowedBy $ parseIdent >> (parseOp ":" <|> (parseOp "="))
+  try . notFollowedBy $ parseKeyword "data" <|> parseKeyword "end" <|> (parseIdent >> (parseOp ":" <|> (parseOp "=")))
 
 table = [
     [Infix parseSpaceApp             AssocLeft]
@@ -144,6 +147,32 @@ table = [
 
   infixPi (SAnn (SVar nm) _A) _B = SPi _A (bind nm _B)
   infixPi _A                  _B = sPi _A wildcard _B
+
+----------------------------------------------------------------------
+
+parseData = do
+  parseKeyword "data"
+  _N <- parseIdent
+  _As <- many parseParam
+  parseOp ":"
+  _I <- parseSyntax
+  parseKeyword "where"
+  xs <- many parseConstr
+  parseKeyword "end"
+  return $ SData _N _As _I xs
+
+parseParam = parseParens $ do
+  l <- parseIdent
+  parseOp ":"
+  a <- parseSyntax
+  return $ (s2n l , a)
+
+parseConstr = do
+  l <- parseIdent
+  parseOp ":"
+  a <- parseSyntax
+  return $ (l , a)
+  
 
 ----------------------------------------------------------------------
 

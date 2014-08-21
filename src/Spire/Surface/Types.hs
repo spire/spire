@@ -40,10 +40,12 @@ instance Alpha Syntax
 
 ----------------------------------------------------------------------
 
-data SDef = SDef Nom Syntax Syntax
+data SDecl =
+    SDef Nom Syntax Syntax
+  | SData String [(Nom , Syntax)] Syntax [(String , Syntax)]
   deriving Show
 
-type SProg = [SDef]
+type SProg = [SDecl]
 
 ----------------------------------------------------------------------
 

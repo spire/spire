@@ -23,7 +23,7 @@
 
 (define-generic-mode 'spire-mode
   '("--") ;; comments
-  '("in") ;; keywords
+  '("data" "let" "where" "in" "end") ;; keywords
   '(("\\<\\(Unit\\|Bool\\|Enum\\|Tel\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
     ("\\<\\(if\\|then\\|else\\|elimUnit\\|elimPair\\|elimEq\\|elimBool\\|elimEnum\\|elimTel\\|elimDesc\\|Func\\|Hyps\\|Branches\\|case\\|ind\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
     ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\|Emp\\|Ext\\)\\>" . 'font-lock-constant-face) ;; constants

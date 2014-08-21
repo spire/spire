@@ -12,6 +12,8 @@ import Spire.Expression.Types
 
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
+elabProg (SData _N _As _I cs : xs) =
+  elabProg xs
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
   a'  <- elab a
