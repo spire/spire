@@ -14,9 +14,9 @@ elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
 elabProg (SData _N _As _I cs : xs) = let
   _N' = elabName _N
-  _P = elabParams _N _As
   _E = elabEnum _N (map fst cs)
-  in elabProg (_N' : _P : _E : xs)
+  _P = elabParams _N _As
+  in elabProg (_N' : _E : _P : xs)
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
   a'  <- elab a

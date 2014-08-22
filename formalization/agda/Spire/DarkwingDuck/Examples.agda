@@ -8,46 +8,46 @@ module Spire.DarkwingDuck.Examples where
 NatN : String
 NatN = "Nat"
 
+NatE : Enum
+NatE = "zero" ∷ "suc" ∷ []
+
 NatP : Tel
 NatP = Emp
 
 NatI : Scope NatP → Tel
 NatI _ = Emp
 
-NatE : Enum
-NatE = "zero" ∷ "suc" ∷ []
-
 NatB : (p : Scope NatP) → BranchesD NatE (NatI p)
 NatB _ = End tt , Rec tt (End tt) , tt
 
 Nat : Set
-Nat = Form NatN NatP NatI NatE NatB
+Nat = Form NatN NatE NatP NatI NatB
 
 zero : Nat
-zero = inj NatN NatP NatI NatE NatB here
+zero = inj NatN NatE NatP NatI NatB here
 
 suc : Nat → Nat
-suc = inj NatN NatP NatI NatE NatB (there here)
+suc = inj NatN NatE NatP NatI NatB (there here)
 
 elimNat : (P : Nat → Set)
   (pz : P zero)
   (ps : (n : Nat) → P n → P (suc n))
   (n : Nat) → P n
-elimNat = elim NatN NatP NatI NatE NatB
+elimNat = elim NatN NatE NatP NatI NatB
 
 ----------------------------------------------------------------------
 
 VecN : String
 VecN = "Vec"
 
+VecE : Enum
+VecE = "nil" ∷ "cons" ∷ []
+
 VecP : Tel
 VecP = Ext Set λ _ → Emp
 
 VecI : Scope VecP → Tel
 VecI _ = Ext Nat λ _ → Emp
-
-VecE : Enum
-VecE = "nil" ∷ "cons" ∷ []
 
 VecB : (p : Scope VecP) → BranchesD VecE (VecI p)
 VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
@@ -56,19 +56,19 @@ VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
   , tt
 
 Vec : (A : Set) → Nat → Set
-Vec = Form VecN VecP VecI VecE VecB
+Vec = Form VecN VecE VecP VecI VecB
 
 nil : (A : Set) → Vec A zero
-nil = inj VecN VecP VecI VecE VecB here
+nil = inj VecN VecE VecP VecI VecB here
 
 cons : (A : Set) (n : Nat) (x : A) (xs : Vec A n) → Vec A (suc n)
-cons = inj VecN VecP VecI VecE VecB (there here)
+cons = inj VecN VecE VecP VecI VecB (there here)
 
 elimVec : (A : Set) (P : (n : Nat) → Vec A n → Set)
   (pn : P zero (nil A))
   (pc : (n : Nat) (x : A) (xs : Vec A n) → P n xs → P (suc n) (cons A n x xs))
   (n : Nat) (xs : Vec A n) → P n xs
-elimVec = elim VecN VecP VecI VecE VecB
+elimVec = elim VecN VecE VecP VecI VecB
 
 ----------------------------------------------------------------------
 
