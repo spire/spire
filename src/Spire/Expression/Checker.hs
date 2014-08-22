@@ -77,8 +77,6 @@ check' l@(CLam _) _T = throwError $
   " at type " ++ prettyPrint _T
 
 check' (CPair a b) (VSg _A _B) = do
-  -- XXX: Could have a 'forceSig' here, but again, not sure what it's
-  -- good for.
   a'        <- check a _A
   _B'       <- _B `sub` a'
   b'        <- check b _B'

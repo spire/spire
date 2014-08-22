@@ -12,13 +12,25 @@ import Spire.Expression.Types
 
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
-elabProg (SData _N _As _I cs : xs) =
-  elabProg xs
+elabProg (SData _N _As _I cs : xs) = let
+  _N' = elabName _N
+  _E = elabEnum _N (map fst cs)
+  in elabProg (_N' : _E : xs)
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
   a'  <- elab a
   xs' <- elabProg xs
   return (CDef nm a' _A' : xs')
+
+elabName :: String -> SDecl
+elabName _N = let nm = _N ++ "N"
+  in sDef nm (SQuotes _N) sString
+
+elabEnum :: String -> [String] -> SDecl
+elabEnum _N _E = let
+  nm = _N ++ "E"
+  _E' = foldr (sCons . SQuotes) sNil _E
+  in sDef nm _E' sEnum
 
 ----------------------------------------------------------------------
 

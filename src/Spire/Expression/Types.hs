@@ -13,6 +13,7 @@ module Spire.Expression.Types where
 import Data.Monoid
 import Unbound.LocallyNameless
 import Spire.Canonical.Types
+import qualified Spire.Canonical.Builtins as B
 
 ----------------------------------------------------------------------
 
@@ -56,6 +57,8 @@ data CDef = CDef Nom Check Check
   deriving Show
 
 type CProg = [CDef]
+
+----------------------------------------------------------------------
 
 cVar :: String -> Check
 cVar = Infer . iVar

@@ -49,8 +49,17 @@ type SProg = [SDecl]
 
 ----------------------------------------------------------------------
 
+sDef :: String -> Syntax -> Syntax -> SDecl
+sDef nm = SDef (s2n nm)
+
 sVar :: String -> Syntax
 sVar = SVar . s2n
+
+sString :: Syntax
+sString = sVar B._String
+
+sEnum :: Syntax
+sEnum = sVar B._Enum
 
 sNil :: Syntax
 sNil = sVar B.nil
@@ -66,7 +75,5 @@ sPi x nm y = SPi x $ bind (s2n nm) y
 
 sSg :: Syntax -> String -> Syntax -> Syntax
 sSg x nm y = SSg x $ bind (s2n nm) y
-
-
 
 ----------------------------------------------------------------------
