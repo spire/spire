@@ -3,37 +3,40 @@
 NatN : String
 NatN = "Nat"
 
+NatE : Enum
+NatE = "zero" :: "suc" :: []
+
 NatP : Tel
 NatP = Emp
 
 NatI : Scope NatP -> Tel
 NatI = \_ -> Emp
 
-NatE : Enum
-NatE = "zero" :: "suc" :: []
-
-NatB : (p : Scope NatP) -> BranchesD NatE (NatI p)
-NatB = \ _ -> End tt , Rec tt (End tt) , tt
+NatC : (p : Scope NatP) -> BranchesD NatE (NatI p)
+NatC = \ _ -> End tt , Rec tt (End tt) , tt
 
 Nat : Type
-Nat = Form NatN NatP NatI NatE NatB
+Nat = Form NatN NatE NatP NatI NatC
 
 zero : Nat
-zero = inj NatN NatP NatI NatE NatB here
+zero = inj NatN NatE NatP NatI NatC here
 
 suc : Nat -> Nat
-suc = inj NatN NatP NatI NatE NatB (there here)
+suc = inj NatN NatE NatP NatI NatC (there here)
 
 elimNat : (P : Nat -> Type) ->
   (pz : P zero) ->
   (ps : (n : Nat) -> P n -> P (suc n)) ->
   (n : Nat) -> P n
-elimNat = elim NatN NatP NatI NatE NatB
+elimNat = elim NatN NatE NatP NatI NatC
 
 ----------------------------------------------------------------------
 
 VecN : String
 VecN = "Vec"
+
+VecE : Enum
+VecE = "nil" :: "cons" :: []
 
 VecP : Tel
 VecP = Ext Type \ _ -> Emp
@@ -41,29 +44,26 @@ VecP = Ext Type \ _ -> Emp
 VecI : Scope VecP -> Tel
 VecI = \ _ -> Ext Nat \ _ -> Emp
 
-VecE : Enum
-VecE = "nil" :: "cons" :: []
-
-VecB : (p : Scope VecP) -> BranchesD VecE (VecI p)
-VecB = uncurryScope VecP (\ p -> BranchesD VecE (VecI p)) \ A
+VecC : (p : Scope VecP) -> BranchesD VecE (VecI p)
+VecC = uncurryScope VecP (\ p -> BranchesD VecE (VecI p)) \ A
   -> End (zero , tt)
   ,  Arg Nat (\ n -> Arg A (\ _ -> Rec (n , tt) (End (suc n , tt))))
   , tt
 
 Vec : (A : Type) -> Nat -> Type
-Vec = Form VecN VecP VecI VecE VecB
+Vec = Form VecN VecE VecP VecI VecC
 
 nil : (A : Type) -> Vec A zero
-nil = inj VecN VecP VecI VecE VecB here
+nil = inj VecN VecE VecP VecI VecC here
 
 cons : (A : Type) -> (n : Nat) -> (x : A) -> (xs : Vec A n) -> Vec A (suc n)
-cons = inj VecN VecP VecI VecE VecB (there here)
+cons = inj VecN VecE VecP VecI VecC (there here)
 
 elimVec : (A : Type) -> (P : (n : Nat) -> Vec A n -> Type) ->
   (pn : P zero (nil A)) ->
   (pc : (n : Nat) -> (x : A) -> (xs : Vec A n) -> P n xs -> P (suc n) (cons A n x xs)) ->
   (n : Nat) -> (xs : Vec A n) -> P n xs
-elimVec = elim VecN VecP VecI VecE VecB
+elimVec = elim VecN VecE VecP VecI VecC
 
 ----------------------------------------------------------------------
 

@@ -192,9 +192,7 @@ Inj : Data λ N E P I C → (t : Tag E) → Set
 Inj N E P I C t = CurriedScope P λ p
   → CurriedFunc (Scope (I p)) (caseD E (I p) (C p) t) (FormUncurried N E P I C p)
 
-inj : Data λ N E P I C
-  → (t : Tag E)
-  → Inj N E P I C t
+inj : Data λ N E P I C → (t : Tag E) → Inj N E P I C t
 inj N E P I C t = curryScope P
   (λ p → CurriedFunc (Scope (I p)) (caseD E (I p) (C p) t) (FormUncurried N E P I C p))
   (injUncurried N E P I C t)
