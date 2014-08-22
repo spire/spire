@@ -5,65 +5,65 @@ module Spire.DarkwingDuck.Examples where
 
 ----------------------------------------------------------------------
 
-NatN : String
+NatN : Name
 NatN = "Nat"
 
 NatE : Enum
 NatE = "zero" ∷ "suc" ∷ []
 
-NatP : Tel
+NatP : Params
 NatP = Emp
 
-NatI : ITel NatP
-NatI = itel NatP Emp
+NatI : Indices NatP
+NatI = indices NatP Emp
 
-NatB : IBranches NatE NatP NatI
-NatB = ibranches NatE NatP NatI 
+NatC : Constructors NatE NatP NatI
+NatC = constructors NatE NatP NatI 
   (End tt , Rec tt (End tt) , tt)
 
 Nat : FORM NatP NatI
-Nat = Form NatN NatE NatP NatI NatB
+Nat = Form NatN NatE NatP NatI NatC
 
-zero : Inj NatN NatE NatP NatI NatB here
-zero = inj NatN NatE NatP NatI NatB here
+zero : Inj NatN NatE NatP NatI NatC here
+zero = inj NatN NatE NatP NatI NatC here
 
-suc : Inj NatN NatE NatP NatI NatB (there here)
-suc = inj NatN NatE NatP NatI NatB (there here)
+suc : Inj NatN NatE NatP NatI NatC (there here)
+suc = inj NatN NatE NatP NatI NatC (there here)
 
-elimNat : Elim NatN NatE NatP NatI NatB
-elimNat = elim NatN NatE NatP NatI NatB
+elimNat : Elim NatN NatE NatP NatI NatC
+elimNat = elim NatN NatE NatP NatI NatC
 
 ----------------------------------------------------------------------
 
-VecN : String
+VecN : Name
 VecN = "Vec"
 
 VecE : Enum
 VecE = "nil" ∷ "cons" ∷ []
 
-VecP : Tel
+VecP : Params
 VecP = Ext Set λ _ → Emp
 
-VecI : ITel VecP
-VecI = itel VecP λ A → Ext Nat λ _ → Emp
+VecI : Indices VecP
+VecI = indices VecP λ A → Ext Nat λ _ → Emp
 
-VecB : IBranches VecE VecP VecI
-VecB = ibranches VecE VecP VecI λ A →
+VecC : Constructors VecE VecP VecI
+VecC = constructors VecE VecP VecI λ A →
     End (zero , tt)
   , Arg Nat (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
   , tt
 
 Vec : FORM VecP VecI
-Vec = Form VecN VecE VecP VecI VecB
+Vec = Form VecN VecE VecP VecI VecC
 
-nil : Inj VecN VecE VecP VecI VecB here
-nil = inj VecN VecE VecP VecI VecB here
+nil : Inj VecN VecE VecP VecI VecC here
+nil = inj VecN VecE VecP VecI VecC here
 
-cons : Inj VecN VecE VecP VecI VecB (there here)
-cons = inj VecN VecE VecP VecI VecB (there here)
+cons : Inj VecN VecE VecP VecI VecC (there here)
+cons = inj VecN VecE VecP VecI VecC (there here)
 
-elimVec : Elim VecN VecE VecP VecI VecB
-elimVec = elim VecN VecE VecP VecI VecB
+elimVec : Elim VecN VecE VecP VecI VecC
+elimVec = elim VecN VecE VecP VecI VecC
 
 ----------------------------------------------------------------------
 
