@@ -14,25 +14,22 @@ NatE = "zero" ∷ "suc" ∷ []
 NatP : Tel
 NatP = Emp
 
-NatI : Scope NatP → Tel
+NatI : ITel NatP
 NatI _ = Emp
 
-NatB : (p : Scope NatP) → BranchesD NatE (NatI p)
+NatB : RBranches NatE NatP NatI
 NatB _ = End tt , Rec tt (End tt) , tt
 
-Nat : Set
+Nat : FORM NatP NatI
 Nat = Form NatN NatE NatP NatI NatB
 
-zero : Nat
+zero : Inj NatN NatE NatP NatI NatB here
 zero = inj NatN NatE NatP NatI NatB here
 
-suc : Nat → Nat
+suc : Inj NatN NatE NatP NatI NatB (there here)
 suc = inj NatN NatE NatP NatI NatB (there here)
 
-elimNat : (P : Nat → Set)
-  (pz : P zero)
-  (ps : (n : Nat) → P n → P (suc n))
-  (n : Nat) → P n
+elimNat : Elim NatN NatE NatP NatI NatB
 elimNat = elim NatN NatE NatP NatI NatB
 
 ----------------------------------------------------------------------
@@ -46,28 +43,25 @@ VecE = "nil" ∷ "cons" ∷ []
 VecP : Tel
 VecP = Ext Set λ _ → Emp
 
-VecI : Scope VecP → Tel
+VecI : ITel VecP
 VecI _ = Ext Nat λ _ → Emp
 
-VecB : (p : Scope VecP) → BranchesD VecE (VecI p)
+VecB : RBranches VecE VecP VecI
 VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
   → End (zero , tt)
   , Arg Nat (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
   , tt
 
-Vec : (A : Set) → Nat → Set
+Vec : FORM VecP VecI
 Vec = Form VecN VecE VecP VecI VecB
 
-nil : (A : Set) → Vec A zero
+nil : Inj VecN VecE VecP VecI VecB here
 nil = inj VecN VecE VecP VecI VecB here
 
-cons : (A : Set) (n : Nat) (x : A) (xs : Vec A n) → Vec A (suc n)
+cons : Inj VecN VecE VecP VecI VecB (there here)
 cons = inj VecN VecE VecP VecI VecB (there here)
 
-elimVec : (A : Set) (P : (n : Nat) → Vec A n → Set)
-  (pn : P zero (nil A))
-  (pc : (n : Nat) (x : A) (xs : Vec A n) → P n xs → P (suc n) (cons A n x xs))
-  (n : Nat) (xs : Vec A n) → P n xs
+elimVec : Elim VecN VecE VecP VecI VecB
 elimVec = elim VecN VecE VecP VecI VecB
 
 ----------------------------------------------------------------------
