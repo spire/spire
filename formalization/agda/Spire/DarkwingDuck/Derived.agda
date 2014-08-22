@@ -146,14 +146,18 @@ sumD E T cs = Arg (Tag E) (λ t → caseD E T cs t)
 ITel : Tel → Set
 ITel P = Scope P → Tel
 
-RBranches : (E : Enum) (P : Tel) → ITel P → Set
-RBranches E P I = (p : Scope P) → BranchesD E (I p)
+itel : (P : Tel) → CurriedScope P (λ _ → Tel) → ITel P
+itel P I = uncurryScope P (λ p → Tel) I
 
-Data : (X : (N : String) (E : Enum) (P : Tel) (I : ITel P)
-  (B : (p : Scope P) → BranchesD E (I p)) → Set)
+IBranches : (E : Enum) (P : Tel) (I : ITel P) → Set
+IBranches E P I = (p : Scope P) → BranchesD E (I p)
+
+ibranches : (E : Enum) (P : Tel) (I : ITel P) → CurriedScope P (λ p → BranchesD E (I p)) → IBranches E P I
+ibranches E P I B = uncurryScope P (λ p → BranchesD E (I p)) B
+
+Data : (X : (N : String) (E : Enum) (P : Tel) (I : ITel P) (B : IBranches E P I) → Set)
   → Set
-Data X = (N : String) (E : Enum) (P : Tel) (I : ITel P)
-  (B : RBranches E P I)
+Data X = (N : String) (E : Enum) (P : Tel) (I : ITel P) (B : IBranches E P I)
   → X N E P I B
 
 ----------------------------------------------------------------------

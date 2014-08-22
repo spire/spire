@@ -15,10 +15,11 @@ NatP : Tel
 NatP = Emp
 
 NatI : ITel NatP
-NatI _ = Emp
+NatI = itel NatP Emp
 
-NatB : RBranches NatE NatP NatI
-NatB _ = End tt , Rec tt (End tt) , tt
+NatB : IBranches NatE NatP NatI
+NatB = ibranches NatE NatP NatI 
+  (End tt , Rec tt (End tt) , tt)
 
 Nat : FORM NatP NatI
 Nat = Form NatN NatE NatP NatI NatB
@@ -44,11 +45,11 @@ VecP : Tel
 VecP = Ext Set λ _ → Emp
 
 VecI : ITel VecP
-VecI _ = Ext Nat λ _ → Emp
+VecI = itel VecP λ A → Ext Nat λ _ → Emp
 
-VecB : RBranches VecE VecP VecI
-VecB = uncurryScope VecP (λ p → BranchesD VecE (VecI p)) λ A
-  → End (zero , tt)
+VecB : IBranches VecE VecP VecI
+VecB = ibranches VecE VecP VecI λ A →
+    End (zero , tt)
   , Arg Nat (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
   , tt
 
