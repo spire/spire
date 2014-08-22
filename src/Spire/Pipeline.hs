@@ -19,29 +19,30 @@ import Spire.Options
 ----------------------------------------------------------------------
 
 checkInitEnv :: (?conf::Conf) => Either String ()
-checkInitEnv = runSpireM [] $ recheckCanon initEnv
+checkInitEnv = runSpireM [] $ recheckCanon (paranoid ?conf) initEnv
 
 elabProgram :: (?conf::Conf) => Env -> SProg -> Either String CProg
 elabProgram env = runSpireM env . elabProg
 
 checkProgram :: (?conf::Conf) => Env -> CProg -> Either String VProg
 checkProgram env = runSpireM env .
-  if paranoid ?conf then checkAndRecheckProg else checkProg
+  checkAndRecheckProg (paranoid ?conf)
 
-checkAndRecheckProg :: CProg -> SpireM VProg
-checkAndRecheckProg expression  = do
+checkAndRecheckProg :: Bool -> CProg -> SpireM VProg
+checkAndRecheckProg paranoid expression  = do
   canonical <- checkProg expression
-  recheckCanon canonical
+  recheckCanon paranoid canonical
   return canonical
 
-recheckCanon :: Env -> SpireM ()
-recheckCanon canonical = do
-  recheckProg canonical
-  let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical
-  expression'  <- elabProg surface'
-  canonical'   <- checkProg expression'
-  unless (canonical == canonical') $
-    throwError "Embedding is unstable!"
+recheckCanon :: Bool -> Env -> SpireM ()
+recheckCanon paranoid canonical = do
+  when paranoid $ do
+    recheckProg canonical
+    let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical
+    expression'  <- elabProg surface'
+    canonical'   <- checkProg expression'
+    unless (canonical == canonical') $
+      throwError "Embedding is unstable!"
 
 ----------------------------------------------------------------------
 
