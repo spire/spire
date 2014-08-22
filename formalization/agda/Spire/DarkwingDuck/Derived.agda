@@ -149,15 +149,15 @@ Indices P = Scope P → Tel
 indices : (P : Tel) → CurriedScope P (λ _ → Tel) → Indices P
 indices P I = uncurryScope P (λ p → Tel) I
 
-Constructors : (E : Enum) (P : Tel) (I : Indices P) → Set
-Constructors E P I = (p : Scope P) → BranchesD E (I p)
+Constrs : (E : Enum) (P : Tel) (I : Indices P) → Set
+Constrs E P I = (p : Scope P) → BranchesD E (I p)
 
-constructors : (E : Enum) (P : Tel) (I : Indices P) → CurriedScope P (λ p → BranchesD E (I p)) → Constructors E P I
-constructors E P I C = uncurryScope P (λ p → BranchesD E (I p)) C
+constrs : (E : Enum) (P : Tel) (I : Indices P) → CurriedScope P (λ p → BranchesD E (I p)) → Constrs E P I
+constrs E P I C = uncurryScope P (λ p → BranchesD E (I p)) C
 
-Data : (X : (N : String) (E : Enum) (P : Tel) (I : Indices P) (C : Constructors E P I) → Set)
+Data : (X : (N : String) (E : Enum) (P : Tel) (I : Indices P) (C : Constrs E P I) → Set)
   → Set
-Data X = (N : String) (E : Enum) (P : Tel) (I : Indices P) (C : Constructors E P I)
+Data X = (N : String) (E : Enum) (P : Tel) (I : Indices P) (C : Constrs E P I)
   → X N E P I C
 
 ----------------------------------------------------------------------
@@ -169,10 +169,10 @@ FormUncurried : Data λ N E P I C
 FormUncurried N E P I C p =
   μ N (Scope P) (Scope (I p)) (sumD E (I p) (C p)) p
 
-FORM : (P : Tel) → Indices P → Set
-FORM P I = CurriedScope P λ p → CurriedScope (I p) λ i → Set
+Former : (P : Tel) → Indices P → Set
+Former P I = CurriedScope P λ p → CurriedScope (I p) λ i → Set
 
-Form : Data λ N E P I C → FORM P I
+Form : Data λ N E P I C → Former P I
 Form N E P I C =
   curryScope P (λ p → CurriedScope (I p) λ i → Set) λ p →
   curryScope (I p) (λ i → Set) λ i →

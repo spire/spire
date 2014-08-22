@@ -5,23 +5,23 @@ module Spire.DarkwingDuck.Examples where
 
 ----------------------------------------------------------------------
 
-NatN : Name
+NatN : String
 NatN = "Nat"
 
 NatE : Enum
 NatE = "zero" ∷ "suc" ∷ []
 
-NatP : Params
+NatP : Tel
 NatP = Emp
 
 NatI : Indices NatP
 NatI = indices NatP Emp
 
-NatC : Constructors NatE NatP NatI
-NatC = constructors NatE NatP NatI 
+NatC : Constrs NatE NatP NatI
+NatC = constrs NatE NatP NatI 
   (End tt , Rec tt (End tt) , tt)
 
-Nat : FORM NatP NatI
+Nat : Former NatP NatI
 Nat = Form NatN NatE NatP NatI NatC
 
 zero : Inj NatN NatE NatP NatI NatC here
@@ -35,25 +35,25 @@ elimNat = elim NatN NatE NatP NatI NatC
 
 ----------------------------------------------------------------------
 
-VecN : Name
+VecN : String
 VecN = "Vec"
 
 VecE : Enum
 VecE = "nil" ∷ "cons" ∷ []
 
-VecP : Params
+VecP : Tel
 VecP = Ext Set λ _ → Emp
 
 VecI : Indices VecP
 VecI = indices VecP λ A → Ext Nat λ _ → Emp
 
-VecC : Constructors VecE VecP VecI
-VecC = constructors VecE VecP VecI λ A →
+VecC : Constrs VecE VecP VecI
+VecC = constrs VecE VecP VecI λ A →
     End (zero , tt)
   , Arg Nat (λ n → Arg A λ _ → Rec (n , tt) (End (suc n , tt)))
   , tt
 
-Vec : FORM VecP VecI
+Vec : Former VecP VecI
 Vec = Form VecN VecE VecP VecI VecC
 
 nil : Inj VecN VecE VecP VecI VecC here
