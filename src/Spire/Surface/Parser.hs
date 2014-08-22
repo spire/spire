@@ -165,7 +165,7 @@ parseParam = parseParens $ do
   l <- parseIdent
   parseOp ":"
   a <- parseSyntax
-  return $ (s2n l , a)
+  return $ (l , a)
 
 parseConstr = do
   l <- parseIdent

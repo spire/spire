@@ -174,7 +174,7 @@ instance Display SDecl where
     (groupM . nestM 2) (d nm <+> dt "=" <$+$> d a)
 
   display (SData _N _As _I xs) = let
-      params = hsepM $ map (\(nm , _A) -> parensM $ d nm <+> dt ":" <+> d _A ) _As
+      params = hsepM $ map (\(l , _A) -> parensM $ dt l <+> dt ":" <+> d _A ) _As
       constrs = vsepM $ map (\(l , _A) -> dt l <+> dt ":" <+> d _A ) xs
     in
     dt "data" <+> dt _N <+> params <+> dt ":" <+> d _I <+> dt "where"

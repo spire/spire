@@ -42,7 +42,7 @@ instance Alpha Syntax
 
 data SDecl =
     SDef Nom Syntax Syntax
-  | SData String [(Nom , Syntax)] Syntax [(String , Syntax)]
+  | SData String [(String , Syntax)] Syntax [(String , Syntax)]
   deriving Show
 
 type SProg = [SDecl]
@@ -60,6 +60,15 @@ sString = sVar B._String
 
 sEnum :: Syntax
 sEnum = sVar B._Enum
+
+sTel :: Syntax
+sTel = sVar B._Tel
+
+sEmp :: Syntax
+sEmp = sVar B._Emp
+
+sExt :: Syntax -> Syntax -> Syntax
+sExt _A _B = SApp (SApp (sVar B._Ext) _A) _B
 
 sNil :: Syntax
 sNil = sVar B.nil

@@ -14,8 +14,9 @@ elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
 elabProg (SData _N _As _I cs : xs) = let
   _N' = elabName _N
+  _P = elabParams _N _As
   _E = elabEnum _N (map fst cs)
-  in elabProg (_N' : _E : xs)
+  in elabProg (_N' : _P : _E : xs)
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
   a'  <- elab a
@@ -31,6 +32,12 @@ elabEnum _N _E = let
   nm = _N ++ "E"
   _E' = foldr (sCons . SQuotes) sNil _E
   in sDef nm _E' sEnum
+
+elabParams :: String -> [(String , Syntax)] -> SDecl
+elabParams _N _As = let
+  nm = _N ++ "P"
+  _P = foldr (\(nm , _A) -> sExt _A . sLam nm) sEmp _As
+  in sDef nm _P sTel
 
 ----------------------------------------------------------------------
 
