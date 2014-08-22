@@ -83,7 +83,7 @@ parseAngles = try . angles tokenizer
 parseProg :: ParserM SProg
 parseProg = many parseDecl <* eof
 
-parseDecl :: ParserM SDecl
+parseDecl :: ParserM Decl
 parseDecl = parseData <|> parseDef
 
 parseDef = do

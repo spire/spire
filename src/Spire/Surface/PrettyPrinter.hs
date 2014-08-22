@@ -168,7 +168,7 @@ instance Display Syntax where
     SApp f a  -> dApp s f a
     SAnn a _A -> dAnn s a _A
 
-instance Display SDecl where
+instance Display Decl where
   display (SDef nm a _A) =
     (groupM . nestM 2) (d nm <+> dt ":" <$+$> d _A) <$$>
     (groupM . nestM 2) (d nm <+> dt "=" <$+$> d a)

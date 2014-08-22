@@ -40,16 +40,19 @@ instance Alpha Syntax
 
 ----------------------------------------------------------------------
 
-data SDecl =
+data Decl =
     SDef Nom Syntax Syntax
   | SData String [(String , Syntax)] Syntax [(String , Syntax)]
   deriving Show
 
-type SProg = [SDecl]
+data Constr = Fix [Syntax] | Arg [(String , Syntax)]
+  deriving Show
+
+type SProg = [Decl]
 
 ----------------------------------------------------------------------
 
-sDef :: String -> Syntax -> Syntax -> SDecl
+sDef :: String -> Syntax -> Syntax -> Decl
 sDef nm = SDef (s2n nm)
 
 sVar :: String -> Syntax
