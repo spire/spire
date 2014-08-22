@@ -23,17 +23,17 @@ elabProg (SDef nm a _A : xs) = do
   xs' <- elabProg xs
   return (CDef nm a' _A' : xs')
 
-elabName :: String -> Decl
+elabName :: String -> Stmt
 elabName _N = let nm = _N ++ "N"
   in sDef nm (SQuotes _N) sString
 
-elabEnum :: String -> [String] -> Decl
+elabEnum :: String -> [String] -> Stmt
 elabEnum _N _E = let
   nm = _N ++ "E"
   _E' = foldr (sCons . SQuotes) sNil _E
   in sDef nm _E' sEnum
 
-elabParams :: String -> [(String , Syntax)] -> Decl
+elabParams :: String -> [(String , Syntax)] -> Stmt
 elabParams _N _As = let
   nm = _N ++ "P"
   _P = foldr (\(nm , _A) -> sExt _A . sLam nm) sEmp _As
