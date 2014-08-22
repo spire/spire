@@ -26,7 +26,7 @@
   '("data" "let" "where" "in" "end") ;; keywords
   '(("\\<\\(Unit\\|Bool\\|Enum\\|Tel\\|Tag\\|String\\|Desc\\|Type\\|Fix\\)\\>" . 'font-lock-type-face) ;; types
     ("\\<\\(if\\|then\\|else\\|elimUnit\\|elimPair\\|elimEq\\|elimBool\\|elimEnum\\|elimTel\\|elimDesc\\|Func\\|Hyps\\|Branches\\|case\\|ind\\|\\$\\)\\>" . 'font-lock-builtin-face) ;; builtins
-    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\|Emp\\|Ext\\)\\>" . 'font-lock-constant-face) ;; constants
+    ("\\<\\(tt\\|true\\|false\\|false\\|refl\\|init\\|here\\|there\\|End\\|Arg\\|Rec\\|Emp\\|Ext\\|label\\|done\\)\\>" . 'font-lock-constant-face) ;; constants
     )
   '("\\.spire$") ;; file extension
   (list 'spire-bind-keys) ;; other functions to call
