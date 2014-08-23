@@ -114,4 +114,13 @@ constrs :: String -> Syntax -> Syntax
 constrs nm cs = sApps (sVar "constrs") $
   [sVar (nm ++ "E") , sVar (nm ++ "P") , sVar (nm ++ "I") , cs]
 
+_Former :: String -> Syntax
+_Former nm = sApps (sVar "Former") $
+  [sVar (nm ++ "P") , sVar (nm ++ "I")]
+
+nepic :: String -> String -> Syntax
+nepic nm _N = sApps (sVar nm) $
+  [sVar (_N ++ "N") , sVar (_N ++ "E") , sVar (_N ++ "P") ,
+   sVar (_N ++ "I") , sVar (_N ++ "C")]
+
 ----------------------------------------------------------------------

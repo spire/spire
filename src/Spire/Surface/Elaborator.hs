@@ -1,4 +1,5 @@
 module Spire.Surface.Elaborator (elabProg) where
+import Data.List
 import Control.Monad.Except
 import Control.Monad.Writer
 import Control.Monad.Reader
@@ -18,12 +19,33 @@ elabProg (SData _N _Ps _Is css : xs) = let
   _P = elabParams _N _Ps
   _I = elabIndices _N (map fst _Ps) _Is
   _C = elabConstrs _N (map fst _Ps) (map snd css)
-  in elabProg (_N' : _E : _P : _I : _C : xs)
+  _Form = elabForm _N
+  _Injs = elabInjs _N (map fst css)
+  _Elim = elabElim _N
+  in elabProg $ [ _N' , _E , _P , _I , _C , _Form ]
+    ++ _Injs ++ (_Elim : xs)
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
   a'  <- elab a
   xs' <- elabProg xs
   return (CDef nm a' _A' : xs')
+
+elabForm :: String -> Stmt
+elabForm _N = sDef _N (nepic "Form" _N) (_Former _N)
+
+elabElim :: String -> Stmt
+elabElim _N = let nm = "elim" ++ _N
+  in sDef nm (nepic "elim" _N) (nepic "Elim" _N)
+
+elabInj :: String -> String -> Syntax -> Stmt
+elabInj _N l t = sDef l
+  (nepic "inj" _N `SApp` t)
+  (nepic "Inj" _N `SApp` t)
+
+elabInjs :: String -> [String] -> Stmts
+elabInjs _N _E = snd $ mapAccumL
+  (\ t l -> (SThere t , elabInj _N l t))
+  SHere _E
 
 elabName :: String -> Stmt
 elabName _N = let nm = _N ++ "N"
