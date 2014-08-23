@@ -12,10 +12,11 @@ import Spire.Expression.Types
 
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
-elabProg (SData _N _As _I cs : xs) = let
+elabProg (SData _N _Ps _Is cs : xs) = let
   _N' = elabName _N
   _E = elabEnum _N (map fst cs)
-  _P = elabParams _N _As
+  _P = elabParams _N _Ps
+  _I = elabIndices _N (map fst _Ps) _Is
   in elabProg (_N' : _E : _P : xs)
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
@@ -34,10 +35,17 @@ elabEnum _N _E = let
   in sDef nm _E' sEnum
 
 elabParams :: String -> [(String , Syntax)] -> Stmt
-elabParams _N _As = let
+elabParams _N _Ps = let
   nm = _N ++ "P"
-  _P = foldr (\(nm , _A) -> sExt _A . sLam nm) sEmp _As
+  _P = foldr (\(nm , _A) -> sExt _A . sLam nm) sEmp _Ps
   in sDef nm _P sTel
+
+elabIndices :: String -> [String] -> [(String , Syntax)] -> Stmt
+elabIndices _N _Ps _Is = let
+  nm = _N ++ "I"
+  freeI = foldr (\(a , _A) -> sExt _A . sLam a) sEmp _Is
+  _I = foldr sLam freeI _Ps
+  in sDef nm (indices _N _I) (_Indices _N)
 
 ----------------------------------------------------------------------
 

@@ -42,7 +42,7 @@ instance Alpha Syntax
 
 data Stmt =
     SDef Nom Syntax Syntax
-  | SData String [(String , Syntax)] Syntax [(String , Syntax)]
+  | SData String [(String , Syntax)] [(String , Syntax)] [(String , Syntax)]
   deriving Show
 
 data Constr = Fix [Syntax] | Arg [(String , Syntax)]
@@ -55,11 +55,17 @@ type SProg = [Stmt]
 sDef :: String -> Syntax -> Syntax -> Stmt
 sDef nm = SDef (s2n nm)
 
+sApps :: Syntax -> [Syntax] -> Syntax
+sApps = foldl SApp
+
 sVar :: String -> Syntax
 sVar = SVar . s2n
 
 sString :: Syntax
 sString = sVar B._String
+
+sType :: Syntax
+sType = sVar B._Type
 
 sEnum :: Syntax
 sEnum = sVar B._Enum
@@ -87,5 +93,13 @@ sPi x nm y = SPi x $ bind (s2n nm) y
 
 sSg :: Syntax -> String -> Syntax -> Syntax
 sSg x nm y = SSg x $ bind (s2n nm) y
+
+----------------------------------------------------------------------
+
+_Indices :: String -> Syntax
+_Indices nm = SApp (sVar "Indices") $ sVar (nm ++ "P")
+
+indices :: String -> Syntax -> Syntax
+indices nm _I = sApps (sVar "indices") [sVar (nm ++ "P") , _I]
 
 ----------------------------------------------------------------------

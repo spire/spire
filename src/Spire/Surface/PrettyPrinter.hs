@@ -173,11 +173,13 @@ instance Display Stmt where
     (groupM . nestM 2) (d nm <+> dt ":" <$+$> d _A) <$$>
     (groupM . nestM 2) (d nm <+> dt "=" <$+$> d a)
 
-  display (SData _N _As _I xs) = let
-      params = hsepM $ map (\(l , _A) -> parensM $ dt l <+> dt ":" <+> d _A ) _As
+  display (SData _N _P _I xs) = let
+      params = hsepM $ map (\(l , _A) -> parensM $ dt l <+> dt ":" <+> d _A ) _P
+      maybeParens = \(l , _A) -> if l == wildcard then d _A else parensM (dt l <+> dt ":" <+> d _A)
+      indices = PP.hcat . PP.punctuate (PP.text " => ") <$> mapM maybeParens (_I ++ [(wildcard , sType)])
       constrs = vsepM $ map (\(l , _A) -> dt l <+> dt ":" <+> d _A ) xs
     in
-    dt "data" <+> dt _N <+> params <+> dt ":" <+> d _I <+> dt "where"
+    dt "data" <+> dt _N <+> params <+> dt ":" <+> indices <+> dt "where"
     <$$> indentM 2 constrs <$$>
     dt "end"
 

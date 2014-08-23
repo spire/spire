@@ -40,7 +40,7 @@ formatParseError error = printf "%s:%i:%i:\n%s" file line col msg
 
 ----------------------------------------------------------------------
 
-ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "=="]
+ops = ["\\", "->", "*", ",", ":", "$", "=", "::" , "[]", "==", "=>"]
 keywords = [
   "data", "where", "end", "let", "in",
   "refl", "here", "there", "init",
@@ -126,7 +126,7 @@ parseAtom = choice
 
 failIfStmt =
   -- a type declaration or assignment (as part of a definition) is next
-  try . notFollowedBy $ parseKeyword "data" <|> parseKeyword "end" <|> (parseIdent >> (parseOp ":" <|> (parseOp "=")))
+  try . notFollowedBy $ parseOp "=>" <|> parseKeyword "data" <|> parseKeyword "end" <|> (parseIdent >> (parseOp ":" <|> (parseOp "=")))
 
 table = [
     [Infix parseSpaceApp             AssocLeft]
@@ -153,15 +153,29 @@ table = [
 parseData = do
   parseKeyword "data"
   _N <- parseIdent
-  _As <- many parseParam
+  _P <- many parseParam
   parseOp ":"
-  _I <- parseSyntax
+  _I <- parseIndices
   parseKeyword "where"
-  xs <- many parseConstr
+  cs <- many parseConstr
   parseKeyword "end"
-  return $ SData _N _As _I xs
+  return $ SData _N _P _I cs
 
 parseParam = parseParens $ do
+  l <- parseIdent
+  parseOp ":"
+  a <- parseSyntax
+  return $ (l , a)
+
+parseIndices = do
+  _I <- sepBy (parseUnnamedIndex <|> parseNamedIndex) (parseOp "=>")
+  return $ init _I
+
+parseUnnamedIndex = try $ do
+  a <- parseSyntax
+  return $ (wildcard , a)
+
+parseNamedIndex = try $ parseParens $ do
   l <- parseIdent
   parseOp ":"
   a <- parseSyntax
@@ -172,7 +186,6 @@ parseConstr = do
   parseOp ":"
   a <- parseSyntax
   return $ (l , a)
-  
 
 ----------------------------------------------------------------------
 
