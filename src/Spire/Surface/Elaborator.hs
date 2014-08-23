@@ -12,12 +12,13 @@ import Spire.Expression.Types
 
 elabProg :: SProg -> SpireM CProg
 elabProg [] = return []
-elabProg (SData _N _Ps _Is cs : xs) = let
+elabProg (SData _N _Ps _Is css : xs) = let
   _N' = elabName _N
-  _E = elabEnum _N (map fst cs)
+  _E = elabEnum _N (map fst css)
   _P = elabParams _N _Ps
   _I = elabIndices _N (map fst _Ps) _Is
-  in elabProg (_N' : _E : _P : xs)
+  _C = elabConstrs _N (map fst _Ps) (map snd css)
+  in elabProg (_N' : _E : _P : _I : _C : xs)
 elabProg (SDef nm a _A : xs) = do
   _A' <- elab _A
   a'  <- elab a
@@ -46,6 +47,19 @@ elabIndices _N _Ps _Is = let
   freeI = foldr (\(a , _A) -> sExt _A . sLam a) sEmp _Is
   _I = foldr sLam freeI _Ps
   in sDef nm (indices _N _I) (_Indices _N)
+
+elabConstrs :: String -> [String] -> [[Constr]] -> Stmt
+elabConstrs _N _Ps css = let
+  nm = _N ++ "C"
+  freeC = foldr SPair sTT (map elabConstr css)
+  _C = foldr sLam freeC _Ps
+  in sDef nm (constrs _N _C) (_Constrs _N)
+
+elabConstr :: [Constr] -> Syntax
+elabConstr [] = error "constructor without type signature"
+elabConstr (Fix _I : []) = SEnd (foldr SPair sTT _I)
+elabConstr (Fix _I : cs) = SRec (foldr SPair sTT _I) (elabConstr cs)
+elabConstr (Arg a _A : cs) = SArg _A (sbind a $ elabConstr cs)
 
 ----------------------------------------------------------------------
 

@@ -173,15 +173,23 @@ instance Display Stmt where
     (groupM . nestM 2) (d nm <+> dt ":" <$+$> d _A) <$$>
     (groupM . nestM 2) (d nm <+> dt "=" <$+$> d a)
 
-  display (SData _N _P _I xs) = let
-      params = hsepM $ map (\(l , _A) -> parensM $ dt l <+> dt ":" <+> d _A ) _P
-      maybeParens = \(l , _A) -> if l == wildcard then d _A else parensM (dt l <+> dt ":" <+> d _A)
+  display (SData _N _P _I css) = let
+      params = map (\(l , _A) -> parensM $ dt l <+> dt ":" <+> d _A ) _P
       indices = PP.hcat . PP.punctuate (PP.text " => ") <$> mapM maybeParens (_I ++ [(wildcard , sType)])
-      constrs = vsepM $ map (\(l , _A) -> dt l <+> dt ":" <+> d _A ) xs
+      constrs = vsepM $ map (\ (nm , cs) -> dt nm <+> dt ":" <+> displayConstrs _N (map fst _P) cs) css
     in
-    dt "data" <+> dt _N <+> params <+> dt ":" <+> indices <+> dt "where"
+    dt "data" <+> hsepM (dt _N : params) <+> dt ":" <+> indices <+> dt "where"
     <$$> indentM 2 constrs <$$>
     dt "end"
+   where
+   maybeParens = \(l , _A) -> if l == wildcard then d _A else parensM (dt l <+> dt ":" <+> d _A)
+
+   displayConstrs :: String -> [String] -> [Constr] -> DisplayM Doc
+   displayConstrs _N _P cs = PP.hcat . PP.punctuate (PP.text " => ") <$> mapM (displayConstr _N _P) cs
+
+   displayConstr :: String -> [String] -> Constr -> DisplayM Doc
+   displayConstr _N _P (Fix _I) = hsepM $ (dt _N : map dt _P) ++ map d _I
+   displayConstr _N _P (Arg nm _A) = maybeParens (nm , _A)
 
 instance Display SProg where
   display defs =  PP.vcat . PP.punctuate PP.line <$> mapM d defs

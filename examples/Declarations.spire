@@ -4,13 +4,18 @@ myTrue = true
 
 data Nat : Type where
   zero : Nat
-  suc : Nat -> Nat
+  suc : Nat => Nat
 end
 
-data Vec (A : Type) : Nat => Type where
-  nil : Vec A zero
-  cons : (n : Nat) -> A -> Vec A n -> Vec A (suc n)
+data Flicker (A : Type) : Bool => Type where
+  nil : Flicker A false
+  cons : (b : Bool) => A => Flicker A b => Flicker A (if b then false else true)
 end
+
+-- data Vec (A : Type) : Nat => Type where
+--   nil : Vec A zero
+--   cons : (n : Nat) => A => Vec A n => Vec A (suc n)
+-- end
 
 myFalse : Bool
 myFalse = false

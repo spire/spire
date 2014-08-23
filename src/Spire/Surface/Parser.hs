@@ -18,6 +18,7 @@ import Text.Parsec.Language
 import Text.Parsec.Error
 import Text.Printf
 import Control.Applicative ((<*))
+import Control.Monad (replicateM)
 
 ----------------------------------------------------------------------
 
@@ -150,14 +151,14 @@ table = [
 
 ----------------------------------------------------------------------
 
-parseData = do
+parseData = try $ do
   parseKeyword "data"
   _N <- parseIdent
   _P <- many parseParam
   parseOp ":"
   _I <- parseIndices
   parseKeyword "where"
-  cs <- many parseConstr
+  cs <- many $ parseConstr _N _P _I
   parseKeyword "end"
   return $ SData _N _P _I cs
 
@@ -168,24 +169,40 @@ parseParam = parseParens $ do
   return $ (l , a)
 
 parseIndices = do
-  _I <- sepBy (parseUnnamedIndex <|> parseNamedIndex) (parseOp "=>")
+  _I <- sepBy (parseNamedIndex <|> parseUnnamedIndex) (parseOp "=>")
   return $ init _I
 
 parseUnnamedIndex = try $ do
   a <- parseSyntax
   return $ (wildcard , a)
 
-parseNamedIndex = try $ parseParens $ do
+parseNamedIndex = try . parseParens $ do
   l <- parseIdent
   parseOp ":"
   a <- parseSyntax
   return $ (l , a)
 
-parseConstr = do
+parseConstr _N _P _I = try $ do
   l <- parseIdent
   parseOp ":"
-  a <- parseSyntax
-  return $ (l , a)
+  cs <- sepBy (parseFix _N _P _I <|> parseNamedArg <|> parseUnnamedArg) (parseOp "=>")
+  return $ (l , cs)
+
+parseNamedArg = try . parseParens $ do
+  l <- parseIdent
+  parseOp ":"
+  _A <- parseSyntax
+  return $ Arg l _A
+
+parseUnnamedArg = try $ do
+  _A <- parseSyntax
+  return $ Arg wildcard _A
+
+parseFix _N _P _I = try $ do
+  parseToken _N
+  mapM_ parseToken (map fst _P)
+  i <- replicateM (length _I) parseAtom
+  return $ Fix i
 
 ----------------------------------------------------------------------
 
