@@ -34,7 +34,7 @@ prettyPrintError a  = prettyPrint a ++ "\x1b[35m(" ++ show a ++ ")\x1b[0m"
 ----------------------------------------------------------------------
 
 -- Lift standard pretty printing ops to a monad.
-sepM , fsepM , hsepM , vcatM , listM, alignSepM ::
+sepM , fsepM , hsepM , vcatM , listM , alignSepM , groupNestSepM ::
   (Functor m , Monad m) => [m Doc] -> m Doc
 sepM  xs = PP.sep     <$> sequence xs
 fsepM xs = PP.fillSep <$> sequence xs
@@ -43,6 +43,7 @@ vsepM xs = PP.vsep    <$> sequence xs
 vcatM xs = PP.vcat    <$> sequence xs
 listM xs = PP.list    <$> sequence xs
 alignSepM = alignM . sepM
+groupNestSepM = groupM . nestM 2 . sepM
 
 nestM , indentM :: Functor m => Int -> m Doc -> m Doc
 nestM   n = fmap $ PP.nest n
@@ -119,7 +120,7 @@ dSg o _A bnd_B = do
   (nm , _B) <- unbind bnd_B
   binding o nm _A <+> dt "*" <+> pushName nm (d _B)
 
-dIf o c t f = alignSepM
+dIf o c t f = groupNestSepM
   [ dt "if" <+> w o c
   , dt "then" <+> w o t
   , dt "else" <+> w o f
@@ -134,11 +135,11 @@ dApp o f a = alignM $ w o f </> ww o a
 dAnn _ a _A = parensM . alignSepM $ [ d a , dt ":" <+> d _A ]
 
 dRec o i _D =
-  dt "Rec" <+> alignSepM
+  dt "Rec" <+> groupNestSepM
     [ ww o i , ww o _D ]
 
 dArg o _A _B =
-  dt "Arg" <+> alignSepM
+  dt "Arg" <+> groupNestSepM
     [ ww o _A , dLamArg o _B ]
 
 ----------------------------------------------------------------------
