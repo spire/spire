@@ -1,6 +1,5 @@
 
-myTrue : Bool
-myTrue = true
+----------------------------------------------------------------------
 
 data Nat : Type where
   zero : Nat
@@ -12,5 +11,41 @@ data Vec (A : Type) : Nat => Type where
   cons : (n : Nat) => A => Vec A n => Vec A (suc n)
 end
 
-myFalse : Bool
-myFalse = false
+----------------------------------------------------------------------
+
+add : Nat -> Nat -> Nat
+add = elimNat (\ n -> Nat -> Nat)
+  (\ n -> n)
+  (\ m ih n -> suc (ih n))
+
+append : (A : Type) -> (m  : Nat) -> (n : Nat) -> Vec A m -> Vec A n -> Vec A (add m n)
+append = \ A m n -> elimVec A
+  (\ m xs -> (ys : Vec A n) -> Vec A (add m n))
+  (\ ys -> ys)
+  (\ m' x xs ih ys -> cons A (add m' n) x (ih ys))
+  m
+
+----------------------------------------------------------------------
+
+one : Nat
+one = suc zero
+
+two : Nat
+two = suc one
+
+three : Nat
+three = suc two
+
+one-two-nil : Vec Nat two
+one-two-nil = cons Nat one one (cons Nat zero two (nil Nat))
+
+three-nil : Vec Nat one
+three-nil = cons Nat zero three (nil Nat)
+
+one-two-three-nil : Vec Nat three
+one-two-three-nil = cons Nat two one (cons Nat one two (cons Nat zero three (nil Nat)))
+
+test-append : one-two-three-nil == append Nat two one one-two-nil three-nil
+test-append = refl
+
+----------------------------------------------------------------------
