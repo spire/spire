@@ -4,7 +4,7 @@
   , DeriveTraversable
   #-}
 
-module Canonical where
+module Canonical2 where
 
 import Prelude hiding ( foldl )
 import Data.Foldable
@@ -46,17 +46,12 @@ elim (Neut a xs) x = Neut a (Pipe xs x)
 elim _ _ = error "Ill-typed evaluation"
 
 instance Monad Val where
-  return nm = Neut nm Id
+  return a = Neut a Id
   TT >>= f = TT
   FF >>= f = FF
   Lam b >>= f = Lam (b >>>= f)
   Pair a b >>= f = Pair (a >>= f) (b >>= f)
-  Neut nm xs >>= f = foldl elim (f nm) (fmap g xs)
-    where
-    g (App a) = App (a >>= f)
-    g Proj1 = Proj1
-    g Proj2 = Proj2
-    g (If _P ct cf) = If (_P >>>= fmap f) (ct >>= f) (cf >>= f)
+  Neut a xs >>= f = foldl elim (f a) (fmap (fmap (>>= f)) xs)
 
 lam :: Eq a => a -> Val a -> Val a
 lam nm b = Lam (abstract1 nm b)
