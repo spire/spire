@@ -41,12 +41,12 @@ var :: a -> Val a
 var a = Neut a Id
 
 elim :: Val a -> Elim a -> Val a
+elim (Neut a xs) x = Neut a (Pipe xs x)
 elim TT (If _P ct cf) = ct
 elim FF (If _P ct cf) = cf
 elim (Pair a b) Proj1 = a
 elim (Pair a b) Proj2 = b
 elim (Lam b) (App a) = instantiate1 a b
-elim (Neut a xs) x = Neut a (Pipe xs x)
 elim _ _ = error "Ill-typed evaluation"
 
 instance Monad Val where
