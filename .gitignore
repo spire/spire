@@ -19,3 +19,4 @@ formalization/ott/*.tex
 tmp
 lib
 *.spirei
+*.prof*
