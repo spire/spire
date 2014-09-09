@@ -6,7 +6,7 @@
 
 module Expr where
 import Control.Monad
-import Control.Monad.State hiding ( lift )
+import Control.Monad.Identity hiding ( lift )
 
 ----------------------------------------------------------------------
 
@@ -30,7 +30,7 @@ type Sig m a = Var a -> Name a -> m a
 class Monad m => Subst m a where
   trav :: Sig m a -> a -> m a
 
-instance Subst (State ()) Exp where
+instance Subst Identity Exp where
   trav s (Var nm) = s Var nm
    -- Spine nm xs = elim (s Var nm) =<< trav s xs
   trav s TT = return TT
@@ -55,13 +55,25 @@ instance Subst (State ()) Exp where
 travBind :: Subst m a => Sig m a -> Bind a -> m (Bind a)
 travBind s (Bind a) = return . Bind =<< trav (lift s) a
 
--- sub :: (Monad m,Subst a) => Bind a -> a -> a
--- sub (Bind t) a = trav 
+unbind :: Subst m a => Sig m a -> Bind a -> (Sig m a , a)
+unbind s (Bind a) = (lift s , a)
 
--- sig :: (Monad m,Subst a) => a -> Var a -> Name a -> m a
--- sig a r (Bn 0) = return a
--- sig a r nm@(Bn i) = return (r nm)
--- sig a r nm@(Fr _ _) = return (r nm)
+bind :: Subst m a => String -> a -> m (Bind a)
+bind str a = return . Bind =<< trav (fr1 str) a
+
+idSig :: Subst m a => Sig m a
+idSig r nm = return (r nm)
+
+fr1 :: Subst m a => String -> Sig m a
+fr1 str r (Fr str') | str == str' = return $ r (Bn 0)
+fr1 str r nm = return (r nm)
+
+sub :: Subst m a => Bind a -> a -> m a
+sub (Bind b) a = trav (bn1 a) b
+
+bn1 :: Subst m a => a -> Sig m a
+bn1 a r (Bn 0) = return a
+bn1 a r nm = return (r nm)
 
 lift :: Subst m a => Sig m a -> Sig m a
 lift s r nm@(Bn 0) = return $ r nm
@@ -69,9 +81,6 @@ lift s r nm = trav wkn =<< s r nm
 
 wkn :: Subst m a => Sig m a
 wkn r (Bn i) = return $ r (Bn (succ i))
-wkn r nm@(Fr _) = return $ r nm
-
--- weakenSub :: (Monad m,Subst a) => Int -> (Name a -> m a) -> Name a -> ma
--- weakenSub i s nm = undefined
+wkn r nm = return $ r nm
 
 ----------------------------------------------------------------------
