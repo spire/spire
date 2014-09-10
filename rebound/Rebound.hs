@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances
            , MultiParamTypeClasses
            , FlexibleInstances
+           , FlexibleContexts
   #-}
 
 
@@ -26,34 +27,35 @@ lift s nm@(Bn 0) = var nm
 lift s (Bn i) = weaken $ s (Bn (pred i))
 lift s nm = weaken $ s nm
 
-class Term a where
-  term :: Var b => b -> a
-
-class Subst a where
-  trav :: (Term a , Var b) => Sig b -> a -> a
-
 instance Var Name where
   var = id
-
   weaken (Bn i) = Bn (succ i)
   weaken nm = nm
 
-travBind :: (Term a,Var b,Subst a) => Sig b -> Bind a -> Bind a
+----------------------------------------------------------------------
+
+travBind :: (Term a b,Subst a) => Sig b -> Bind a -> Bind a
 travBind s (Bind a) = Bind $ trav (lift s) a
 
+----------------------------------------------------------------------
 
+class Var b => Term a b where
+  term :: b -> a
 
+class Subst a where
+  trav :: (Var b , Term a b) => Sig b -> a -> a
 
+----------------------------------------------------------------------
 
 -- unbind :: Subst m a => Sig m a -> Bind a -> (Sig m a , a)
 -- unbind s (Bind a) = (lift s , a)
 
--- bind :: Subst m a => String -> a -> m (Bind a)
--- bind str a = return . Bind =<< trav (fr1 str) a
+bind :: (Term a Name, Subst a) => String -> a -> Bind a
+bind str a = Bind $ trav (fr1 str :: Sig Name) a
 
--- fr1 :: Subst m a => String -> Sig m a
--- fr1 str r (Fr str') | str == str' = return $ r (Bn 0)
--- fr1 str r nm = return (r nm)
+fr1 :: Var a => String -> Sig a
+fr1 str (Fr str') | str == str' = var (Bn 0)
+fr1 str nm = var nm
 
 -- sub :: Subst m a => Bind a -> a -> m a
 -- sub (Bind b) a = trav (bn1 a) b
@@ -61,6 +63,9 @@ travBind s (Bind a) = Bind $ trav (lift s) a
 -- bn1 :: Subst m a => a -> Sig m a
 -- bn1 a r (Bn 0) = return a
 -- bn1 a r nm = return (r nm)
+
+var' :: Var a => String -> a
+var' = var . s2n
 
 s2n :: String -> Name
 s2n = Fr

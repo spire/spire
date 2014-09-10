@@ -12,14 +12,24 @@ data Exp =
     TT | FF
   | Pair Exp Exp | App Exp Exp
   | Proj1 Exp | Proj2 Exp
-  | Nm Name
+  | EVar Name
   | Lam (Bind Exp)
   deriving (Show,Read,Eq,Ord)
 
 ----------------------------------------------------------------------
 
+instance Var Exp where
+  var = EVar
+  weaken = trav (weaken :: Name -> Name)
+
+instance Term Exp Name where
+  term = EVar
+
+instance Term Exp Exp where
+  term = id
+
 instance Subst Exp where
-  trav s (Nm nm) = term (s nm)
+  trav s (EVar nm) = term (s nm)
   trav s TT = TT
   trav s FF = FF
   trav s (Pair a b) = Pair (trav s a) (trav s b)
@@ -28,65 +38,10 @@ instance Subst Exp where
   trav s (Proj2 ab) = Proj2 (trav s ab)
   trav s (Lam b) = Lam (travBind s b)
 
-instance Term Exp where
-  term = Nm
+----------------------------------------------------------------------
 
-type Ren = Name -> Name
-
--- ren :: Ren -> Exp -> Exp
--- ren s a = trav s a
-
--- instance Subst TCM Exp where
---   trav s (Nm nm) = s Nm nm
---    -- Spine nm xs = elim (s Nm nm) =<< trav s xs
---   trav s TT = return TT
---   trav s FF = return FF
---   trav s (Proj1 ab) = do
---     ab' <- trav s ab
---     return $ Proj1 ab'
---   trav s (Proj2 ab) = do
---     ab' <- trav s ab
---     return $ Proj2 ab'
---   trav s (Pair a b) = do
---     a' <- trav s a
---     b' <- trav s b
---     return $ Pair a' b'
---   trav s (App f a) = do
---     f' <- trav s f
---     a' <- trav s a
---     return $ App f' a'
---   trav s (Lam b) = do
---     b' <- travBind s b
---     return $ Lam b'
-
--- ----------------------------------------------------------------------
-
--- tt :: TCM Exp
--- tt = return TT
-
--- ff :: TCM Exp
--- ff = return FF
-
--- pair :: TCM Exp -> TCM Exp -> TCM Exp
--- pair = liftM2 Pair
-
--- app :: TCM Exp -> TCM Exp -> TCM Exp
--- app = liftM2 App
-
--- proj1 :: TCM Exp -> TCM Exp
--- proj1 = liftM Proj1
-
--- proj2 :: TCM Exp -> TCM Exp
--- proj2 = liftM Proj2
-
--- var :: String -> TCM Exp
--- var = var' . s2n
-
--- var' :: Name -> TCM Exp
--- var' = return . Nm
-
--- lam :: String -> TCM Exp -> TCM Exp
--- lam nm a = return . Lam =<< bind nm =<< a
+lam :: String -> Exp -> Exp
+lam nm a = Lam $ bind nm a
 
 -- ----------------------------------------------------------------------
 
@@ -110,7 +65,7 @@ type Ren = Name -> Name
 --   case f' of
 --     Lam b -> eval =<< sub b a'
 --     otherwise -> return $ App f' a'
--- eval (Nm nm) = var' nm
+-- eval (EVar nm) = var' nm
 -- eval (Lam (Bind b)) =
 --   return . Lam . Bind =<< eval b
 
