@@ -35,9 +35,6 @@ unbind s (Bind a) = (lift s , a)
 bind :: Subst m a => String -> a -> m (Bind a)
 bind str a = return . Bind =<< trav (fr1 str) a
 
-idSig :: Subst m a => Sig m a
-idSig r nm = return (r nm)
-
 fr1 :: Subst m a => String -> Sig m a
 fr1 str r (Fr str') | str == str' = return $ r (Bn 0)
 fr1 str r nm = return (r nm)
@@ -51,6 +48,7 @@ bn1 a r nm = return (r nm)
 
 lift :: Subst m a => Sig m a -> Sig m a
 lift s r nm@(Bn 0) = return $ r nm
+lift s r (Bn i) = trav wkn =<< s r (Bn (pred i))
 lift s r nm = trav wkn =<< s r nm
 
 wkn :: Subst m a => Sig m a
@@ -59,5 +57,9 @@ wkn r nm = return $ r nm
 
 s2n :: String -> Name a
 s2n = Fr
+
+n2s :: Name a -> String
+n2s (Fr str) = str
+n2s (Bn i) = "x" ++ show i
 
 ----------------------------------------------------------------------
