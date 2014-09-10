@@ -4,7 +4,7 @@
   #-}
 
 module Exp where
-import Rebound
+import Rebound2
 
 ----------------------------------------------------------------------
 

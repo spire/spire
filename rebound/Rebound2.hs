@@ -5,7 +5,7 @@
   #-}
 
 
-module Rebound where
+module Rebound2 where
 import Control.Monad
 
 ----------------------------------------------------------------------
