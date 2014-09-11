@@ -70,10 +70,7 @@ proj2 :: TCM Exp -> TCM Exp
 proj2 = liftM Proj2
 
 var :: String -> TCM Exp
-var = var' . s2n
-
-var' :: Nom -> TCM Exp
-var' = return . Var
+var = vari . s2n
 
 lam :: String -> TCM Exp -> TCM Exp
 lam nm a = return . Lam =<< bind nm =<< a
@@ -100,7 +97,7 @@ eval (App f a) = do
   case f' of
     Lam b -> eval =<< sub b a'
     otherwise -> return $ App f' a'
-eval (Var nm) = var' nm
+eval (Var nm) = vari nm
 eval (Lam (Bind b)) =
   return . Lam . Bind =<< eval b
 

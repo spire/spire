@@ -28,18 +28,18 @@ unbind :: Subst m a => Sig m a -> Bind a -> (Sig m a , a)
 unbind s (Bind a) = (lift s , a)
 
 bind :: Subst m a => String -> a -> m (Bind a)
-bind str a = return . Bind =<< trav (fr1 str) a
+bind str a = return . Bind =<< trav (fr str) a
 
-fr1 :: Subst m a => String -> Sig m a
-fr1 str (Fr str') | str == str' = vari (Bn 0)
-fr1 str nm = vari nm
+fr :: Subst m a => String -> Sig m a
+fr str (Fr str') | str == str' = vari (Bn 0)
+fr str nm = vari nm
 
 sub :: Subst m a => Bind a -> a -> m a
-sub (Bind b) a = trav (bn1 a) b
+sub (Bind b) a = trav (bn a) b
 
-bn1 :: Subst m a => a -> Sig m a
-bn1 a (Bn 0) = return a
-bn1 a nm = vari nm
+bn :: Subst m a => a -> Sig m a
+bn a (Bn 0) = return a
+bn a nm = vari nm
 
 lift :: Subst m a => Sig m a -> Sig m a
 lift s nm@(Bn 0) = vari nm
