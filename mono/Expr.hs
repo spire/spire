@@ -26,8 +26,9 @@ type Nom = Name Exp
 ----------------------------------------------------------------------
 
 instance Subst TCM Exp where
-  trav s (Var nm) = s Var nm
-   -- Spine nm xs = elim (s Var nm) =<< trav s xs
+  vari = return . Var
+
+  trav s (Var nm) = s nm
   trav s TT = return TT
   trav s FF = return FF
   trav s (Proj1 ab) = do

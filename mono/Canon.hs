@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances
            , MultiParamTypeClasses
            , FlexibleInstances
-           , DeriveFunctor
   #-}
 
 module Canon where
@@ -23,8 +22,8 @@ data Val =
   | Neut Nom Spine
   deriving (Show,Read,Eq,Ord)
 
-data SpineF a = Emp | Ext (SpineF a) a
-  deriving (Show,Read,Eq,Ord,Functor)
+data SpineF a = Id | Pipe (SpineF a) a
+  deriving (Show,Read,Eq,Ord)
 
 data Elim =
     Proj1 | Proj2
@@ -34,6 +33,8 @@ data Elim =
 ----------------------------------------------------------------------
 
 instance Subst TCM Val where
+  vari = return . flip Neut Id
+
   trav s TT = return TT
   trav s FF = return FF
   trav s (Pair a b) = do
@@ -43,7 +44,17 @@ instance Subst TCM Val where
   trav s (Lam b) = do
     b' <- travBind s b
     return $ Lam b'
-  trav s (Neut nm xs) = mapM (travElim s) xs
+  trav s (Neut nm xs) = do
+    xs' <- travSpine s xs
+    x <- s nm
+    elims x xs'
+
+travSpine :: Sig TCM Val -> Spine -> TCM Spine
+travSpine s Id = return Id
+travSpine s (Pipe xs x) = do
+  xs' <- travSpine s xs
+  x' <- travElim s x
+  return $ Pipe xs' x'  
 
 travElim :: Sig TCM Val -> Elim -> TCM Elim
 travElim s Proj1 = return Proj1
@@ -52,112 +63,73 @@ travElim s (App a) = do
   a' <- trav s a
   return $ App a'
 
--- instance Subst TCM Elim where
---   trav s Proj1 = return Proj1
---   trav s Proj2 = return Proj2
---   trav s (App a) = return . App =<< trav s a
+----------------------------------------------------------------------
 
--- instance Subst TCM Exp where
---   trav s (Var nm) = s Var nm
---    -- Spine nm xs = elim (s Var nm) =<< trav s xs
---   trav s TT = return TT
---   trav s FF = return FF
---   trav s (Proj1 ab) = do
---     ab' <- trav s ab
---     return $ Proj1 ab'
---   trav s (Proj2 ab) = do
---     ab' <- trav s ab
---     return $ Proj2 ab'
---   trav s (Pair a b) = do
---     a' <- trav s a
---     b' <- trav s b
---     return $ Pair a' b'
---   trav s (App f a) = do
---     f' <- trav s f
---     a' <- trav s a
---     return $ App f' a'
---   trav s (Lam b) = do
---     b' <- travBind s b
---     return $ Lam b'
+tt :: TCM Val
+tt = return TT
+
+ff :: TCM Val
+ff = return FF
+
+pair :: TCM Val -> TCM Val -> TCM Val
+pair = liftM2 Pair
+
+app :: TCM Val -> TCM Val -> TCM Val
+app f a = do
+  f' <- f
+  a' <- a
+  elim f' (App a')
+
+proj1 :: TCM Val -> TCM Val
+proj1 ab = ab >>= flip elim Proj1
+
+proj2 :: TCM Val -> TCM Val
+proj2 ab = ab >>= flip elim Proj2
+
+var :: String -> TCM Val
+var = vari . s2n
+
+lam :: String -> TCM Val -> TCM Val
+lam nm a = return . Lam =<< bind nm =<< a
 
 ----------------------------------------------------------------------
 
--- tt :: TCM Exp
--- tt = return TT
+elims :: Val -> Spine -> TCM Val
+elims x Id = return x
+elims x (Pipe fs f) = do
+  x' <- elims x fs
+  elim x' f
 
--- ff :: TCM Exp
--- ff = return FF
+elim :: Val -> Elim -> TCM Val
+elim (Neut nm fs) f = return $ Neut nm (Pipe fs f)
+elim (Pair a b) Proj1 = return a
+elim (Pair a b) Proj2 = return b
+elim (Lam f) (App a) = f `sub` a
+elim _ _ = error "Ill-typed evaluation"
 
--- pair :: TCM Exp -> TCM Exp -> TCM Exp
--- pair = liftM2 Pair
+----------------------------------------------------------------------
 
--- app :: TCM Exp -> TCM Exp -> TCM Exp
--- app = liftM2 App
+run :: TCM Val -> Val
+run = runIdentity
 
--- proj1 :: TCM Exp -> TCM Exp
--- proj1 = liftM Proj1
+----------------------------------------------------------------------
 
--- proj2 :: TCM Exp -> TCM Exp
--- proj2 = liftM Proj2
+eg1 :: TCM Val
+eg1 = lam "x" $ pair tt (var "y")
 
--- var :: String -> TCM Exp
--- var = var' . s2n
+eg2 :: TCM Val
+eg2 = lam "x" $ pair ff (var "x")
 
--- var' :: Nom -> TCM Exp
--- var' = return . Var
+eg3 :: TCM Val
+eg3 = lam "x" $ pair (lam "x" $ pair (var "x") (var "y")) (var "x")
 
--- lam :: String -> TCM Exp -> TCM Exp
--- lam nm a = return . Lam =<< bind nm =<< a
+eg4 :: TCM Val
+eg4 = lam "x" $ pair (lam "y" $ pair (var "x") (var "y")) (var "x")
 
--- ----------------------------------------------------------------------
+eg4Eval1 :: TCM Val
+eg4Eval1 = app eg4 tt
 
--- eval :: Exp -> TCM Exp
--- eval TT = tt
--- eval FF = ff
--- eval (Pair a b) = pair (eval a) (eval b)
--- eval (Proj1 ab) = do
---   ab' <- eval ab
---   case ab' of
---     Pair a b -> return a
---     otherwise -> return $ Proj1 ab'
--- eval (Proj2 ab) = do
---   ab' <- eval ab
---   case ab' of
---     Pair a b -> return b
---     otherwise -> return $ Proj2 ab'
--- eval (App f a) = do
---   f' <- eval f
---   a' <- eval a
---   case f' of
---     Lam b -> eval =<< sub b a'
---     otherwise -> return $ App f' a'
--- eval (Var nm) = var' nm
--- eval (Lam (Bind b)) =
---   return . Lam . Bind =<< eval b
+eg4Eval2 :: TCM Val
+eg4Eval2 = app (proj1 (app eg4 tt)) ff
 
--- ----------------------------------------------------------------------
-
--- run :: TCM Exp -> Exp
--- run = runIdentity
-
--- ----------------------------------------------------------------------
-
--- eg1 :: TCM Exp
--- eg1 = lam "x" $ pair tt (var "y")
-
--- eg2 :: TCM Exp
--- eg2 = lam "x" $ pair ff (var "x")
-
--- eg3 :: TCM Exp
--- eg3 = lam "x" $ pair (lam "x" $ pair (var "x") (var "y")) (var "x")
-
--- eg4 :: TCM Exp
--- eg4 = lam "x" $ pair (lam "y" $ pair (var "x") (var "y")) (var "x")
-
--- eg4Eval1 :: TCM Exp
--- eg4Eval1 = eval =<< app eg4 tt
-
--- eg4Eval2 :: TCM Exp
--- eg4Eval2 = eval =<< app (proj1 (app eg4 tt)) ff
-
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
