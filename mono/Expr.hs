@@ -17,11 +17,9 @@ data Exp =
     TT | FF
   | Pair Exp Exp | App Exp Exp
   | Proj1 Exp | Proj2 Exp
-  | Var (Name Exp)
-  | Lam (Bind Exp)
+  | Var Name
+  | Lam (Bind1 Exp)
   deriving (Show,Read,Eq,Ord)
-
-type Nom = Name Exp
 
 ----------------------------------------------------------------------
 
@@ -73,7 +71,7 @@ var :: String -> TCM Exp
 var = vari . s2n
 
 lam :: String -> TCM Exp -> TCM Exp
-lam nm a = return . Lam =<< bind nm =<< a
+lam nm a = return . Lam =<< bind1 nm =<< a
 
 ----------------------------------------------------------------------
 
@@ -95,7 +93,7 @@ eval (App f a) = do
   f' <- eval f
   a' <- eval a
   case f' of
-    Lam b -> eval =<< sub b a'
+    Lam b -> eval =<< sub1 b a'
     otherwise -> return $ App f' a'
 eval (Var nm) = vari nm
 eval (Lam (Bind b)) =

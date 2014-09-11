@@ -12,14 +12,13 @@ import Control.Monad.Identity hiding ( lift )
 ----------------------------------------------------------------------
 
 type TCM = Identity
-type Nom = Name Val
 type Spine = SpineF Elim
 
 data Val =
     TT | FF
   | Pair Val Val
-  | Lam (Bind Val)
-  | Neut Nom Spine
+  | Lam (Bind1 Val)
+  | Neut Name Spine
   deriving (Show,Read,Eq,Ord)
 
 data SpineF a = Id | Pipe (SpineF a) a
@@ -90,7 +89,7 @@ var :: String -> TCM Val
 var = vari . s2n
 
 lam :: String -> TCM Val -> TCM Val
-lam nm a = return . Lam =<< bind nm =<< a
+lam nm a = return . Lam =<< bind1 nm =<< a
 
 ----------------------------------------------------------------------
 
@@ -104,7 +103,7 @@ elim :: Val -> Elim -> TCM Val
 elim (Neut nm fs) f = return $ Neut nm (Pipe fs f)
 elim (Pair a b) Proj1 = return a
 elim (Pair a b) Proj2 = return b
-elim (Lam f) (App a) = f `sub` a
+elim (Lam f) (App a) = f `sub1` a
 elim _ _ = error "Ill-typed evaluation"
 
 ----------------------------------------------------------------------
