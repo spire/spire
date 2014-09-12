@@ -34,6 +34,8 @@ travBind s (Bind a) = return . Bind =<< trav (lift s) a
 unbind :: (Pattern f , Subst m b) => Sig m b -> Bind f a -> (Sig m b , a)
 unbind s (Bind a) = (lift s , a)
 
+----------------------------------------------------------------------
+
 bind :: (Pattern f , Subst m a) =>
   f String -> a -> m (Bind f a)
 bind str a = return . Bind =<< trav (fr str) a
@@ -44,6 +46,8 @@ fr pat nm@(Fr str) = case freeP pat str of
   Nothing -> vari nm
 fr pat nm = vari nm
 
+----------------------------------------------------------------------
+
 sub :: (Pattern f , Subst m a) => Bind f a -> f a -> m a
 sub (Bind b) a = trav (bn a) b
 
@@ -53,6 +57,19 @@ bn pat (Bn 0 o) = case bindP pat o of
   Nothing -> error "Pattern index out of bounds"
 bn pat nm = vari nm
 
+----------------------------------------------------------------------
+
+subComp :: (Pattern f , Subst m a) => Bind f a -> f (Name -> a) -> m (Bind f a)
+subComp (Bind b) a = return . Bind =<< trav (bnComp a) b
+
+bnComp :: (Pattern f , Subst m a) => f (Name -> a) -> Sig m a
+bnComp pat nm@(Bn 0 o) = case bindP pat o of
+  Just f -> return (f nm)
+  Nothing -> error "Pattern index out of bounds"
+bnComp pat nm = vari nm
+
+----------------------------------------------------------------------
+
 lift :: Subst m a => Sig m a -> Sig m a
 lift s nm@(Bn 0 _) = vari nm
 lift s (Bn i o) = trav wkn =<< s (Bn (pred i) o)
@@ -61,6 +78,8 @@ lift s nm = trav wkn =<< s nm
 wkn :: Subst m a => Sig m a
 wkn (Bn i o) = vari (Bn (succ i) o)
 wkn nm = vari nm
+
+----------------------------------------------------------------------
 
 s2n :: String -> Name
 s2n = Fr
@@ -78,6 +97,10 @@ type Bind3 = Bind Three
 sub1 t x = sub t $ One x
 sub2 t x1 x2 = sub t $ Two (x1,x2)
 sub3 t x1 x2 x3 = sub t $ Three (x1,x2,x3)
+
+subComp1 t x = subComp t $ One x
+subComp2 t x1 x2 = subComp t $ Two (x1,x2)
+subComp3 t x1 x2 x3 = subComp t $ Three (x1,x2,x3)
 
 bind1 nm = bind $ One nm
 bind2 nm1 nm2 = bind $ Two (nm1,nm2)
