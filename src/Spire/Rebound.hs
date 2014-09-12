@@ -4,8 +4,7 @@
   #-}
 
 
-module Rebound where
-import Control.Monad
+module Spire.Rebound where
 
 ----------------------------------------------------------------------
 

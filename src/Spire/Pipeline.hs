@@ -8,7 +8,6 @@ import Unbound.LocallyNameless hiding ( Spine )
 import Spire.Surface.Elaborator
 import Spire.Surface.Types
 import Spire.Expression.Checker
-import Spire.Canonical.Checker
 import Spire.Expression.Embedder
 import Spire.Expression.Types
 import Spire.Canonical.Embedder
@@ -37,7 +36,7 @@ checkAndRecheckProg paranoid expression  = do
 recheckCanon :: Bool -> Env -> SpireM ()
 recheckCanon paranoid canonical = do
   when paranoid $ do
-    recheckProg canonical
+    -- recheckProg canonical
     let surface' = runFreshM $ mapM (embedCDef <=< embedVDef) canonical
     expression'  <- elabProg surface'
     canonical'   <- checkProg expression'
