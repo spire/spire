@@ -1,6 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances
-           , MultiParamTypeClasses
-           , FlexibleInstances
+{-# LANGUAGE
+             MultiParamTypeClasses
            , KindSignatures
   #-}
 
