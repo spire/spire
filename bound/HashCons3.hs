@@ -1,8 +1,5 @@
 {-# LANGUAGE
-    DeriveFunctor
-  , DeriveFoldable
-  , DeriveTraversable
-  , GeneralizedNewtypeDeriving
+    GeneralizedNewtypeDeriving
   , ExistentialQuantification
   , DeriveDataTypeable
   , GADTs
@@ -12,8 +9,6 @@
 module HashCons3 where
 
 import Prelude hiding ( foldl )
-import Data.Foldable hiding ( toList )
-import Data.Traversable
 import Data.Typeable
 import Control.Monad
 import Control.Monad.State
@@ -25,14 +20,15 @@ import Bound
 
 ----------------------------------------------------------------------
 
-type Id = Int
+type Id a = Int
+type EId a = Id (Exp a)
 
 data Exp a =
     TT
   | FF
   | Var a
-  | Pair Id Id
-  deriving (Show,Read,Eq,Ord,Functor,Typeable)
+  | Pair (EId a) (EId a)
+  deriving (Show,Read,Eq,Ord,Typeable)
 
 instance Eq1   Exp
 instance Ord1  Exp
@@ -42,14 +38,15 @@ instance Read1 Exp
 ----------------------------------------------------------------------
 
 type ForallMap = (Eq a,Ord a,Typeable a) => BiMap (Exp a)
-data DAG = DAG ForallMap
+data DAG = DAG { fromDAG :: ForallMap }
+type TCM a = State DAG a
 
 insertDAG :: (Eq a,Ord a,Typeable a) => Exp a -> ForallMap -> ForallMap
 insertDAG v g = case cast v of
   Just v' -> snd $ insert v' g
   Nothing -> error "Dare I say never?"
 
-hashcons :: (Eq a,Ord a,Typeable a) => Exp a -> State DAG Id
+hashcons :: (Eq a,Ord a,Typeable a) => Exp a -> TCM (EId a)
 hashcons v = do
   DAG g <- get
   case lookupKey v g of
@@ -62,5 +59,16 @@ hashcons v = do
 
 emptyDAG :: DAG
 emptyDAG = DAG $ BiMap (M.empty) (IM.empty)
+
+----------------------------------------------------------------------
+
+hmz :: TCM (EId String)
+hmz = do
+  tt <- hashcons (TT :: Exp String)
+  hashcons (TT :: Exp String)
+  hashcons (TT :: Exp String)
+  hashcons $ (Pair tt tt :: Exp String)
+  hashcons $ (Pair tt tt :: Exp String)
+  hashcons $ (Pair tt tt :: Exp String)
 
 ----------------------------------------------------------------------
