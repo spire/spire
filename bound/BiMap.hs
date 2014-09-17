@@ -15,15 +15,17 @@ lookupKey v (BiMap m _) = M.lookup v m
 lookupVal :: Int -> BiMap a -> a
 lookupVal k (BiMap _ m) = m IM.! k
 
--- Insert the value and return the corresponding key
--- and the new map
--- Alas, Map interface does not have an operation to insert and find the index 
--- at the same time (although such an operation is easily possible)
+nextId :: BiMap a -> Int
+nextId (BiMap m im) = IM.size im
+
 insert :: Ord a => a -> BiMap a -> (Int, BiMap a)
-insert v (BiMap m im) = (k , BiMap m' im')
+insert v g = (k , insertWith k v g)
+ where k = nextId g
+
+insertWith :: Ord a => Int -> a -> BiMap a -> BiMap a
+insertWith k v (BiMap m im) = BiMap m' im'
  where m'  = M.insert v k m
        im' = IM.insert k v im
-       k   = IM.size im
 
 empty :: BiMap a
 empty = BiMap (M.empty) (IM.empty)
@@ -33,3 +35,6 @@ size (BiMap _ m) = IM.size m
 
 toList :: BiMap a -> [(Int , a)]
 toList (BiMap _ g) = IM.toList g
+
+keys :: BiMap a -> [Int]
+keys (BiMap _ g) = map fst (IM.toList g)
