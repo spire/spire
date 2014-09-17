@@ -43,21 +43,18 @@ data DAG = DAG { getSize :: Int , getDAG :: ForallMap }
 type TCM a = State DAG a
 
 insertDAG :: (Show a,Eq a,Ord a,Typeable a) => Int -> Exp a -> ForallMap -> ForallMap
-insertDAG k v g =  case unsafePerformIO (putStrLn "try insert" >> return (cast v)) of
-    Just v' -> unsafePerformIO (putStrLn "insert worked" >> return (insertWith k v' g)) -- (error ("ugh\n" ++ show v'))
-    Nothing -> g
+insertDAG k v g =  case cast v of
+    Just v' -> insertWith k v' g
+    Nothing -> error "what"
 
 hashcons :: (Show a,Eq a,Ord a,Typeable a) => Exp a -> TCM (EId a)
 hashcons v = do
   DAG next g <- get
   case lookupKey v g of
-    Just k -> return (unsafePerformIO (putStrLn "key found1" >> return k))
+    Just k -> return (unsafePerformIO (putStrLn "key found" >> return k))
     Nothing -> do
       put $ DAG (succ next) (insertDAG next v g)
-      DAG _ g' <- get
-      case lookupKey v g' of
-        Just k -> return (unsafePerformIO (putStrLn "key found2" >> return k))
-        Nothing -> error "what"
+      return next
 
 ----------------------------------------------------------------------
 
@@ -68,13 +65,10 @@ emptyDAG = DAG 0 (BiMap (M.empty) (IM.empty))
 
 hmz :: TCM (EId String)
 hmz = do
-  hashcons (TT :: Exp String)
   tt <- hashcons (TT :: Exp String)
-  hashcons (TT :: Exp String)
-  -- hashcons (TT :: Exp String)
-  ab <- hashcons $ (Pair tt tt :: Exp String)
-  hashcons $ (Pair tt tt :: Exp String)
-  return ab
-  -- hashcons $ (Pair tt tt :: Exp String)
+  tt' <- hashcons (TT :: Exp String)
+  ab <- hashcons $ (Pair tt tt' :: Exp String)
+  ab' <- hashcons $ (Pair tt tt' :: Exp String)
+  hashcons $ (Pair ab ab' :: Exp String)
 
 ----------------------------------------------------------------------
