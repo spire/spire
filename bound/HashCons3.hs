@@ -4,71 +4,89 @@
   , DeriveDataTypeable
   , GADTs
   , Rank2Types
+  , TypeFamilies
+  , DataKinds
   #-}
 
 module HashCons3 where
 
 import Prelude hiding ( foldl )
 import Data.Typeable
+import Data.Type.Equality
 import Control.Monad
 import Control.Monad.State
-import Prelude.Extras
 import BiMap
 import qualified Data.Map    as M
 import qualified Data.IntMap as IM
-import Bound
 import System.IO.Unsafe
 
 ----------------------------------------------------------------------
 
-type Id a = Int
-type EId a = Id (Exp a)
+data Param (a :: *) :: * where
+  String' :: Param String
+  Maybe' :: Param a -> Param (Maybe a)
+
+instance TestEquality Param where
+  testEquality String' String' = Just Refl
+  testEquality (Maybe' a) (Maybe' b) = case testEquality a b of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  testEquality _ _ = Nothing
+
+----------------------------------------------------------------------
+
+type EId = Int
 
 data Exp a =
     TT
   | FF
   | Var a
-  | Pair (EId a) (EId a)
+  | Pair EId EId
   deriving (Show,Read,Eq,Ord,Typeable)
 
-instance Eq1   Exp
-instance Ord1  Exp
-instance Show1 Exp
-instance Read1 Exp
-
 ----------------------------------------------------------------------
 
-type ForallMap = (Show a,Eq a,Ord a,Typeable a) => BiMap (Exp a)
-data DAG = DAG { fromDAG :: ForallMap }
+type ParamBiMap = forall a. Param a -> BiMap (Exp a)
+data DAG = DAG { fromDAG :: ParamBiMap }
 type TCM a = State DAG a
 
-insertDAG :: (Show a,Eq a,Ord a,Typeable a) => Exp a -> ForallMap -> ForallMap
-insertDAG v g =  case cast v of
-    Just v' -> snd $ insert v' g
-    Nothing -> error "wtf"
+insertDAG :: (Show a,Eq a,Ord a) => Param a -> Exp a -> ParamBiMap -> ParamBiMap
+insertDAG a v g b =  case testEquality a b of
+    Just Refl -> snd $ insert v (g a)
+    Nothing -> g b
 
-hashcons :: (Show a,Eq a,Ord a,Typeable a) => Exp a -> TCM (EId a)
-hashcons v = do
+hashcons :: (Show a,Eq a,Ord a) => Param a -> Exp a -> TCM EId
+hashcons a v = do
   DAG g <- get
-  case lookupKey v g of
+  case lookupKey v (g a) of
     Just k -> return (unsafePerformIO (putStrLn "key found" >> return k))
     Nothing -> do
-      put $ DAG (insertDAG v g)
-      hashcons v
+      put $ DAG (insertDAG a v g)
+      hashcons a v
 
 ----------------------------------------------------------------------
+
+hashcons0 = hashcons String'
 
 emptyDAG :: DAG
-emptyDAG = DAG $ BiMap (M.empty) (IM.empty)
+emptyDAG = DAG $ const $ BiMap (M.empty) (IM.empty)
+
+runDAG = flip runState emptyDAG
+
+getVal :: TCM a -> a
+getVal = fst . runDAG
+
+getDAG :: Param a -> TCM EId -> BiMap (Exp a)
+getDAG a v = fromDAG (snd (runDAG v)) a
 
 ----------------------------------------------------------------------
 
-hmz :: TCM (EId String)
+hmz :: TCM EId
 hmz = do
-  tt <- hashcons (TT :: Exp String)
-  tt' <- hashcons (TT :: Exp String)
-  ab <- hashcons $ (Pair tt tt' :: Exp String)
-  ab' <- hashcons $ (Pair tt tt' :: Exp String)
-  hashcons $ (Pair ab ab' :: Exp String)
+  tt <- hashcons0 TT
+  tt' <- hashcons0 TT
+  ab <- hashcons0 $ (Pair tt tt')
+  ab' <- hashcons0 $ (Pair tt tt')
+  hashcons0 $ (Pair ab ab')
 
 ----------------------------------------------------------------------
