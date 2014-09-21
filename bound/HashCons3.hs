@@ -6,6 +6,7 @@
   , Rank2Types
   , TypeFamilies
   , DataKinds
+  , StandaloneDeriving
   #-}
 
 module HashCons3 where
@@ -25,6 +26,7 @@ import System.IO.Unsafe
 data Param (a :: *) :: * where
   String' :: Param String
   Maybe' :: Param a -> Param (Maybe a)
+deriving instance Show (Param a)
 
 instance TestEquality Param where
   testEquality String' String' = Just Refl
@@ -35,13 +37,14 @@ instance TestEquality Param where
 
 ----------------------------------------------------------------------
 
-type EId = Int
+type EId a = Int
 
 data Exp a =
     TT
   | FF
   | Var a
-  | Pair EId EId
+  | Lam (EId (Maybe a))
+  | Pair (EId a) (EId a)
   deriving (Show,Read,Eq,Ord)
 
 ----------------------------------------------------------------------
@@ -55,18 +58,16 @@ insertDAG a v g b =  case testEquality a b of
     Just Refl -> snd $ insert v (g a)
     Nothing -> g b
 
-hashcons :: (Show a,Eq a,Ord a) => Param a -> Exp a -> TCM EId
+hashcons :: (Show a,Eq a,Ord a) => Param a -> Exp a -> TCM (EId a)
 hashcons a v = do
   DAG g <- get
   case lookupKey v (g a) of
-    Just k -> return (unsafePerformIO (putStrLn "key found" >> return k))
+    Just k -> return (unsafePerformIO (putStrLn ("key found (" ++ show a ++ ") " ++ show k ++ " " ++ show v)  >> return k))
     Nothing -> do
       put $ DAG (insertDAG a v g)
       hashcons a v
 
 ----------------------------------------------------------------------
-
-hashcons0 = hashcons String'
 
 emptyDAG :: DAG
 emptyDAG = DAG $ const $ BiMap (M.empty) (IM.empty)
@@ -76,17 +77,27 @@ runDAG = flip runState emptyDAG
 getVal :: TCM a -> a
 getVal = fst . runDAG
 
-getDAG :: Param a -> TCM EId -> BiMap (Exp a)
+getDAG :: Param a -> TCM (EId b) -> BiMap (Exp a)
 getDAG a v = fromDAG (snd (runDAG v)) a
 
 ----------------------------------------------------------------------
 
-hmz :: TCM EId
-hmz = do
-  tt <- hashcons0 TT
-  tt' <- hashcons0 TT
-  ab <- hashcons0 $ Pair tt tt'
-  ab' <- hashcons0 $ Pair tt tt'
-  hashcons0 $ Pair ab ab'
+hmz :: (Show a,Eq a,Ord a) => Param a -> TCM (EId a)
+hmz a = do
+  tt <- hashcons a TT
+  tt' <- hashcons a TT
+  ab <- hashcons a $ Pair tt tt'
+  ab' <- hashcons a $ Pair tt tt'
+  hashcons a $ Pair ab ab'
+
+hmz2 :: (Show a,Eq a,Ord a) => Param a -> TCM (EId a)
+hmz2 a = do
+  x0  <- hashcons (Maybe' a) $ Var Nothing
+  x0' <- hashcons (Maybe' a) $ Var Nothing
+  ab <- hashcons (Maybe' a) $ Pair x0 x0'
+  ab' <- hashcons (Maybe' a) $ Pair x0 x0'
+  aabb <- hashcons (Maybe' a) $ Pair ab ab'
+  hashcons a $ Lam aabb
+
 
 ----------------------------------------------------------------------
