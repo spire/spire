@@ -42,7 +42,7 @@ data Exp a =
   | FF
   | Var a
   | Pair EId EId
-  deriving (Show,Read,Eq,Ord,Typeable)
+  deriving (Show,Read,Eq,Ord)
 
 ----------------------------------------------------------------------
 
@@ -85,8 +85,8 @@ hmz :: TCM EId
 hmz = do
   tt <- hashcons0 TT
   tt' <- hashcons0 TT
-  ab <- hashcons0 $ (Pair tt tt')
-  ab' <- hashcons0 $ (Pair tt tt')
-  hashcons0 $ (Pair ab ab')
+  ab <- hashcons0 $ Pair tt tt'
+  ab' <- hashcons0 $ Pair tt tt'
+  hashcons0 $ Pair ab ab'
 
 ----------------------------------------------------------------------
