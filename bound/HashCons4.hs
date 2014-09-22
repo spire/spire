@@ -4,71 +4,87 @@
   , DeriveDataTypeable
   , GADTs
   , Rank2Types
+  , TypeFamilies
+  , DataKinds
+  , StandaloneDeriving
   #-}
 
-module HashCons3 where
+module HashCons4 where
 
 import Prelude hiding ( foldl )
 import Data.Typeable
+import Data.Type.Equality
 import Control.Monad
 import Control.Monad.State
-import Prelude.Extras
 import BiMap
 import qualified Data.Map    as M
 import qualified Data.IntMap as IM
-import Bound
+import Data.Typeable
 import System.IO.Unsafe
 
 ----------------------------------------------------------------------
 
-type Id a = Int
-type EId a = Id (Exp a)
+type EId a = Int
 
 data Exp a =
     TT
   | FF
   | Var a
+  | Lam (EId (Maybe a))
   | Pair (EId a) (EId a)
   deriving (Show,Read,Eq,Ord,Typeable)
 
-instance Eq1   Exp
-instance Ord1  Exp
-instance Show1 Exp
-instance Read1 Exp
-
 ----------------------------------------------------------------------
 
-type ForallMap = (Show a,Eq a,Ord a,Typeable a) => BiMap (Exp a)
-data DAG = DAG { getSize :: Int , getDAG :: ForallMap }
+type ParamBiMap = forall a. (Show a,Eq a,Ord a,Typeable a) => BiMap (Exp a)
+data DAG = DAG { fromDAG :: ParamBiMap }
 type TCM a = State DAG a
 
-insertDAG :: (Show a,Eq a,Ord a,Typeable a) => Int -> Exp a -> ForallMap -> ForallMap
-insertDAG k v g =  case cast v of
-    Just v' -> insertWith k v' g
-    Nothing -> error "what"
+insertDAG :: (Show a,Eq a,Ord a,Typeable a) => Exp a -> ParamBiMap -> ParamBiMap
+insertDAG v g =  case cast v of
+    Just v' -> snd $ insert v' g
+    Nothing -> g
 
 hashcons :: (Show a,Eq a,Ord a,Typeable a) => Exp a -> TCM (EId a)
 hashcons v = do
-  DAG next g <- get
+  DAG g <- get
   case lookupKey v g of
-    Just k -> return (unsafePerformIO (putStrLn "key found" >> return k))
+    Just k -> return (unsafePerformIO (putStrLn ("key found " ++ show k ++ " " ++ show v)  >> return k))
     Nothing -> do
-      put $ DAG (succ next) (insertDAG next v g)
-      return next
+      put $ DAG (insertDAG v g)
+      hashcons v
 
 ----------------------------------------------------------------------
 
 emptyDAG :: DAG
-emptyDAG = DAG 0 (BiMap (M.empty) (IM.empty))
+emptyDAG = DAG $ BiMap (M.empty) (IM.empty)
+
+runDAG = flip runState emptyDAG
+
+getVal :: TCM a -> a
+getVal = fst . runDAG
+
+getDAG :: (Show a,Eq a,Ord a,Typeable a) => TCM (EId b) -> BiMap (Exp a)
+getDAG v = fromDAG (snd (runDAG v))
 
 ----------------------------------------------------------------------
 
-hmz :: TCM (EId String)
-hmz = do
-  tt <- hashcons (TT :: Exp String)
-  tt' <- hashcons (TT :: Exp String)
-  ab <- hashcons $ (Pair tt tt' :: Exp String)
-  ab' <- hashcons $ (Pair tt tt' :: Exp String)
-  hashcons $ (Pair ab ab' :: Exp String)
+-- hmz :: (Show a,Eq a,Ord a,Typeable a) => TCM (EId a)
+-- hmz = do
+--   tt <- hashcons TT
+--   tt' <- hashcons TT
+--   ab <- hashcons $ Pair tt tt'
+--   ab' <- hashcons $ Pair tt tt'
+--   hashcons $ Pair ab ab'
+
+-- hmz2 :: (Show a,Eq a,Ord a,Typeable a) => Param a -> TCM (EId a)
+-- hmz2 a = do
+--   x0  <- hashcons (Maybe' a) $ Var Nothing
+--   x0' <- hashcons (Maybe' a) $ Var Nothing
+--   ab <- hashcons (Maybe' a) $ Pair x0 x0'
+--   ab' <- hashcons (Maybe' a) $ Pair x0 x0'
+--   aabb <- hashcons (Maybe' a) $ Pair ab ab'
+--   hashcons a $ Lam aabb
+
 
 ----------------------------------------------------------------------
