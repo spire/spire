@@ -19,7 +19,6 @@ import Data.Type.Equality
 import Control.Monad
 import qualified Data.Map    as M
 import qualified Data.IntMap as IM
-import System.IO.Unsafe
 
 ----------------------------------------------------------------------
 
