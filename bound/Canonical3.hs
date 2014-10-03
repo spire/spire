@@ -100,3 +100,7 @@ myNot = lam "x" $ Neut "x" $ Pipe Id $ If undefined FF TT
 
 myFF :: Val String
 myFF = myNot `elim` App TT
+
+unbind :: (Monad m,Monad t) =>
+  (a -> t a') -> Scope b m a -> ((Var b a -> t (Var b a')) , m (Var b a))
+unbind f b = (Data.Traversable.mapM f , fromScope b)
