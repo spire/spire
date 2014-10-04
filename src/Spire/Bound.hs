@@ -17,18 +17,23 @@ type Nom3 = Three
 
 (#) :: Monad f => (f (Var b (f a)) -> c) -> f a -> c
 f # a = f (return (F a))
+{-# INLINE (#) #-}
 
 (##) :: Monad f => (Scope b f (Var b' (f a)) -> c) -> Scope b f a -> c
-f ## b = f (shiftB b)
+f ## b = f (shiftS b)
+{-# INLINE (##) #-}
 
 (#!) :: Monad f => (f (Var b (f a)) -> c) -> b -> c
 f #! b = f (return (B b))
+{-# INLINE (#!) #-}
 
 (#|) :: Monad f => (Var b (f a) -> c) -> b -> c
 f #| b = f (B b)
+{-# INLINE (#|) #-}
 
-shiftB :: Monad f => Scope b f a -> Scope b f (Var b' (f a))
-shiftB b = b >>>= return . F . return
+shiftS :: Monad f => Scope b f a -> Scope b f (Var b' (f a))
+shiftS b = b >>>= return . F . return
+{-# INLINE shiftS #-}
 
 ----------------------------------------------------------------------
 

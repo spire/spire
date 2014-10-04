@@ -99,11 +99,11 @@ instance (Functor f , Monad f) => Applicative f where
 sub :: Bind Nom Value a -> Value a -> Value a
 sub = flip instantiate1
 
-sub2 :: Bind Nom2 Value a -> (Value a , Value a) -> Value a
-sub2 = flip instantiate2
+sub2 :: Bind Nom2 Value a -> Value a -> Value a -> Value a
+sub2 f x y = instantiate2 (x , y) f
 
-sub3 :: Bind Nom3 Value a -> (Value a , Value a , Value a) -> Value a
-sub3 = flip instantiate3
+sub3 :: Bind Nom3 Value a -> Value a -> Value a -> Value a -> Value a
+sub3 f x y z = instantiate3 (x , y , z) f
 
 elims :: Value a -> Spine (Elim a) -> Value a
 elims = Data.Foldable.foldl elim
@@ -196,7 +196,7 @@ elim VFalse (EElimBool _P _ pf) = pf
 elim _      (EElimBool _P _  _) = error "Ill-typed evaluation of elimBool"
 
 elim (VPair a b) (EElimPair _A _B _P ppair) = do
-  ppair `sub2` (a , b)
+  sub2 ppair a b
 elim _               (EElimPair _A _B _P ppair)  =
   error "Ill-typed evaluation of elimPair"
 
@@ -209,7 +209,7 @@ elim VNil         (EElimEnum _P pn _)  =
   pn
 elim (VCons x xs) (EElimEnum _P pn pc) = let
   ih = xs `elim` EElimEnum _P pn pc
-  in pc `sub3` (x , xs , ih)
+  in sub3 pc x xs ih
 elim _            (EElimEnum _P _ _)  =
   error "Ill-typed evaluation of elimEnum"
 
@@ -217,7 +217,7 @@ elim VEmp            (EElimTel _P pemp pext) =
   pemp
 elim (VExt _A _B) (EElimTel _P pemp pext) = let
   ih = elimB _B (EElimTel _P pemp pext)
-  in pext `sub3` (_A , VLam _B , VLam ih)
+  in sub3 pext _A (VLam _B) (VLam ih)
 elim _               (EElimTel _P pemp pext)  =
   error "Ill-typed evaluation of elimTel"
 
@@ -225,18 +225,18 @@ elim (VEnd i)        (EElimDesc _I _P pend prec parg) =
   pend `sub` i
 elim (VRec i _D)     (EElimDesc _I _P pend prec parg) = let
   ih = _D `elim` EElimDesc _I _P pend prec parg
-  in prec `sub3` (i , _D , ih)
+  in sub3 prec i _D ih
 elim (VArg _A _B) (EElimDesc _I _P pend prec parg) = let
   ih = elimB _B (EElimDesc _I _P pend prec parg)
-  in parg `sub3` (_A , VLam _B , VLam ih)
+  in sub3 parg _A (VLam _B) (VLam ih)
 elim _            (EElimDesc _I _P pend prec parg)  =
   error "Ill-typed evaluation of elimDesc"
 
 elim (VInit xs) (EInd l _P _I _D p _M m i) = let
-  _X = bind1 $ \ j -> VFix # l # _P # _I # _D # p #! j
-  ih = bind2 $ \ j x -> rInd # l # _P # _I # _D # p ## _M ## m #! j #| x
+  _X = bind1$ \ j -> VFix # l # _P # _I # _D # p #! j
+  ih = bind2$ \ j x -> rInd # l # _P # _I # _D # p ## _M ## m #! j #| x
   ihs = _D `elim` EProve _I _X _M ih i xs
-  in m `sub3` (i , xs , ihs)
+  in sub3 m i xs ihs
 elim _            (EInd l _P _I _D p _M m i)  =
   error "Ill-typed evaluation of ind"
 
@@ -251,12 +251,12 @@ elim _               (EFunc _I _X i) =
 
 elim (VEnd j)        (EHyps _I _X _M i q) =
   VUnit
--- elim (VRec j _D)     (EHyps _I _X _M i xxs) = do
---   _A <- _X `sub` j
---   _B <- _D `elim` EFunc _I _X i
---   (x , xs) <- (,) <$> freshR "x" <*> freshR "xs"
---   ppair <- vProd <$> _M `sub2` (j , vVar x) <*> _D `elim` EHyps _I _X _M i (vVar xs)
---   xxs `elim` EElimPair _A (bind0 _B) (bind0 VType) (bind2 x xs ppair)
+elim (VRec j _D)     (EHyps _I _X _M i xxs) = let
+  _A = _X `sub` j
+  _B = bind0$ _D `elim` EFunc _I _X i
+  _M = bind0$ VType
+  ppair = bind2$ \ x xs -> vProd (sub2 ## _M # j #! x) (elim # _D $ EHyps # _I ## _X ## _M # i #! xs)
+  in xxs `elim` EElimPair _A _B _M ppair
 -- elim (VArg _A bnd_B)    (EHyps _I _X _M i axs) = do
 --   (a , _B) <- unbind bnd_B
 --   _B' <- _B `elim` EFunc _I _X i
@@ -296,16 +296,16 @@ elim _             (EBranches _P) =
 elim VHere         (ECase (VCons l _E) _P ccs) = let
   _Pthere = _P `subCompose` VThere
   _A = _P `sub` VHere
-  _B = bind0 $ _E `elim` EBranches _Pthere
-  _M = bind0 $ _A
-  ppair = bind2 $ \ c cs -> id #! c
+  _B = bind0$ _E `elim` EBranches _Pthere
+  _M = bind0$ _A
+  ppair = bind2$ \ c cs -> id #! c
   in ccs `elim` EElimPair _A _B _M ppair
 elim (VThere t)    (ECase (VCons l _E) _P ccs) = let
   _Pthere = _P `subCompose` VThere
   _A = _P `sub` VHere
-  _B = bind0 $ _E `elim` EBranches _Pthere
-  _M = bind0 $ _P `sub` (VThere t)
-  ppair = bind2 $ \ c cs -> elim # t $ ECase # _E ## _Pthere #! cs
+  _B = bind0$ _E `elim` EBranches _Pthere
+  _M = bind0$ _P `sub` (VThere t)
+  ppair = bind2$ \ c cs -> elim # t $ ECase # _E ## _Pthere #! cs
   in ccs `elim` EElimPair _A _B _M ppair
 elim _             (ECase _E _P ccs) =
   error "Ill-typed evaluation of case"
