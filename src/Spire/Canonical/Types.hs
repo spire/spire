@@ -117,12 +117,6 @@ subCompose b f = b >>>= f . return
 vVar :: a -> Value a
 vVar a = VNeut a Id
 
-bind :: Eq a => a -> Value a -> Bind Nom Value a
-bind = abstract1
-
-nobind :: Value a -> Bind b Value a
-nobind = abstract0
-
 ----------------------------------------------------------------------
 
 instance Monad Value where
@@ -239,8 +233,8 @@ elim _            (EElimDesc _I _P pend prec parg)  =
   error "Ill-typed evaluation of elimDesc"
 
 elim (VInit xs) (EInd l _P _I _D p _M m i) = let
-  _X = locals1 $ \ j -> Scope $ VFix # l # _P # _I # _D # p #! j
-  ih = locals2 $ \ j x -> Scope $ rInd # l # _P # _I # _D # p ## _M ## m #! j #| x
+  _X = bind1 $ \ j -> VFix # l # _P # _I # _D # p #! j
+  ih = bind2 $ \ j x -> rInd # l # _P # _I # _D # p ## _M ## m #! j #| x
   ihs = _D `elim` EProve _I _X _M ih i xs
   in m `sub3` (i , xs , ihs)
 elim _            (EInd l _P _I _D p _M m i)  =
@@ -262,13 +256,13 @@ elim (VEnd j)        (EHyps _I _X _M i q) =
 --   _B <- _D `elim` EFunc _I _X i
 --   (x , xs) <- (,) <$> freshR "x" <*> freshR "xs"
 --   ppair <- vProd <$> _M `sub2` (j , vVar x) <*> _D `elim` EHyps _I _X _M i (vVar xs)
---   xxs `elim` EElimPair _A (kBind _B) (kBind VType) (bind2 x xs ppair)
+--   xxs `elim` EElimPair _A (bind0 _B) (bind0 VType) (bind2 x xs ppair)
 -- elim (VArg _A bnd_B)    (EHyps _I _X _M i axs) = do
 --   (a , _B) <- unbind bnd_B
 --   _B' <- _B `elim` EFunc _I _X i
 --   xs <- freshR "xs"
 --   ppair <- _B `elim` EHyps _I _X _M i (vVar xs)
---   axs `elim` EElimPair _A (bind a _B') (kBind VType) (bind2 a xs ppair)
+--   axs `elim` EElimPair _A (bind a _B') (bind0 VType) (bind2 a xs ppair)
 elim _D               (EHyps _I _X _M i xs) =
   error "Ill-typed evaluation of Hyps"
 
@@ -280,7 +274,7 @@ elim _D               (EHyps _I _X _M i xs) =
 --   (nm_xxs , x , xs) <- (,,) <$> freshR "xxs" <*> freshR "x" <*> freshR "xs"
 --   _M' <- VRec j _D `elim` EHyps _I _X _M i (vVar nm_xxs)
 --   ppair <- VPair <$> m `sub2` (j , vVar x) <*> _D `elim` EProve _I _X _M m i (vVar xs)
---   xxs `elim` EElimPair _A (kBind _B) (bind nm_xxs _M') (bind2 x xs ppair)
+--   xxs `elim` EElimPair _A (bind0 _B) (bind nm_xxs _M') (bind2 x xs ppair)
 -- elim (VArg _A _B)    (EProve _I _X _M m i axs) = do
 --   (nm_axs , a , xs) <- (,,) <$> freshR "axs" <*> freshR "a" <*> freshR "xs"
 --   _Ba <- _B `sub` vVar a
@@ -299,24 +293,22 @@ elim (VCons l _E)    (EBranches _P) = let
 elim _             (EBranches _P) =
   error "Ill-typed evaluation of Branches"
 
--- elim VHere         (ECase (VCons l _E) _P ccs) = do
---   _Pthere <- _P `subCompose` VThere
---   _A <- _P `sub` VHere
---   _B <- _E `elim` EBranches _Pthere
---   let _M = _A
---   c <- freshR "c"
---   let ppair = vVar c
---   ccs `elim` EElimPair _A (kBind _B) (kBind _M) (bind2 c wildcardR ppair)
--- elim (VThere t)    (ECase (VCons l _E) _P ccs) = do
---   _Pthere <- _P `subCompose` VThere
---   _A <- _P `sub` VHere
---   _B <- _E `elim` EBranches _Pthere
---   _M <- _P `sub` (VThere t)
---   cs <- freshR "cs"
---   ppair <- t `elim` ECase _E _Pthere (vVar cs)
---   ccs `elim` EElimPair _A (kBind _B) (kBind _M) (bind2 wildcardR cs ppair)
--- elim _             (ECase _E _P ccs) =
---   error "Ill-typed evaluation of case"
+elim VHere         (ECase (VCons l _E) _P ccs) = let
+  _Pthere = _P `subCompose` VThere
+  _A = _P `sub` VHere
+  _B = bind0 $ _E `elim` EBranches _Pthere
+  _M = bind0 $ _A
+  ppair = bind2 $ \ c cs -> id #! c
+  in ccs `elim` EElimPair _A _B _M ppair
+elim (VThere t)    (ECase (VCons l _E) _P ccs) = let
+  _Pthere = _P `subCompose` VThere
+  _A = _P `sub` VHere
+  _B = bind0 $ _E `elim` EBranches _Pthere
+  _M = bind0 $ _P `sub` (VThere t)
+  ppair = bind2 $ \ c cs -> elim # t $ ECase # _E ## _Pthere #! cs
+  in ccs `elim` EElimPair _A _B _M ppair
+elim _             (ECase _E _P ccs) =
+  error "Ill-typed evaluation of case"
 
 ----------------------------------------------------------------------
 
@@ -388,9 +380,6 @@ wildcard = "_"
 -- vBind :: String -> (Value -> Value) -> Bind Nom Value
 -- vBind x f = bind (s2n x) (f (var x))
 
--- kBind :: Value -> Bind Nom Value
--- kBind x = bind wildcardR x
-
 -- rBind :: String -> (Nom -> Value) -> Bind Nom Value
 -- rBind x f = sbind x (f (s2n x))
 
@@ -401,10 +390,10 @@ wildcard = "_"
 -- var = vVar . s2n
 
 vProd :: Value a -> Value a -> Value a
-vProd _A _B = VSg _A (nobind _B)
+vProd _A _B = VSg _A (bind0 _B)
 
 vArr :: Value a -> Value a -> Value a
-vArr _A _B = VPi _A (nobind _B)
+vArr _A _B = VPi _A (bind0 _B)
 
 -- eIf :: Value -> Value -> Value -> Elim
 -- eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf

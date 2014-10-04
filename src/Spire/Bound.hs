@@ -43,22 +43,33 @@ vars3 = (One , Two , Three)
 
 locals1 :: (() -> a) -> a
 locals1 f = f var1
+bind1 f = locals1 $ \ x -> Scope (f x)
 
 locals2 :: (Bool -> Bool -> a) -> a
 locals2 f = uncurry f vars2
+bind2 f = locals2 $ \ x y -> Scope (f x y)
 
 locals3 :: (Three -> Three -> Three -> a) -> a
 locals3 f = let (x,y,z) = vars3 in f x y z
+bind3 f = locals3 $ \ x y z -> Scope (f x y z)
 
 ----------------------------------------------------------------------
 
-abstract0 :: Monad f => f a -> Scope b f a
-abstract0 = abstract (const Nothing)
+bind0 :: Monad f => f a -> Scope b f a
+bind0 = abstract (const Nothing)
 
 abstract2 :: (Monad f, Eq a) => (a , a) -> f a -> Scope Bool f a
 abstract2 (x , y) = abstract $ \b ->
   if x == b then Just True else
   if y == b then Just False else Nothing
+
+mabstract2 :: (Monad f, Eq a) => (Maybe a , Maybe a) -> f a -> Scope Bool f a
+mabstract2 (Nothing , Nothing) = bind0
+mabstract2 (Nothing , Just y) = abstract $ \b ->
+  if y == b then Just False else Nothing
+mabstract2 (Just x , Nothing) = abstract $ \b ->
+  if x == b then Just True else Nothing
+mabstract2 (Just x , Just y) = abstract2 (x , y)
 
 abstract3 :: (Monad f, Eq a) => (a , a , a) -> f a -> Scope Three f a
 abstract3 (x1 , x2 , x3) = abstract $ \b ->
