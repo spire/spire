@@ -108,8 +108,11 @@ sub3 = flip instantiate3
 elims :: Value a -> Spine (Elim a) -> Value a
 elims = Data.Foldable.foldl elim
 
-elimB :: Bind Nom Value a -> Elim a -> Bind Nom Value a
-elimB f g = toScope $ elim (fromScope f) (fmap F g)
+elimB :: Bind b Value a -> Elim a -> Bind b Value a
+elimB f g = Scope $ elim (unscope f) (fmap (F . return) g)
+
+subCompose :: Bind b Value a -> (Value a -> Value a) -> Bind b Value a
+subCompose b f = b >>>= f . return
 
 vVar :: a -> Value a
 vVar a = VNeut a Id
@@ -229,20 +232,19 @@ elim (VEnd i)        (EElimDesc _I _P pend prec parg) =
 elim (VRec i _D)     (EElimDesc _I _P pend prec parg) = let
   ih = _D `elim` EElimDesc _I _P pend prec parg
   in prec `sub3` (i , _D , ih)
--- elim (VArg _A bnd_B) (EElimDesc _I _P pend prec parg) = let
---   (nm_a , _B) = unbind bnd_B
---   ih = elim _B (EElimDesc _I _P pend prec parg)
---   in parg `sub3` (_A , VLam (bind nm_a _B) , VLam (bind nm_a ih))
+elim (VArg _A _B) (EElimDesc _I _P pend prec parg) = let
+  ih = elimB _B (EElimDesc _I _P pend prec parg)
+  in parg `sub3` (_A , VLam _B , VLam ih)
 elim _            (EElimDesc _I _P pend prec parg)  =
   error "Ill-typed evaluation of elimDesc"
 
--- elim (VInit xs) (EInd l _P _I _D p _M m i) = do
---   let _X = vBind "i" (VFix l _P _I _D p)
---   let ih = rBind2 "i" "x" $ \ j x -> rInd l _P _I _D p _M m (vVar j) x
---   ihs <- _D `elim` EProve _I _X _M ih i xs
---   m `sub3` (i , xs , ihs)
--- elim _            (EInd l _P _I _D p _M m i)  =
---   error "Ill-typed evaluation of ind"
+elim (VInit xs) (EInd l _P _I _D p _M m i) = let
+  _X = locals1 $ \ j -> Scope $ VFix # l # _P # _I # _D # p #! j
+  ih = locals2 $ \ j x -> Scope $ rInd # l # _P # _I # _D # p ## _M ## m #! j #| x
+  ihs = _D `elim` EProve _I _X _M ih i xs
+  in m `sub3` (i , xs , ihs)
+elim _            (EInd l _P _I _D p _M m i)  =
+  error "Ill-typed evaluation of ind"
 
 elim (VEnd j)        (EFunc _I _X i) =
   VEq _I j _I i
@@ -291,9 +293,9 @@ elim _D               (EHyps _I _X _M i xs) =
 
 elim VNil         (EBranches _P) =
   VUnit
--- elim (VCons l _E)    (EBranches _P) = do
---   _P' <- _P `subCompose` VThere
---   vProd <$> _P `sub` VHere  <*> _E `elim` EBranches _P'
+elim (VCons l _E)    (EBranches _P) = let
+  _P' = _P `subCompose` VThere
+  in vProd (_P `sub` VHere)  (_E `elim` EBranches _P')
 elim _             (EBranches _P) =
   error "Ill-typed evaluation of Branches"
 
@@ -398,14 +400,11 @@ wildcard = "_"
 -- var :: String -> Value
 -- var = vVar . s2n
 
--- vVar :: Nom -> Value
--- vVar nm = VNeut nm Id
-
 vProd :: Value a -> Value a -> Value a
 vProd _A _B = VSg _A (nobind _B)
 
--- vArr :: Value -> Value -> Value
--- vArr _A _B = VPi _A (bind (s2n wildcard) _B)
+vArr :: Value a -> Value a -> Value a
+vArr _A _B = VPi _A (nobind _B)
 
 -- eIf :: Value -> Value -> Value -> Elim
 -- eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
@@ -445,8 +444,8 @@ vProd _A _B = VSg _A (nobind _B)
 -- rProve :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Bind Nom2 Value -> Value -> Value -> Type
 -- rProve _I _D _X _M m i xs = VNeut _D (Pipe Id (EProve _I _X _M m i xs))
 
--- rInd :: Value -> Value -> Value -> Value -> Value -> Bind Nom2 Value -> Bind Nom3 Value -> Value -> Nom -> Type
--- rInd l _P _I _D p _M m i x = VNeut x (Pipe Id (EInd l _P _I _D p _M m i))
+rInd :: Value a -> Value a -> Value a -> Value a -> Value a -> Bind Nom2 Value a -> Bind Nom3 Value a -> Value a -> a -> Type a
+rInd l _P _I _D p _M m i x = VNeut x (Pipe Id (EInd l _P _I _D p _M m i))
 
 -- rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
 -- rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))

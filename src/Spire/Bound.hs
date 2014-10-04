@@ -15,6 +15,43 @@ type Nom3 = Three
 
 ----------------------------------------------------------------------
 
+(#) :: Monad f => (f (Var b (f a)) -> c) -> f a -> c
+f # a = f (return (F a))
+
+(##) :: Monad f => (Scope b f (Var b' (f a)) -> c) -> Scope b f a -> c
+f ## b = f (shiftB b)
+
+(#!) :: Monad f => (f (Var b (f a)) -> c) -> b -> c
+f #! b = f (return (B b))
+
+(#|) :: Monad f => (Var b (f a) -> c) -> b -> c
+f #| b = f (B b)
+
+shiftB :: Monad f => Scope b f a -> Scope b f (Var b' (f a))
+shiftB b = b >>>= return . F . return
+
+----------------------------------------------------------------------
+
+var1 :: ()
+var1 = ()
+
+vars2 :: (Bool , Bool)
+vars2 = (True , False)
+
+vars3 :: (Three , Three , Three)
+vars3 = (One , Two , Three)
+
+locals1 :: (() -> a) -> a
+locals1 f = f var1
+
+locals2 :: (Bool -> Bool -> a) -> a
+locals2 f = uncurry f vars2
+
+locals3 :: (Three -> Three -> Three -> a) -> a
+locals3 f = let (x,y,z) = vars3 in f x y z
+
+----------------------------------------------------------------------
+
 abstract0 :: Monad f => f a -> Scope b f a
 abstract0 = abstract (const Nothing)
 
