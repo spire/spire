@@ -257,33 +257,28 @@ elim (VRec j _D)     (EHyps _I _X _M i xxs) = let
   _M = bind0$ VType
   ppair = bind2$ \ x xs -> vProd (sub2 ## _M # j #! x) (elim # _D $ EHyps # _I ## _X ## _M # i #! xs)
   in xxs `elim` EElimPair _A _B _M ppair
--- elim (VArg _A bnd_B)    (EHyps _I _X _M i axs) = do
---   (a , _B) <- unbind bnd_B
---   _B' <- _B `elim` EFunc _I _X i
---   xs <- freshR "xs"
---   ppair <- _B `elim` EHyps _I _X _M i (vVar xs)
---   axs `elim` EElimPair _A (bind a _B') (bind0 VType) (bind2 a xs ppair)
+elim (VArg _A _B)    (EHyps _I _X _M i axs) = let
+  _B' = _B `elimB` EFunc _I _X i
+  ppair = bind2$ \ a xs -> (sub ## _B #! a) `elim` (EHyps # _I ## _X ## _M # i #! xs)
+  in axs `elim` EElimPair _A _B' (bind0 VType) ppair
 elim _D               (EHyps _I _X _M i xs) =
   error "Ill-typed evaluation of Hyps"
 
--- elim (VEnd j)        (EProve _I _X _M m i q) =
---   VTT
--- elim (VRec j _D)     (EProve _I _X _M m i xxs) = do
---   _A <- _X `sub` j
---   _B <- _D `elim` EFunc _I _X i
---   (nm_xxs , x , xs) <- (,,) <$> freshR "xxs" <*> freshR "x" <*> freshR "xs"
---   _M' <- VRec j _D `elim` EHyps _I _X _M i (vVar nm_xxs)
---   ppair <- VPair <$> m `sub2` (j , vVar x) <*> _D `elim` EProve _I _X _M m i (vVar xs)
---   xxs `elim` EElimPair _A (bind0 _B) (bind nm_xxs _M') (bind2 x xs ppair)
--- elim (VArg _A _B)    (EProve _I _X _M m i axs) = do
---   (nm_axs , a , xs) <- (,,) <$> freshR "axs" <*> freshR "a" <*> freshR "xs"
---   _Ba <- _B `sub` vVar a
---   _B' <- _Ba `elim` (EFunc _I _X i)
---   _M' <- VArg _A _B `elim` EHyps _I _X _M i (vVar nm_axs)
---   ppair <- _Ba `elim` EProve _I _X _M m i (vVar xs)
---   axs `elim` EElimPair _A (bind a _B') (bind nm_axs _M') (bind2 a xs ppair)
--- elim _               (EProve _I _X _M m i xs) =
---   error "Ill-typed evaluation of prove"
+elim (VEnd j)        (EProve _I _X _M m i q) =
+  VTT
+elim (VRec j _D)     (EProve _I _X _M m i xxs) = let
+  _A = _X `sub` j
+  _B = bind0$ _D `elim` EFunc _I _X i
+  _M' = bind1$ \xxs -> (VRec # j # _D) `elim` (EHyps # _I ## _X ## _M # i #! xxs)
+  ppair = bind2$ \ x xs -> (VPair (sub2 ## m # j #! x) # _D) `elim` (EProve # _I ## _X ## _M ## m # i #! xs)
+  in xxs `elim` EElimPair _A _B _M' ppair
+elim (VArg _A _B)    (EProve _I _X _M m i axs) = let
+  _B' = _B `elimB` EFunc _I _X i
+  _M' = bind1$ \ axs' -> (VArg # _A ## _B) `elim` (EHyps # _I ## _X ## _M # i #! axs')
+  ppair = bind2$ \ a xs -> (sub ## _B #! a) `elim` (EProve # _I ## _X ## _M ## m # i #! xs)
+  in axs `elim` EElimPair _A _B' _M' ppair
+elim _               (EProve _I _X _M m i xs) =
+  error "Ill-typed evaluation of prove"
 
 elim VNil         (EBranches _P) =
   VUnit
