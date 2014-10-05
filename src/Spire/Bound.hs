@@ -13,11 +13,18 @@ type Nom = ()
 type Nom2 = Bool
 type Nom3 = Three
 
+var :: Monad m => a -> m a
+var = return
+
 ----------------------------------------------------------------------
 
 (#) :: Monad f => (f (Var b (f a)) -> c) -> f a -> c
 f # a = f (return (F a))
 {-# INLINE (#) #-}
+
+(#~) :: Monad f => (Var b (f a) -> c) -> a -> c
+f #~ b = f (F (return b))
+{-# INLINE (#~) #-}
 
 (##) :: Monad f => (Scope b f (Var b' (f a)) -> c) -> Scope b f a -> c
 f ## b = f (shiftS b)
@@ -63,24 +70,20 @@ bind3 f = locals3 $ \ x y z -> Scope (f x y z)
 bind0 :: Monad f => f a -> Scope b f a
 bind0 = abstract (const Nothing)
 
+abs1 (x , b) = abstract1 x b
+
 abstract2 :: (Monad f, Eq a) => (a , a) -> f a -> Scope Bool f a
 abstract2 (x , y) = abstract $ \b ->
   if x == b then Just True else
   if y == b then Just False else Nothing
-
-mabstract2 :: (Monad f, Eq a) => (Maybe a , Maybe a) -> f a -> Scope Bool f a
-mabstract2 (Nothing , Nothing) = bind0
-mabstract2 (Nothing , Just y) = abstract $ \b ->
-  if y == b then Just False else Nothing
-mabstract2 (Just x , Nothing) = abstract $ \b ->
-  if x == b then Just True else Nothing
-mabstract2 (Just x , Just y) = abstract2 (x , y)
+abs2 (x , y , b) = abstract2 (x , y) b
 
 abstract3 :: (Monad f, Eq a) => (a , a , a) -> f a -> Scope Three f a
 abstract3 (x1 , x2 , x3) = abstract $ \b ->
   if x1 == b then Just One else
   if x2 == b then Just Two else
   if x3 == b then Just Three else Nothing
+abs3 (x , y , z , b) = abstract3 (x , y , z) b
 
 ----------------------------------------------------------------------
 

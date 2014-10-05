@@ -307,7 +307,7 @@ elim _             (ECase _E _P ccs) =
 
 ----------------------------------------------------------------------
 
-data VDef = VDef Nom (Value String) (Value String)
+data VDef = VDef String (Value String) (Value String)
   deriving (Show,Read,Eq,Ord)
 
 type Env = [VDef]
@@ -330,7 +330,7 @@ type SpireM = StateT SpireS (ReaderT SpireR (Either String))
 -- extendCtx x _A = local
 --   (\r -> r { ctx = snocTel (ctx r) (x , Embed _A) })
 
-extendEnv :: Nom -> Value String -> Type String -> SpireM a -> SpireM a
+extendEnv :: String -> Value String -> Type String -> SpireM a -> SpireM a
 extendEnv x a _A = local
   (\r -> r { env = VDef x a _A : (env r) })
 
@@ -367,10 +367,16 @@ wildcard = "_"
 -- sbind2 x y = bind2 (s2n x) (s2n y)
 -- sbind3 x y z = bind3 (s2n x) (s2n y) (s2n z)
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- vPi :: String -> Value ->  Value -> Value
--- vPi s x y = VPi x (bind (s2n s) y)
+vPi :: Eq a => a -> Value a -> Value a -> Value a
+vPi s x y = VPi x (abstract1 s y)
+
+vSg :: Eq a => Value a -> (a , Value a) -> Value a
+vSg _A (nm , _B) = VSg _A (abstract1 nm _B)
+
+vExt :: Eq a => Value a -> (a , Value a) -> Value a
+vExt _A (nm , _B) = VExt _A (abstract1 nm _B)
 
 -- vBind :: String -> (Value -> Value) -> Bind Nom Value
 -- vBind x f = bind (s2n x) (f (var x))
@@ -395,49 +401,49 @@ vArr _A _B = VPi _A (bind0 _B)
 
 -- ----------------------------------------------------------------------
 
--- rElimUnit :: Bind Nom Value -> Value -> Nom -> Value
--- rElimUnit _P ptt u = VNeut u (Pipe Id (EElimUnit _P ptt))
+rElimUnit :: Eq a => Bind Nom Value a -> Value a -> a -> Value a
+rElimUnit _P ptt u = VNeut u (Pipe Id (EElimUnit _P ptt))
 
--- rElimBool :: Bind Nom Value -> Value -> Value -> Nom -> Value
--- rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
+rElimBool :: Eq a => Bind Nom Value a -> Value a -> Value a -> a -> Value a
+rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 
--- rElimPair :: Type -> Bind Nom Type -> Bind Nom Type -> Bind Nom2 Value -> Nom -> Value
--- rElimPair _A _B _P ppair ab = VNeut ab (Pipe Id (EElimPair _A _B _P ppair))
+rElimPair :: Eq a => Type a -> Bind Nom Type a -> Bind Nom Type a -> Bind Nom2 Value a -> a -> Value a
+rElimPair _A _B _P ppair ab = VNeut ab (Pipe Id (EElimPair _A _B _P ppair))
 
--- rElimEq :: Type -> Value -> Bind Nom2 Value -> Value -> Value -> Nom -> Value
--- rElimEq _A x _P prefl y q = VNeut q (Pipe Id (EElimEq _A x _P prefl y))
+rElimEq :: Eq a => Type a -> Value a -> Bind Nom2 Value a -> Value a -> Value a -> a -> Value a
+rElimEq _A x _P prefl y q = VNeut q (Pipe Id (EElimEq _A x _P prefl y))
 
--- rElimEnum :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
--- rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
+rElimEnum :: Eq a => Bind Nom Value a -> Value a -> Bind Nom3 Value a -> a -> Value a
+rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 
--- rElimTel :: Bind Nom Value -> Value -> Bind Nom3 Value -> Nom -> Value
--- rElimTel _P pemp pext _T = VNeut _T (Pipe Id (EElimTel _P pemp pext))
+rElimTel :: Eq a => Bind Nom Value a -> Value a -> Bind Nom3 Value a -> a -> Value a
+rElimTel _P pemp pext _T = VNeut _T (Pipe Id (EElimTel _P pemp pext))
 
--- rElimDesc :: Value -> Bind Nom Value -> Bind Nom Value -> Bind Nom3 Value -> Bind Nom3 Value -> Nom -> Value
--- rElimDesc _I _P pend prec parg _D = VNeut _D (Pipe Id (EElimDesc _I _P pend prec parg))
+rElimDesc :: Eq a => Value a -> Bind Nom Value a -> Bind Nom Value a -> Bind Nom3 Value a -> Bind Nom3 Value a -> a -> Value a
+rElimDesc _I _P pend prec parg _D = VNeut _D (Pipe Id (EElimDesc _I _P pend prec parg))
 
--- rBranches :: Nom -> Bind Nom Value -> Type
--- rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
+rBranches :: Eq a => a -> Bind Nom Value a -> Type a
+rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
 
--- rFunc :: Value -> Nom -> Bind Nom Value -> Value -> Type
--- rFunc _I _D _X i = VNeut _D (Pipe Id (EFunc _I _X i))
+rFunc :: Eq a => Value a -> a -> Bind Nom Value a -> Value a -> Type a
+rFunc _I _D _X i = VNeut _D (Pipe Id (EFunc _I _X i))
 
--- rHyps :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Value -> Value -> Type
--- rHyps _I _D _X _M i xs = VNeut _D (Pipe Id (EHyps _I _X _M i xs))
+rHyps :: Eq a => Value a -> a -> Bind Nom Value a -> Bind Nom2 Value a -> Value a -> Value a -> Type a
+rHyps _I _D _X _M i xs = VNeut _D (Pipe Id (EHyps _I _X _M i xs))
 
--- rProve :: Value -> Nom -> Bind Nom Value -> Bind Nom2 Value -> Bind Nom2 Value -> Value -> Value -> Type
--- rProve _I _D _X _M m i xs = VNeut _D (Pipe Id (EProve _I _X _M m i xs))
+rProve :: Eq a => Value a -> a -> Bind Nom Value a -> Bind Nom2 Value a -> Bind Nom2 Value a -> Value a -> Value a -> Type a
+rProve _I _D _X _M m i xs = VNeut _D (Pipe Id (EProve _I _X _M m i xs))
 
 rInd :: Value a -> Value a -> Value a -> Value a -> Value a -> Bind Nom2 Value a -> Bind Nom3 Value a -> Value a -> a -> Type a
 rInd l _P _I _D p _M m i x = VNeut x (Pipe Id (EInd l _P _I _D p _M m i))
 
--- rCase :: Value -> (Bind Nom Value) -> Value -> Nom -> Value
--- rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
+rCase :: Eq a => Value a -> Bind Nom Value a -> Value a -> a -> Value a
+rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
--- vLam :: String -> Value -> Value
--- vLam s b = VLam (sbind s b)
+vLam :: Eq a => a -> Value a -> Value a
+vLam s b = VLam (abstract1 s b)
 
 -- vEta :: (Value -> Value) -> String -> Value
 -- vEta f s = vLam s (f (var s))
@@ -445,43 +451,32 @@ rInd l _P _I _D p _M m i x = VNeut x (Pipe Id (EInd l _P _I _D p _M m i))
 -- vEta2 :: (Value -> Value -> Value) -> String -> String -> Value
 -- vEta2 f s1 s2 = vLam s1 $ vLam s2 $ f (var s1) (var s2)
 
--- vApp :: String -> Value -> Value
--- vApp = vApp' . s2n
+vApp :: a -> Value a -> Value a
+vApp f x = VNeut f (Pipe Id (EApp x))
 
--- vApp' :: Nom -> Value -> Value
--- vApp' f x = VNeut f (Pipe Id (EApp x))
+vApp2 :: a -> Value a -> Value a -> Value a
+vApp2 f x y = VNeut f (Pipe (Pipe Id (EApp x)) (EApp y))
 
--- vApp2 :: String -> Value -> Value -> Value
--- vApp2 f x y = VNeut (s2n f) (Pipe (Pipe Id (EApp x)) (EApp y))
+vApp3 :: a -> Value a -> Value a -> Value a -> Value a
+vApp3 f x y z = VNeut f (Pipe (Pipe (Pipe Id (EApp x)) (EApp y)) (EApp z))
 
--- vApp3 :: String -> Value -> Value -> Value -> Value
--- vApp3 f x y z = VNeut (s2n f) (Pipe (Pipe (Pipe Id (EApp x)) (EApp y)) (EApp z))
+fbind1 :: a -> a -> (a , Value a)
+fbind1 f x = (x , f `vApp` var x)
 
--- fbind :: String -> String -> Bind Nom Value
--- fbind = fbind' . s2n
+fbind2 :: a -> a -> a -> (a , a , Value a)
+fbind2 f x y = (x , y , vApp2 f (var x) (var y))
 
--- fbind' :: Nom -> String -> Bind Nom Value
--- fbind' f x = sbind x $ vApp' f (var x)
+fbind3 :: a -> a -> a -> a -> (a , a , a , Value a)
+fbind3 f x y z = (x , y , z , vApp3 f (var x) (var y) (var z))
 
--- fbind2 :: String -> String -> String -> Bind Nom2 Value
--- fbind2 f x y = sbind2 x y $ vApp2 f (var x) (var y)
-
--- fbind3 :: String -> String -> String -> String -> Bind Nom3 Value
--- fbind3 f x y z = sbind3 x y z $ vApp3 f (var x) (var y) (var z)
-
--- vElimUnit :: String -> String -> String -> Value
--- vElimUnit _P ptt u = rElimUnit (fbind _P "u") (var ptt) (s2n u)
+vElimUnit :: Eq a => (a , Value a) -> Value a -> a -> Value a
+vElimUnit _P ptt u = rElimUnit (abs1 _P) ptt u
 
 -- vElimBool :: String -> String -> String -> String -> Value
 -- vElimBool _P pt pf b = rElimBool (fbind _P "b") (var pt) (var pf) (s2n b)
 
--- vElimPair :: String -> String -> String -> String -> String -> Value
--- vElimPair _A _B _P ppair ab = rElimPair
---   (var _A)
---   (fbind _B "a")
---   (fbind _P "xs")
---   (fbind2 ppair "a" "b")
---   (s2n ab)
+vElimPair :: Eq a => Value a -> (a , Value a) -> (a , Value a) -> (a , a , Value a) -> a -> Value a
+vElimPair _A _B _P ppair ab = rElimPair _A (abs1 _B) (abs1 _P) (abs2 ppair) ab
 
 -- vElimEq :: String -> String -> String -> String -> String -> String -> Value
 -- vElimEq _A x _P prefl y q = rElimEq
