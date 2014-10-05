@@ -29,11 +29,6 @@ import Spire.Options
 ----------------------------------------------------------------------
 
 type Type = Value
--- type HNom  = Name (Rebind Nom Value)
-
--- type NomType = (Nom , Embed Type)
-
-----------------------------------------------------------------------
 
 data Value a =
     VUnit | VBool | VEnum | VTel | VString | VType
@@ -337,35 +332,9 @@ extendEnv x a _A = local
 ----------------------------------------------------------------------
 
 wildcard = "_"
--- wildcardR :: Nom
--- wildcardR = s2n wildcard
 
 -- isWildcard :: Nom -> Bool
 -- isWildcard nm = name2String nm == wildcard
-
-----------------------------------------------------------------------
-
--- freshR :: Fresh m => String -> m Nom
--- freshR = fresh . s2n
-
--- freshMV :: Fresh m => String -> m Nom
--- freshMV suffix = fresh . s2n $ "?" ++ suffix
-
--- isMV :: Nom -> Bool
--- isMV nm = "?" `isPrefixOf` name2String nm
-
--- -- Return the non-'?' part of a mvars string.
--- mv2String :: Nom -> String
--- mv2String nm = case name2String nm of
---   '?':suffix -> suffix
---   _          -> error $ "mv2String: not an mvar: " ++ show nm
-
--- bind2 x y = bind (x , y)
--- bind3 x y z = bind (x , y , z)
--- sbind :: (Alpha t, Rep a) => String -> t -> Bind (Name a) t
--- sbind x = bind (s2n x)
--- sbind2 x y = bind2 (s2n x) (s2n y)
--- sbind3 x y z = bind3 (s2n x) (s2n y) (s2n z)
 
 ----------------------------------------------------------------------
 
@@ -378,6 +347,9 @@ vSg _A (nm , _B) = VSg _A (abstract1 nm _B)
 vExt :: Eq a => Value a -> (a , Value a) -> Value a
 vExt _A (nm , _B) = VExt _A (abstract1 nm _B)
 
+vArg :: Eq a => Value a -> (a , Value a) -> Value a
+vArg _A (nm , _B) = VArg _A (abstract1 nm _B)
+
 -- vBind :: String -> (Value -> Value) -> Bind Nom Value
 -- vBind x f = bind (s2n x) (f (var x))
 
@@ -386,9 +358,6 @@ vExt _A (nm , _B) = VExt _A (abstract1 nm _B)
 
 -- rBind2 :: String -> String -> (Nom -> Nom -> Value) -> Bind Nom2 Value
 -- rBind2 x y f = sbind2 x y (f (s2n x) (s2n y))
-
--- var :: String -> Value
--- var = vVar . s2n
 
 vProd :: Value a -> Value a -> Value a
 vProd _A _B = VSg _A (bind0 _B)
@@ -399,45 +368,45 @@ vArr _A _B = VPi _A (bind0 _B)
 -- eIf :: Value -> Value -> Value -> Elim
 -- eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
 
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
 
-rElimUnit :: Eq a => Bind Nom Value a -> Value a -> a -> Value a
+rElimUnit :: Bind Nom Value a -> Value a -> a -> Value a
 rElimUnit _P ptt u = VNeut u (Pipe Id (EElimUnit _P ptt))
 
-rElimBool :: Eq a => Bind Nom Value a -> Value a -> Value a -> a -> Value a
+rElimBool :: Bind Nom Value a -> Value a -> Value a -> a -> Value a
 rElimBool _P pt pf b = VNeut b (Pipe Id (EElimBool _P pt pf))
 
-rElimPair :: Eq a => Type a -> Bind Nom Type a -> Bind Nom Type a -> Bind Nom2 Value a -> a -> Value a
+rElimPair :: Type a -> Bind Nom Type a -> Bind Nom Type a -> Bind Nom2 Value a -> a -> Value a
 rElimPair _A _B _P ppair ab = VNeut ab (Pipe Id (EElimPair _A _B _P ppair))
 
-rElimEq :: Eq a => Type a -> Value a -> Bind Nom2 Value a -> Value a -> Value a -> a -> Value a
+rElimEq :: Type a -> Value a -> Bind Nom2 Value a -> Value a -> Value a -> a -> Value a
 rElimEq _A x _P prefl y q = VNeut q (Pipe Id (EElimEq _A x _P prefl y))
 
-rElimEnum :: Eq a => Bind Nom Value a -> Value a -> Bind Nom3 Value a -> a -> Value a
+rElimEnum :: Bind Nom Value a -> Value a -> Bind Nom3 Value a -> a -> Value a
 rElimEnum _P pnil pcons xs = VNeut xs (Pipe Id (EElimEnum _P pnil pcons))
 
-rElimTel :: Eq a => Bind Nom Value a -> Value a -> Bind Nom3 Value a -> a -> Value a
+rElimTel :: Bind Nom Value a -> Value a -> Bind Nom3 Value a -> a -> Value a
 rElimTel _P pemp pext _T = VNeut _T (Pipe Id (EElimTel _P pemp pext))
 
-rElimDesc :: Eq a => Value a -> Bind Nom Value a -> Bind Nom Value a -> Bind Nom3 Value a -> Bind Nom3 Value a -> a -> Value a
+rElimDesc :: Value a -> Bind Nom Value a -> Bind Nom Value a -> Bind Nom3 Value a -> Bind Nom3 Value a -> a -> Value a
 rElimDesc _I _P pend prec parg _D = VNeut _D (Pipe Id (EElimDesc _I _P pend prec parg))
 
-rBranches :: Eq a => a -> Bind Nom Value a -> Type a
+rBranches :: a -> Bind Nom Value a -> Type a
 rBranches _E _P = VNeut _E (Pipe Id (EBranches _P))
 
-rFunc :: Eq a => Value a -> a -> Bind Nom Value a -> Value a -> Type a
+rFunc :: Value a -> a -> Bind Nom Value a -> Value a -> Type a
 rFunc _I _D _X i = VNeut _D (Pipe Id (EFunc _I _X i))
 
-rHyps :: Eq a => Value a -> a -> Bind Nom Value a -> Bind Nom2 Value a -> Value a -> Value a -> Type a
+rHyps :: Value a -> a -> Bind Nom Value a -> Bind Nom2 Value a -> Value a -> Value a -> Type a
 rHyps _I _D _X _M i xs = VNeut _D (Pipe Id (EHyps _I _X _M i xs))
 
-rProve :: Eq a => Value a -> a -> Bind Nom Value a -> Bind Nom2 Value a -> Bind Nom2 Value a -> Value a -> Value a -> Type a
+rProve :: Value a -> a -> Bind Nom Value a -> Bind Nom2 Value a -> Bind Nom2 Value a -> Value a -> Value a -> Type a
 rProve _I _D _X _M m i xs = VNeut _D (Pipe Id (EProve _I _X _M m i xs))
 
 rInd :: Value a -> Value a -> Value a -> Value a -> Value a -> Bind Nom2 Value a -> Bind Nom3 Value a -> Value a -> a -> Type a
 rInd l _P _I _D p _M m i x = VNeut x (Pipe Id (EInd l _P _I _D p _M m i))
 
-rCase :: Eq a => Value a -> Bind Nom Value a -> Value a -> a -> Value a
+rCase :: Value a -> Bind Nom Value a -> Value a -> a -> Value a
 rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
 
 ----------------------------------------------------------------------
@@ -445,11 +414,11 @@ rCase _E _P cs t = VNeut t (Pipe Id (ECase _E _P cs))
 vLam :: Eq a => a -> Value a -> Value a
 vLam s b = VLam (abstract1 s b)
 
--- vEta :: (Value -> Value) -> String -> Value
--- vEta f s = vLam s (f (var s))
+vEta :: Eq a => (Value a -> Value a) -> a -> Value a
+vEta f x = vLam x (f (var x))
 
--- vEta2 :: (Value -> Value -> Value) -> String -> String -> Value
--- vEta2 f s1 s2 = vLam s1 $ vLam s2 $ f (var s1) (var s2)
+vEta2 :: Eq a => (Value a -> Value a -> Value a) -> a -> a -> Value a
+vEta2 f x y = vLam x $ vLam y $ f (var x) (var y)
 
 vApp :: a -> Value a -> Value a
 vApp f x = VNeut f (Pipe Id (EApp x))
@@ -472,101 +441,41 @@ fbind3 f x y z = (x , y , z , vApp3 f (var x) (var y) (var z))
 vElimUnit :: Eq a => (a , Value a) -> Value a -> a -> Value a
 vElimUnit _P ptt u = rElimUnit (abs1 _P) ptt u
 
--- vElimBool :: String -> String -> String -> String -> Value
--- vElimBool _P pt pf b = rElimBool (fbind _P "b") (var pt) (var pf) (s2n b)
+vElimBool :: Eq a => (a , Value a) -> Value a -> Value a -> a -> Value a
+vElimBool _P pt pf b = rElimBool (abs1 _P) pt pf b
 
 vElimPair :: Eq a => Value a -> (a , Value a) -> (a , Value a) -> (a , a , Value a) -> a -> Value a
 vElimPair _A _B _P ppair ab = rElimPair _A (abs1 _B) (abs1 _P) (abs2 ppair) ab
 
--- vElimEq :: String -> String -> String -> String -> String -> String -> Value
--- vElimEq _A x _P prefl y q = rElimEq
---   (var _A)
---   (var x)
---   (fbind2 _P "y" "q")
---   (var prefl)
---   (var y)
---   (s2n q)
+vElimEq :: Eq a => Type a -> Value a -> (a , a , Value a) -> Value a -> Value a -> a -> Value a
+vElimEq _A x _P prefl y q = rElimEq _A x (abs2 _P) prefl y q
 
--- vElimEnum :: String -> String -> String -> String -> Value
--- vElimEnum _P pnil pcons xs = rElimEnum
---   (fbind _P "xs")
---   (var pnil)
---   (fbind3 pcons "x" "xs" "pxs")
---   (s2n xs)
+vElimEnum :: Eq a => (a , Value a) -> Value a -> (a , a , a , Value a) -> a -> Value a
+vElimEnum _P pnil pcons xs = rElimEnum (abs1 _P) pnil (abs3 pcons) xs
 
--- vElimTel :: String -> String -> String -> String -> Value
--- vElimTel _P pemp pext _T = rElimTel
---   (fbind _P "T")
---   (var pemp)
---   (fbind3 pext "A" "B" "pb")
---   (s2n _T)
+vElimTel :: Eq a => (a , Value a) -> Value a -> (a , a , a , Value a) -> a -> Value a
+vElimTel _P pemp pext _T = rElimTel (abs1 _P) pemp (abs3 pext) _T
 
--- vElimDesc :: String -> String -> String -> String -> String -> String -> Value
--- vElimDesc _I _P pend prec parg _D = rElimDesc
---   (var _I)
---   (fbind _P "D")
---   (fbind pend "i")
---   (fbind3 prec "i" "D" "pd")
---   (fbind3 parg "A" "B" "pb")
---   (s2n _D)
+vElimDesc :: Eq a => Value a -> (a , Value a) -> (a , Value a) -> (a , a , a , Value a) -> (a , a , a , Value a) -> a -> Value a
+vElimDesc _I _P pend prec parg _D = rElimDesc _I (abs1 _P) (abs1 pend) (abs3 prec) (abs3 parg) _D
 
--- vBranches :: String -> String -> Value
--- vBranches _E _P = rBranches
---   (s2n _E)
---   (fbind _P "t")
+vBranches :: Eq a => a -> (a , Value a) -> Type a
+vBranches _E _P = rBranches _E (abs1 _P)
 
--- vFunc :: String -> String -> String -> String -> Value
--- vFunc _I _D _X i = rFunc
---   (var _I)
---   (s2n _D)
---   (fbind _X "i")
---   (var i)
+vFunc :: Eq a => Value a -> a -> (a , Value a) -> Value a -> Type a
+vFunc _I _D _X i = rFunc _I _D (abs1 _X) i
 
--- vHyps :: String -> String -> String -> String -> String -> String -> Value
--- vHyps _I _D _X _M i xs = rHyps
---   (var _I)
---   (s2n _D)
---   (fbind _X "i")
---   (fbind2 _M "i" "x")
---   (var i)
---   (var xs)
+vHyps :: Eq a => Value a -> a -> (a , Value a) -> (a , a , Value a) -> Value a -> Value a -> Type a
+vHyps _I _D _X _M i xs = rHyps _I _D (abs1 _X) (abs2 _M) i xs
 
--- vProve :: String -> String -> String -> String -> String -> String -> String -> Value
--- vProve _I _D _X _M m i xs = rProve
---   (var _I)
---   (s2n _D)
---   (fbind _X "i")
---   (fbind2 _M "i" "x")
---   (fbind2 m "i" "x")
---   (var i)
---   (var xs)
+vProve :: Eq a => Value a -> a -> (a , Value a) -> (a , a , Value a) -> (a , a , Value a) -> Value a -> Value a -> Type a
+vProve _I _D _X _M m i xs = rProve _I _D (abs1 _X) (abs2 _M) (abs2 m) i xs
 
--- vInd :: String -> String -> String -> String -> String -> String -> String -> String -> String -> Value
--- vInd l _P _I _D p _M m i x = rInd
---   (var l)
---   (var _P)
---   (var _I)
---   (var _D)
---   (var p)
---   (fbind2 _M "i" "x")
---   (fbind3 m "i" "xs" "ihs")
---   (var i)
---   (s2n x)
+vInd :: Eq a => Value a -> Value a -> Value a -> Value a -> Value a
+  -> (a , a , Value a) -> (a , a , a , Value a) -> Value a -> a -> Type a
+vInd l _P _I _D p _M m i x = rInd l _P _I _D p (abs2 _M) (abs3 m) i x
 
--- vCase :: String -> String -> String -> String -> Value
--- vCase _E _P cs t = rCase
---   (var _E)
---   (fbind _P "t")
---   (var cs)
---   (s2n t)
+vCase :: Eq a => Value a -> (a , Value a) -> Value a -> a -> Value a
+vCase _E _P cs t = rCase _E (abs1 _P) cs t
 
--- vFix :: String -> String -> String -> String -> String -> String -> Value
--- vFix l _P _I _D p i = VFix
---   (var l)
---   (var _P)
---   (var _I)
---   (var _D)
---   (var p)
---   (var i)
-
--- ----------------------------------------------------------------------
+----------------------------------------------------------------------
