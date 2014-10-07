@@ -1,5 +1,6 @@
 module Spire.Bound where
 import Bound
+import Data.Traversable
 
 ----------------------------------------------------------------------
 
@@ -93,5 +94,11 @@ instantiate2 (x , y) = instantiate $ \ b -> if b then x else y
 instantiate3 :: Monad f => (f a , f a , f a) -> Scope Three f a -> f a
 instantiate3 (x , y , z) = instantiate $ \ t -> case t of
   One -> x ; Two -> y ; Three -> z
+
+----------------------------------------------------------------------
+
+unbind :: (Monad m,Monad t) =>
+  (a -> t a') -> Scope b m a -> ((Var b a -> t (Var b a')) , m (Var b a))
+unbind f b = (Data.Traversable.mapM f , fromScope b)
 
 ----------------------------------------------------------------------
