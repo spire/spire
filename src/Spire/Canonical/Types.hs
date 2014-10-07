@@ -333,8 +333,8 @@ extendEnv x a _A = local
 
 wildcard = "_"
 
--- isWildcard :: Nom -> Bool
--- isWildcard nm = name2String nm == wildcard
+isWildcard :: String -> Bool
+isWildcard nm = nm == wildcard
 
 ----------------------------------------------------------------------
 
@@ -350,23 +350,14 @@ vExt _A (nm , _B) = VExt _A (abstract1 nm _B)
 vArg :: Eq a => Value a -> (a , Value a) -> Value a
 vArg _A (nm , _B) = VArg _A (abstract1 nm _B)
 
--- vBind :: String -> (Value -> Value) -> Bind Nom Value
--- vBind x f = bind (s2n x) (f (var x))
-
--- rBind :: String -> (Nom -> Value) -> Bind Nom Value
--- rBind x f = sbind x (f (s2n x))
-
--- rBind2 :: String -> String -> (Nom -> Nom -> Value) -> Bind Nom2 Value
--- rBind2 x y f = sbind2 x y (f (s2n x) (s2n y))
-
 vProd :: Value a -> Value a -> Value a
 vProd _A _B = VSg _A (bind0 _B)
 
 vArr :: Value a -> Value a -> Value a
 vArr _A _B = VPi _A (bind0 _B)
 
--- eIf :: Value -> Value -> Value -> Elim
--- eIf _C ct cf = EElimBool (bind (s2n wildcard) _C) ct cf
+eIf :: Value a -> Value a -> Value a -> Elim a
+eIf _C ct cf = EElimBool (bind0 _C) ct cf
 
 ----------------------------------------------------------------------
 
