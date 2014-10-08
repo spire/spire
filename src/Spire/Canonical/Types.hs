@@ -1,14 +1,7 @@
 {-# LANGUAGE
-    MultiParamTypeClasses
-  , TemplateHaskell
-  , ScopedTypeVariables
-  , FlexibleInstances
-  , FlexibleContexts
-  , UndecidableInstances
-  , ViewPatterns
-  , StandaloneDeriving
-  , RankNTypes
-  , DeriveFunctor , DeriveFoldable , DeriveTraversable
+    DeriveFunctor
+  , DeriveFoldable
+  , DeriveTraversable
   #-}
 
 module Spire.Canonical.Types where
@@ -30,8 +23,8 @@ import Spire.Options
 
 type Type = Value
 
-data Value a =
-    VUnit | VBool | VEnum | VTel | VString | VType
+data Value a
+  = VUnit | VBool | VEnum | VTel | VString | VType
   | VTag (Value a) | VDesc (Value a)
 
   | VPi (Value a) (Bind Nom Value a)
@@ -59,8 +52,8 @@ data Value a =
 data Spine a = Id | Pipe (Spine a) a
   deriving (Show,Read,Eq,Ord,Functor,Foldable,Traversable)
 
-data Elim a =
-    EApp (Value a)
+data Elim a
+  =  EApp (Value a)
 
   | EFunc (Value a) (Bind Nom Value a) (Value a)
   | EHyps (Value a) (Bind Nom Value a) (Bind Nom2 Value a) (Value a) (Value a)
@@ -85,7 +78,7 @@ instance Eq1   Value
 instance Ord1  Value
 instance Show1 Value
 instance Read1 Value
-instance (Functor f , Monad f) => Applicative f where
+instance Applicative Value where
   pure = return
   (<*>) = ap
 

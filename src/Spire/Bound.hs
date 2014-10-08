@@ -1,5 +1,6 @@
 module Spire.Bound where
 import Bound
+import qualified Bound.Scope.Simple as S
 import Data.Traversable
 
 ----------------------------------------------------------------------
@@ -97,8 +98,8 @@ instantiate3 (x , y , z) = instantiate $ \ t -> case t of
 
 ----------------------------------------------------------------------
 
-unbind :: (Monad m,Monad t) =>
-  (a -> t a') -> Scope b m a -> ((Var b a -> t (Var b a')) , m (Var b a))
-unbind f b = (Data.Traversable.mapM f , fromScope b)
+unbind :: Monad m =>
+  (a -> m a') -> S.Scope b f a -> ((Var b a -> m (Var b a')) , f (Var b a))
+unbind f b = (Data.Traversable.mapM f , S.fromScope b)
 
 ----------------------------------------------------------------------
