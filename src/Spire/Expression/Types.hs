@@ -6,20 +6,20 @@ module Spire.Expression.Types where
 import Prelude.Extras
 import Bound.Scope.Simple
 
-import Spire.Bound hiding ( Bind )
+import Spire.Bound
 import Spire.Canonical.Types
 
-type Bind = Scope
+type SBind = Scope
 
 ----------------------------------------------------------------------
 
 data Check a
-  = CLam (Bind Nom Check a)
+  = CLam (SBind Nom Check a)
   | CPair (Check a) (Check a)
-  | CRefl a | CHere a
+  | CRefl | CHere
   | CThere (Check a) | CEnd (Check a)
   | CRec (Check a) (Check a) | CInit (Check a)
-  | CArg (Check a) (Bind Nom Check a)
+  | CArg (Check a) (SBind Nom Check a)
   | Infer (Infer a)
   deriving (Show,Read,Eq,Ord,Functor)
 
@@ -27,8 +27,8 @@ data Infer a
   = IQuotes String
   | IVar a
 
-  | IPi (Check a) (Bind Nom Check a)
-  | ISg (Check a) (Bind Nom Check a)
+  | IPi (Check a) (SBind Nom Check a)
+  | ISg (Check a) (SBind Nom Check a)
   | IEq (Infer a) (Infer a)
 
   | IIf (Check a) (Infer a) (Infer a)
@@ -52,8 +52,11 @@ type CProg = [CDef]
 
 ----------------------------------------------------------------------
 
-cVar :: a -> Check a
-cVar = Infer . IVar
+cVar :: Free a => String -> Check a
+cVar = Infer . iVar
+
+iVar :: Free a => String -> Infer a
+iVar = IVar . free
 
 iApps :: Infer a -> [Check a] -> Infer a
 iApps = foldl IApp

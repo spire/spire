@@ -1,3 +1,8 @@
+{-# LANGUAGE
+    TypeSynonymInstances
+  , FlexibleInstances
+  #-}
+
 module Spire.Bound where
 import Bound
 import qualified Bound.Scope.Simple as S
@@ -32,9 +37,21 @@ f #~ b = f (F (return b))
 f ## b = f (shiftS b)
 {-# INLINE (##) #-}
 
+f ### b = f (shiftS (shiftS b))
+{-# INLINE (###) #-}
+
+f #### b = f (shiftS (shiftS (shiftS b)))
+{-# INLINE (####) #-}
+
 (#!) :: Monad f => (f (Var b (f a)) -> c) -> b -> c
 f #! b = f (return (B b))
 {-# INLINE (#!) #-}
+
+f #!! b = f (return (F (return (B b))))
+{-# INLINE (#!!) #-}
+
+f #!!! b = f (return (F (return (F (return (B b))))))
+{-# INLINE (#!!!) #-}
 
 (#|) :: Monad f => (Var b (f a) -> c) -> b -> c
 f #| b = f (B b)
@@ -101,5 +118,22 @@ instantiate3 (x , y , z) = instantiate $ \ t -> case t of
 unbind :: Monad m =>
   (a -> m a') -> S.Scope b f a -> ((Var b a -> m (Var b a')) , f (Var b a))
 unbind f b = (Data.Traversable.mapM f , S.fromScope b)
+
+----------------------------------------------------------------------
+
+class Free a where
+  free :: String -> a 
+
+instance Free String where
+  free = id
+
+instance Free a => Free (Var b a) where
+  free = F . free
+
+----------------------------------------------------------------------
+
+liftScope :: (Monad m , Free a) =>
+  (m (Var b a) -> f (Var b a)) -> Scope b m a -> S.Scope b f a
+liftScope f = S.toScope . f . fromScope
 
 ----------------------------------------------------------------------
