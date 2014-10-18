@@ -1,45 +1,47 @@
 module Spire.Expression.Embedder where
-import Unbound.LocallyNameless
-import Control.Applicative
-import Spire.Canonical.Types
 import Spire.Expression.Types
 import Spire.Surface.Types
+import Spire.Bound
+import Bound.Scope.Simple
 
 ----------------------------------------------------------------------
 
-embedI :: Infer -> FreshM Syntax
-embedI (IPi       _A _B)     = SPi       <$> embedC _A <*> embedCB _B
-embedI (ISg       _A _B)     = SSg       <$> embedC _A <*> embedCB _B
-embedI (IEq       a  b)      = SEq       <$> embedI a  <*> embedI b
+embedI :: Free a => Infer a -> Syntax
+embedI (IPi       _A _B)     = SPi "x"   (embedC _A) (embedCB1 _B)
+embedI (ISg       _A _B)     = SSg "x"   (embedC _A) (embedCB1 _B)
+embedI (IEq       a  b)      = SEq       (embedI a)  (embedI b)
 
-embedI (IVar v)    = return $ SVar v
-embedI (IQuotes s) = return $ SQuotes s
+embedI (IVar v)    = SVar $ captured v
+embedI (IQuotes s) = SQuotes s
 
-embedI (IIf b ct cf) = SIf <$> embedC b <*> embedI ct <*> embedI cf
-embedI (IApp f a) = SApp <$> embedI f <*> embedC a
-embedI (IAnn a _A) = SAnn <$> embedC a <*> embedC _A
+embedI (IIf b ct cf) = SIf (embedC b) (embedI ct) (embedI cf)
+embedI (IApp f a) = SApp (embedI f) (embedC a)
+embedI (IAnn a _A) = SAnn (embedC a) (embedC _A)
 
-embedC :: Check -> FreshM Syntax
-embedC CRefl        = return SRefl
-embedC CHere        = return SHere
-embedC (CThere t)   = SThere <$> embedC t
-embedC (CEnd i)     = SEnd   <$> embedC i
-embedC (CRec i  _D) = SRec   <$> embedC i   <*> embedC  _D
-embedC (CArg _A _B) = SArg   <$> embedC _A  <*> embedCB _B
-embedC (CInit xs)   = SInit  <$> embedC  xs
-embedC (CPair a b)  = SPair  <$> embedC a   <*> embedC  b
-embedC (CLam b)     = SLam   <$> embedCB b
+embedC :: Free a => Check a -> Syntax
+embedC CRefl        = SRefl
+embedC CHere        = SHere
+embedC (CThere t)   = SThere $ embedC t
+embedC (CEnd i)     = SEnd   $ embedC i
+embedC (CRec i  _D) = SRec     (embedC i) (embedC  _D)
+embedC (CArg _A _B) = SArg "x" (embedC _A)  (embedCB1 _B)
+embedC (CInit xs)   = SInit    (embedC  xs)
+embedC (CPair a b)  = SPair    (embedC a)   (embedC b)
+embedC (CLam b)     = SLam "x" (embedCB1 b)
 embedC (Infer i)    = embedI i
 
 ----------------------------------------------------------------------
 
-embedCB :: Alpha a => Bind a Check -> FreshM (Bind a Syntax)
-embedCB bnd_a = do
-  (nm , a) <- unbind bnd_a
-  a'       <- embedC a
-  return   $ bind nm a'
+embedCB1 :: Free a => Scope () Check a -> Syntax
+embedCB1 = embedC . fromScope
 
-embedCDef :: CDef -> FreshM Stmt
-embedCDef (CDef nm a _A) = SDef nm <$> embedC a <*> embedC _A
+embedCB2 :: Free a => Scope Bool Check a -> Syntax
+embedCB2 = embedC . fromScope
+
+embedCB3 :: Free a => Scope Three Check a -> Syntax
+embedCB3 = embedC . fromScope
+
+embedCDef :: CDef -> Stmt
+embedCDef (CDef nm a _A) = SDef nm (embedC a) (embedC _A)
 
 ----------------------------------------------------------------------

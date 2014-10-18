@@ -123,12 +123,29 @@ unbind f b = (Data.Traversable.mapM f , S.fromScope b)
 
 class Free a where
   free :: String -> a 
+  captured :: a -> String
 
 instance Free String where
   free = id
+  captured = id
 
-instance Free a => Free (Var b a) where
+instance Free a => Free (Var () a) where
   free = F . free
+  captured (B ()) = "x"
+  captured (F a) = captured a
+
+instance Free a => Free (Var Bool a) where
+  free = F . free
+  captured (B True) = "x"
+  captured (B False) = "y"
+  captured (F a) = captured a
+
+instance Free a => Free (Var Three a) where
+  free = F . free
+  captured (B One) = "x"
+  captured (B Two) = "y"
+  captured (B Three) = "z"
+  captured (F a) = captured a
 
 ----------------------------------------------------------------------
 
