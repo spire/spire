@@ -9,8 +9,6 @@
 
 module Spire.Surface.Parser where
 import Spire.Surface.Types
-import Spire.Canonical.Types
-import Unbound.LocallyNameless (bind , s2n)
 import Text.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Token
@@ -94,7 +92,7 @@ parseDef = do
   parseToken l
   parseOp "="
   tm <- parseSyntax
-  return $ SDef (s2n l) tm tp
+  return $ SDef l tm tp
 
 ----------------------------------------------------------------------
 
@@ -143,11 +141,11 @@ table = [
 
   parseInfix op con = parseOp op >> return con
 
-  infixSg (SAnn (SVar nm) _A) _B = SSg _A (bind nm _B)
-  infixSg _A                  _B = sSg _A wildcard _B
+  infixSg (SAnn (SVar nm) _A) _B = SSg nm _A _B
+  infixSg _A                  _B = SSg wildcard _A _B
 
-  infixPi (SAnn (SVar nm) _A) _B = SPi _A (bind nm _B)
-  infixPi _A                  _B = sPi _A wildcard _B
+  infixPi (SAnn (SVar nm) _A) _B = SPi nm _A _B
+  infixPi _A                  _B = SPi wildcard _A _B
 
 ----------------------------------------------------------------------
 
@@ -250,17 +248,17 @@ parseLam = try $ do
   ls <- many1 parseWildOrIdent
   parseOp "->"
   tm <- parseSyntax
-  return $ foldr sLam tm ls
-
-parseLamArg = do
-  SLam _P <- parseParens parseLam <?> "expecting motive \"(\\ x -> e)\""
-  return _P
+  return $ foldr SLam tm ls
 
 parseArg = do
   parseKeyword "Arg"
   _A <- parseAtom
-  _B <- parseLamArg
-  return $ SArg _A _B
+  parseParens $ do
+    parseOp "\\"
+    nm <- parseWildOrIdent
+    parseOp "->"
+    _B <- parseSyntax
+    return $ SArg nm _A _B
 
 ----------------------------------------------------------------------
 
@@ -271,6 +269,6 @@ parseHere     = parseKeyword "here"   >> return SHere
 parseWildCard = parseKeyword wildcard >> return SWildCard
 
 parseQuotes = return . SQuotes =<< parseStringLit
-parseVar    = return . sVar =<< parseIdent
+parseVar    = return . SVar =<< parseIdent
 
 ----------------------------------------------------------------------

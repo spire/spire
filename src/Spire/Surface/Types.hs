@@ -8,119 +8,108 @@
   #-}
 
 module Spire.Surface.Types where
-import Spire.Canonical.Types
 import qualified Spire.Canonical.Builtins as B
-import Unbound.LocallyNameless
 
 ----------------------------------------------------------------------
 
+type Ident = String
+
 data Syntax =
     SRefl | SHere
-  | SQuotes String
+  | SQuotes Ident
   | SThere Syntax | SEnd Syntax
   | SRec Syntax Syntax | SInit Syntax
-  | SArg Syntax (Bind Nom Syntax)
+  | SArg Ident Syntax Syntax
   | SPair Syntax Syntax
-  | SLam (Bind Nom Syntax)
+  | SLam Ident Syntax
 
-  | SPi Syntax (Bind Nom Syntax)
-  | SSg Syntax (Bind Nom Syntax)
+  | SPi Ident Syntax Syntax
+  | SSg Ident Syntax Syntax
   | SEq Syntax Syntax
 
   | SWildCard
 
-  | SVar Nom
+  | SVar Ident
   | SApp Syntax Syntax
   | SIf Syntax Syntax Syntax
   | SAnn Syntax Syntax
- deriving Show
-
-$(derive [''Syntax])
-instance Alpha Syntax
+ deriving (Show,Read,Eq,Ord)
 
 ----------------------------------------------------------------------
 
 data Stmt =
-    SDef Nom Syntax Syntax
+    SDef String Syntax Syntax
   | SData String [(String , Syntax)] [(String , Syntax)] [(String , [Constr])]
-  deriving Show
+  deriving (Show,Read,Eq,Ord)
 
 data Constr = Fix [Syntax] | Arg String Syntax
-  deriving Show
+  deriving (Show,Read,Eq,Ord)
 
 type Stmts = [Stmt]
 type SProg = Stmts
 
 ----------------------------------------------------------------------
 
-sDef :: String -> Syntax -> Syntax -> Stmt
-sDef nm = SDef (s2n nm)
+wildcard = "_"
+
+isWildcard :: String -> Bool
+isWildcard nm = nm == wildcard
+
+----------------------------------------------------------------------
 
 sApps :: Syntax -> [Syntax] -> Syntax
 sApps = foldl SApp
 
-sVar :: String -> Syntax
-sVar = SVar . s2n
-
 sTT :: Syntax
-sTT = sVar B.tt
+sTT = SVar B.tt
 
 sString :: Syntax
-sString = sVar B._String
+sString = SVar B._String
 
 sType :: Syntax
-sType = sVar B._Type
+sType = SVar B._Type
 
 sEnum :: Syntax
-sEnum = sVar B._Enum
+sEnum = SVar B._Enum
 
 sTel :: Syntax
-sTel = sVar B._Tel
+sTel = SVar B._Tel
 
 sEmp :: Syntax
-sEmp = sVar B._Emp
+sEmp = SVar B._Emp
 
 sExt :: Syntax -> Syntax -> Syntax
-sExt _A _B = SApp (SApp (sVar B._Ext) _A) _B
+sExt _A _B = SApp (SApp (SVar B._Ext) _A) _B
 
 sNil :: Syntax
-sNil = sVar B.nil
+sNil = SVar B.nil
 
 sCons :: Syntax -> Syntax -> Syntax
-sCons x xs = SApp (SApp (sVar B.cons) x) xs
-
-sLam :: String -> Syntax -> Syntax
-sLam nm x = SLam $ bind (s2n nm) x
-
-sPi :: Syntax -> String -> Syntax -> Syntax
-sPi x nm y = SPi x $ bind (s2n nm) y
-
-sSg :: Syntax -> String -> Syntax -> Syntax
-sSg x nm y = SSg x $ bind (s2n nm) y
+sCons x xs = SApp (SApp (SVar B.cons) x) xs
 
 ----------------------------------------------------------------------
 
 _Indices :: String -> Syntax
-_Indices nm = SApp (sVar "Indices") $ sVar (nm ++ "P")
+_Indices nm = SApp (SVar "Indices") $ SVar (nm ++ "P")
 
 indices :: String -> Syntax -> Syntax
-indices nm _I = sApps (sVar "indices") [sVar (nm ++ "P") , _I]
+indices nm _I = sApps (SVar "indices") [SVar (nm ++ "P") , _I]
 
 _Constrs :: String -> Syntax
-_Constrs nm = sApps (sVar "Constrs") $
-  [sVar (nm ++ "E") , sVar (nm ++ "P") , sVar (nm ++ "I")]
+_Constrs nm = sApps (SVar "Constrs") $
+  [SVar (nm ++ "E") , SVar (nm ++ "P") , SVar (nm ++ "I")]
 
 constrs :: String -> Syntax -> Syntax
-constrs nm cs = sApps (sVar "constrs") $
-  [sVar (nm ++ "E") , sVar (nm ++ "P") , sVar (nm ++ "I") , cs]
+constrs nm cs = sApps (SVar "constrs") $
+  [SVar (nm ++ "E") , SVar (nm ++ "P") , SVar (nm ++ "I") , cs]
 
 _Former :: String -> Syntax
-_Former nm = sApps (sVar "Former") $
-  [sVar (nm ++ "P") , sVar (nm ++ "I")]
+_Former nm = sApps (SVar "Former") $
+  [SVar (nm ++ "P") , SVar (nm ++ "I")]
 
 nepic :: String -> String -> Syntax
-nepic nm _N = sApps (sVar nm) $
-  [sVar (_N ++ "N") , sVar (_N ++ "E") , sVar (_N ++ "P") ,
-   sVar (_N ++ "I") , sVar (_N ++ "C")]
+nepic nm _N = sApps (SVar nm) $
+  [SVar (_N ++ "N") , SVar (_N ++ "E") , SVar (_N ++ "P") ,
+   SVar (_N ++ "I") , SVar (_N ++ "C")]
 
 ----------------------------------------------------------------------

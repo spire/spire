@@ -324,13 +324,6 @@ extendEnv x a _A = local
 
 ----------------------------------------------------------------------
 
-wildcard = "_"
-
-isWildcard :: String -> Bool
-isWildcard nm = nm == wildcard
-
-----------------------------------------------------------------------
-
 vPi :: Eq a => a -> Value a -> Value a -> Value a
 vPi s x y = VPi x (abstract1 s y)
 
