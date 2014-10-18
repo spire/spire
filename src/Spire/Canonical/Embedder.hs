@@ -175,7 +175,7 @@ embedN nm (Pipe fs (ECase _E _P cs)) =
 
 ----------------------------------------------------------------------
 
-embedVB :: Free a => Bind b Value a -> SBind b Check a
+embedVB :: (Binder b, Free a) => Bind b Value a -> SBind b Check a
 embedVB = liftScope embedV
 
 embedVF :: Free a => Bind Nom Value a -> Check a
