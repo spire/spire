@@ -6,7 +6,7 @@ import Bound.Scope.Simple
 
 ----------------------------------------------------------------------
 
-embedI :: Free a => Infer a -> Syntax
+embedI :: Captured a => Infer a -> Syntax
 embedI (IPi       _A _B)     = SPi "x"   (embedC _A) (embedCB1 _B)
 embedI (ISg       _A _B)     = SSg "x"   (embedC _A) (embedCB1 _B)
 embedI (IEq       a  b)      = SEq       (embedI a)  (embedI b)
@@ -18,7 +18,7 @@ embedI (IIf b ct cf) = SIf (embedC b) (embedI ct) (embedI cf)
 embedI (IApp f a) = SApp (embedI f) (embedC a)
 embedI (IAnn a _A) = SAnn (embedC a) (embedC _A)
 
-embedC :: Free a => Check a -> Syntax
+embedC :: Captured a => Check a -> Syntax
 embedC CRefl        = SRefl
 embedC CHere        = SHere
 embedC (CThere t)   = SThere $ embedC t
@@ -32,13 +32,13 @@ embedC (Infer i)    = embedI i
 
 ----------------------------------------------------------------------
 
-embedCB1 :: Free a => Scope () Check a -> Syntax
+embedCB1 :: Captured a => Scope () Check a -> Syntax
 embedCB1 = embedC . fromScope
 
-embedCB2 :: Free a => Scope Bool Check a -> Syntax
+embedCB2 :: Captured a => Scope Bool Check a -> Syntax
 embedCB2 = embedC . fromScope
 
-embedCB3 :: Free a => Scope Three Check a -> Syntax
+embedCB3 :: Captured a => Scope Three Check a -> Syntax
 embedCB3 = embedC . fromScope
 
 embedCDef :: CDef -> Stmt
