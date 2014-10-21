@@ -6,9 +6,8 @@ import Spire.Debug
 import Spire.Options
 import Spire.Pipeline
 import Spire.Canonical.Types
-import Spire.Prelude.Interface
+-- import Spire.Prelude.Interface
 import Spire.Surface.Parser
-import Spire.Surface.PrettyPrinter
 
 ----------------------------------------------------------------------
 
@@ -27,18 +26,18 @@ runDebug conf = do
   setDebugging . Spire.Options.debug $ conf
   -- http://www.haskell.org/ghc/docs/latest/html/users_guide/other-type-extensions.html#implicit-parameters
   let ?conf = conf
-  prelude <- readPrelude
-  checkFromFile prelude (file conf)
+  -- prelude <- readPrelude
+  checkFromFile [] (file conf)
 
 ----------------------------------------------------------------------
 
 checkFromFile :: (?conf::Conf) => Env -> FilePath -> IO ()
 checkFromFile prelude file = do
-  case checkInitEnv of
-    Left error -> do 
-      putStrLn "Error in initial environment:"
-      putStrLn error
-    Right () -> do
+  -- case checkInitEnv of
+  --   Left error -> do 
+  --     putStrLn "Error in initial environment:"
+  --     putStrLn error
+  --   Right () -> do
       code <- readFile file
       case parseProgram file code of
         Left error -> do
@@ -48,7 +47,7 @@ checkFromFile prelude file = do
         Right program -> do
           putStrLn $ "Parsed program:"
           putStrLn ""
-          putStrLn $ prettyPrint program
+          putStrLn $ show program
           putStrLn ""
       
           case elabProgram prelude program of
@@ -59,7 +58,7 @@ checkFromFile prelude file = do
             Right program' -> do
               putStrLn $ "Elaborated program:"
               putStrLn ""
-              putStrLn $ prettyPrint program'
+              putStrLn $ show program'
               putStrLn ""
       
               case checkProgram prelude program' of
@@ -69,7 +68,7 @@ checkFromFile prelude file = do
                   when (paranoid ?conf) $ do
                     putStrLn $ "Evaluated program:"
                     putStrLn ""
-                    putStrLn $ prettyPrint program''
+                    putStrLn $ show program''
 
 ----------------------------------------------------------------------
 
