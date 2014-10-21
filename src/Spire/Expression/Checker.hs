@@ -197,7 +197,7 @@ infer' ctx (IIf b ct cf) = do
 
 checkExtend :: (Eq a,Show a) => Sub a -> Type a -> SBind Nom Check a -> Type (Var Nom a) -> SpireM (Bind Nom Value a)
 checkExtend ctx _A bnd_b _B = do
-  let (ctx' , b) = unbind2 ctx bnd_b
+  let (ctx' , b) = unbindWith1 ctx _A bnd_b
   b' <- check ctx' b _B
   return $ toScope b'
 

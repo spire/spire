@@ -123,24 +123,13 @@ instantiate3 (x , y , z) = instantiate $ \ t -> case t of
 weaken :: Monad f => f a -> f (Var b a)
 weaken e = e >>= return . F
 
-weakens :: Monad f => (a -> f a') -> Var b a -> f (Var b a')
-weakens f (F a) = weaken (f a)
-weakens f (B b) = return (B b)
--- weakens = Data.Traversable.mapM
+extendCtx1 :: Monad f => (a -> (f a' , f a')) -> f a' -> Var b a -> (f (Var b a') , f (Var b a'))
+extendCtx1 f _ (F a) = bimap weaken weaken (f a)
+extendCtx1 f a (B b) = (return (B b) , weaken a)
 
-weakens2 :: Monad f => (a -> (f a' , f a')) -> Var b a -> (f (Var b a') , f (Var b a'))
-weakens2 f (F a) = bimap weaken weaken (f a)
-weakens2 f (B b) = (return (B b) , return (B b))
-
-----------------------------------------------------------------------
-
-unbind :: Monad m =>
-  (a -> m a') -> S.Scope b f a -> ((Var b a -> m (Var b a')) , f (Var b a))
-unbind f b = (weakens f , S.fromScope b)
-
-unbind2 :: Monad m =>
-  (a -> (m a' , m a')) -> S.Scope b f a -> ((Var b a -> (m (Var b a') , m (Var b a'))) , f (Var b a))
-unbind2 f b = (weakens2 f , S.fromScope b)
+unbindWith1 :: Monad m =>
+  (a -> (m a' , m a')) -> m a' -> S.Scope b f a -> ((Var b a -> (m (Var b a') , m (Var b a'))) , f (Var b a))
+unbindWith1 f a b = (extendCtx1 f a , S.fromScope b)
 
 ----------------------------------------------------------------------
 
