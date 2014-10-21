@@ -301,6 +301,20 @@ data VDef = VDef String (Value String) (Value String)
 type Env = [VDef]
 type VProg = Env
 
+type Sub a = a -> (Value a , Value a)
+
+----------------------------------------------------------------------
+
+initCtx :: SpireM (Sub String)
+initCtx = do
+  env <- asks env
+  return $ flip lookupEnv env
+
+lookupEnv :: String -> Env -> (Value String , Value String)
+lookupEnv nm [] = error (nm ++ " not found in environment")
+lookupEnv nm (VDef nm' a _A : env) | nm == nm' = (a , _A)
+lookupEnv nm (VDef nm' a _A : env) = lookupEnv nm env
+
 ----------------------------------------------------------------------
 
 data SpireR = SpireR { ctx :: () , env :: Env , conf :: Conf }

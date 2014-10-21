@@ -9,8 +9,6 @@ import Bound.Scope.Simple
 import Spire.Bound
 import Spire.Canonical.Types
 
-type SBind = Scope
-
 ----------------------------------------------------------------------
 
 data Check a
