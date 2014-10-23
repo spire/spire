@@ -54,7 +54,7 @@
     )
 
   (apply 'make-comint "Spire" spire-command nil
-         (list (buffer-file-name))
+         (list "--paranoid" (buffer-file-name))
          )
   ;; Turn on compilation mode so that, e.g., 'C-x `' can be used to
   ;; jump to the next error.  This depends on compilation mode being
